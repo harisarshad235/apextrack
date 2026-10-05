@@ -87,8 +87,67 @@ INSERT INTO documents (id, title, category, content, author_id, updated_by_id, c
  ('doc-3','Incident Response & Release Checklist','Runbooks',
   '# Release Runbook' || char(10) || char(10) || '1. Ensure all CI/CD integration tests pass.' || char(10) || '2. Verify zero Critical/High severity bugs in **In Progress** or **In Review**.' || char(10) || '3. Execute edge database migrations.' || char(10) || '4. Notify on-call engineer in Slack channel `#releases`.',
   'u4','u4', unixepoch('2026-09-30 08:45')*1000, unixepoch('2026-09-30 08:45')*1000),
- ('doc-4','Getting Started & Runbook: ApexTrack Architecture, Navigation & RBAC Guide','Runbooks',
-  '# Getting Started & Architecture Runbook' || char(10) || char(10) || 'Welcome to **ApexTrack**, an enterprise self-hosted Jira & Confluence replacement powered by Next.js App Router and Cloudflare Workers edge serverless infrastructure.' || char(10) || char(10) || '---' || char(10) || char(10) || '## 1. Navigating the Workspace & APEX Tickets' || char(10) || char(10) || 'ApexTrack splits team workflows into 5 core workspaces accessible via the left sidebar:' || char(10) || char(10) || '1. **Kanban Board**: Real-time 4-column drag-and-drop board (`To Do`, `In Progress`, `In Review`, `Done`). Click any issue card (e.g. `APEX-101`) to open the detail drawer for editing, uploading attachments, or commenting.' || char(10) || '2. **Backlog & Sprint**: View active sprint commitments alongside unassigned backlog items. Use the inline status and story point controls for rapid triage.' || char(10) || '3. **Knowledge Base (Confluence)**: Central repository for architectural decision records (ADRs), PRDs, and team runbooks. Supports markdown formatting and file attachments.' || char(10) || '4. **Team & Access**: Roster management for viewing team seats, approving pending signups, and adjusting permissions.' || char(10) || '5. **Velocity Reports**: Analytics on sprint completion rates, defect ratios, and workload distribution per engineer.' || char(10) || char(10) || '### Creating New APEX Tickets' || char(10) || 'Click the **+ Create Issue** button in the top navbar. ApexTrack automatically generates sequential, collision-free issue keys (e.g., `APEX-106`) stored in Cloudflare D1.' || char(10) || char(10) || '---' || char(10) || char(10) || '## 2. Role-Based Access Control (RBAC) & Gatekeeper Flow' || char(10) || char(10) || 'ApexTrack enforces strict role-based access control both on the UI and in every server action:' || char(10) || char(10) || '- **Admin** (`Full Administrative Access`):' || char(10) || '  - Can invite new team members or alter user roles (`Admin`, `Member`, `Viewer`).' || char(10) || '  - Approves new self-registered signups in the `PENDING` holding queue.' || char(10) || '  - Can create, edit, move, or delete any issue or document.' || char(10) || '- **Member** (`Read / Write Access`):' || char(10) || '  - Can create and update tickets, move card statuses across lanes, post comments, edit documents, and upload R2 attachments.' || char(10) || '  - Cannot modify user seats, approve pending accounts, or delete team members.' || char(10) || '- **Viewer** (`Read-Only Access`):' || char(10) || '  - Can browse boards, view ticket details, inspect backlog scope, and read knowledge base articles.' || char(10) || '  - Form controls and edit buttons are disabled; server actions block write attempts.' || char(10) || '- **PENDING Account Holding State**:' || char(10) || '  - Newly self-registered accounts land at `/awaiting-approval` until an Admin approves their seat.' || char(10) || char(10) || '---' || char(10) || char(10) || '## 3. How Cloudflare D1 & R2 Persist Data Without External Servers' || char(10) || char(10) || 'ApexTrack runs on Cloudflare''s global edge network without traditional dedicated databases or always-on virtual machines:' || char(10) || char(10) || '1. **Cloudflare D1 (SQLite at the Edge)**:' || char(10) || '   - D1 is a serverless, distributed SQLite database replicated across Cloudflare edge locations worldwide.' || char(10) || '   - Reads execute sub-15ms locally at the nearest edge point.' || char(10) || '   - Drizzle ORM provides type-safe SQL queries compiled into SQLite dialect.' || char(10) || char(10) || '2. **Cloudflare R2 (Serverless Object Storage)**:' || char(10) || '   - Attachments, PDF specs, and screenshots uploaded in ticket drawers or documents are stored in Cloudflare R2 bucket `ATTACHMENTS`.' || char(10) || '   - Files stream directly via `/api/attachments/[id]` without egress fees.' || char(10) || char(10) || '3. **Zero Cold-Start Worker Execution**:' || char(10) || '   - The application compiles via OpenNext into a Cloudflare Worker bundle that cold-starts in <5ms across 300+ edge data centers.',
+ ('doc-4','ApexTrack System Architecture, RBAC & Cloudflare Operations Manual','Architecture',
+  '# ApexTrack System Architecture, RBAC & Cloudflare Operations Manual
+
+> **Executive Summary**: ApexTrack is an enterprise-grade, self-hosted alternative to Jira Software and Atlassian Confluence, architected entirely on Cloudflare edge computing primitives (Next.js 16 App Router on Cloudflare Workers, Cloudflare D1 distributed SQLite, and Cloudflare R2 object storage).
+
+---
+
+## Section 1: User Guide
+
+### 1.1 Navigating Kanban Boards & Dynamic Swimlanes
+- **Multi-Project Workspaces**: Switch between projects (e.g., `APEX` Platform vs. `CORE` Infrastructure) from the sidebar dropdown or open the Project Manager modal.
+- **Dynamic Swimlanes**: Columns are no longer static hardcoded states. Each project defines custom swimlanes. Click **+ Add Swimlane** to introduce specialized phases (e.g., `Security Review`, `QA Automation`). Double-click or click the edit icon on any column header to rename lanes inline.
+- **Fluid Drag-and-Drop**: Drag issue cards across columns to update lifecycle status optimistically with instant server synchronization.
+
+### 1.2 Backlog Management & Story Point Velocity
+- **Sprint Planning**: Move issues between the active sprint queue and the global unassigned backlog.
+- **Story Point Estimation**: Log Fibonacci points (1, 2, 3, 5, 8, 13) to measure velocity and burnout rates across the sprint cycle.
+
+### 1.3 Filing Defects & Logging Issue History
+- **Issue Types**: File Epics, User Stories, Engineering Tasks, or critical Bugs with severity rankings (Lowest to Critical).
+- **Interactive Slide-Out Drawer**: Click any ticket key (e.g. `APEX-101`) to open the slide-out detail drawer to edit descriptions in rich text, adjust assignees, upload attachments, and post threaded comments with audit timestamps.
+
+---
+
+## Section 2: Security & RBAC Governance
+
+### 2.1 Role-Based Access Control (RBAC) Permissions Matrix
+
+| Capability / Permission | Administrator (Admin) | Team Member (Member) | Stakeholder (Viewer) |
+| :--- | :---: | :---: | :---: |
+| **Browse Boards & Backlogs** | Full Access | Full Access | Read-Only |
+| **Create & Update Issues** | Full Access | Full Access | Disabled |
+| **Move Kanban Swimlane Cards** | Full Access | Full Access | Disabled |
+| **Upload R2 Bucket Attachments**| Full Access | Full Access | Disabled |
+| **Publish & Edit ADR Documents**| Full Access | Full Access | Disabled |
+| **Invite Team Members** | Full Access | Denied | Denied |
+| **Approve / Reject PENDING Users**| Full Access | Denied | Denied |
+| **Promote / Change User Roles** | Full Access | Denied | Denied |
+| **Create & Archive Projects** | Full Access | Denied | Denied |
+
+### 2.2 User Registration & Approval Pipeline
+1. **Self-Serve Registration**: New users sign up via `/login?tab=register` or `/register`.
+2. **Strict Gated Holding State (`PENDING`)**: New registrations default to `status = PENDING` and are immediately routed to `/awaiting-approval`. Edge middleware blocks access to workspace endpoints.
+3. **Administrator Review**: Organization Admins navigate to **Team & Access -> Pending Approvals**.
+4. **Role Assignment & Activation**: Admins select a role (`Member`, `Viewer`, or `Admin`) and click **Approve** (updating D1 status to `APPROVED`) or **Reject**.
+
+---
+
+## Section 3: Cloudflare Edge Infrastructure for Beginners
+
+### 3.1 How Cloudflare D1 Operates: Local Dev vs. Global Edge
+- **Local Development (Wrangler SQLite)**: In local development, Cloudflare Wrangler emulates D1 using an isolated local SQLite file located in `.wrangler/state/v3/d1/miniflare-D1DatabaseObject/`. All Drizzle ORM migrations run locally with identical syntax to production.
+- **Global Edge Deployment**: In production, Cloudflare D1 distributes read replicas across 300+ Anycast edge data centers worldwide. Read queries execute within 10-15ms of the client, while writes route through Cloudflare''s primary consensus coordinator.
+- **Zero Server Maintenance**: There are no database clusters to patch, no connection pools to manage, and no idle compute costs.
+
+### 3.2 Cloudflare R2: Zero-Egress Serverless Object Storage
+- **S3 Compatibility without AWS Egress Fees**: Cloudflare R2 provides full S3 API compatibility without charging bandwidth egress fees. Attachments uploaded to tickets or documents stream directly through Worker routes (`/api/attachments/[id]`).
+- **Direct Object Binding**: The Worker interacts with R2 via the `env.ATTACHMENTS` binding, streaming binary payloads with Content-Type headers directly to clients.
+
+### 3.3 Serverless Edge Workers Runtime
+- Rather than executing in traditional Node.js containers that incur 2-5 second cold starts, ApexTrack compiles into V8 isolates running directly on Cloudflare Workers, achieving <5ms initialization times globally.',
   'u1','u1', unixepoch('2026-10-06 01:00')*1000, unixepoch('2026-10-06 01:00')*1000);
 
 -- Attachment metadata (R2 objects are uploaded in Phase 4) -----------

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { User, Project } from '@/lib/types';
 import { UserAvatar } from '@/components/ui/UserAvatar';
+import { ApexTrackLogo } from '@/components/ui/ApexTrackLogo';
 
 interface SidebarProps {
   activeTab: string;
@@ -76,14 +77,17 @@ export function Sidebar({
       <div className="p-4 border-b border-slate-800/80">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-md flex-shrink-0">
-              <Kanban className="w-5 h-5" />
-            </div>
+            <ApexTrackLogo size={36} className="flex-shrink-0" />
             {sidebarOpen && (
-              <div>
-                <span className="font-bold text-base tracking-tight text-white block">ApexTrack</span>
-                <span className="text-[10px] text-slate-400 font-mono tracking-wider">
-                  WORKSPACE
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-base tracking-tight text-white">ApexTrack</span>
+                  <span className="text-[9px] font-mono font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1 py-0.2 rounded">
+                    v1.0
+                  </span>
+                </div>
+                <span className="text-[9px] text-slate-400 font-mono tracking-wider block uppercase">
+                  ENTERPRISE WORKSPACE
                 </span>
               </div>
             )}

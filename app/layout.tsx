@@ -17,6 +17,11 @@ export const metadata: Metadata = {
   title: "ApexTrack — Enterprise Agile & Knowledge Base",
   description:
     "Self-hosted Jira & Confluence alternative: Edge Kanban boards, sprint backlog, RBAC team management and ADR knowledge base on Cloudflare Workers, D1, and R2.",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

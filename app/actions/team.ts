@@ -47,23 +47,29 @@ export async function inviteUser(data: {
   }
 }
 
-export async function approveUser(userId: string) {
+export async function approveUser(userId: string, assignedRole?: UserRole) {
   try {
     const adminUser = await requireRole(['Admin']);
     const db = getDb();
 
+    const updatePayload: Record<string, unknown> = {
+      status: 'APPROVED',
+      approvedById: adminUser.id,
+      approvedAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    if (assignedRole) {
+      updatePayload.role = assignedRole;
+    }
+
     await db
       .update(users)
-      .set({
-        status: 'APPROVED',
-        approvedById: adminUser.id,
-        approvedAt: new Date(),
-        updatedAt: new Date(),
-      })
+      .set(updatePayload)
       .where(eq(users.id, userId));
 
     revalidatePath('/');
-    return { success: true, message: 'User approved' };
+    return { success: true, message: `User approved${assignedRole ? ` as ${assignedRole}` : ''}` };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to approve user';
     return { success: false, error: message };

@@ -7,10 +7,17 @@ import { getDb } from '@/lib/db';
 import { users } from '@/db/schema';
 import { SESSION_USER_COOKIE, DEV_USER_COOKIE } from '@/lib/auth';
 
-export async function loginUser(email: string) {
+export async function loginUser(email: string, password?: string) {
   try {
     const cleanEmail = email.toLowerCase().trim();
     if (!cleanEmail) return { success: false, error: 'Email address is required.' };
+    if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      return { success: false, error: 'Please enter a valid business email address.' };
+    }
+
+    if (password !== undefined && password !== '' && password.length < 4) {
+      return { success: false, error: 'Password must be at least 4 characters.' };
+    }
 
     const db = getDb();
     const user = await db.query.users.findFirst({
@@ -20,7 +27,7 @@ export async function loginUser(email: string) {
     if (!user) {
       return {
         success: false,
-        error: 'No account found with this email address. Please register.',
+        error: 'No account found with this email address. Please register for an account.',
       };
     }
 
@@ -46,6 +53,7 @@ export async function loginUser(email: string) {
 export async function registerUser(data: {
   name: string;
   email: string;
+  password?: string;
   department?: string;
 }) {
   try {
@@ -53,7 +61,15 @@ export async function registerUser(data: {
     const cleanName = data.name.trim();
 
     if (!cleanName || !cleanEmail) {
-      return { success: false, error: 'Name and Email are required.' };
+      return { success: false, error: 'Full name and email are required.' };
+    }
+
+    if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      return { success: false, error: 'Please provide a valid business email.' };
+    }
+
+    if (data.password !== undefined && data.password !== '' && data.password.length < 6) {
+      return { success: false, error: 'Password must be at least 6 characters.' };
     }
 
     const db = getDb();
@@ -66,8 +82,8 @@ export async function registerUser(data: {
     }
 
     const userId = `u-${Date.now()}`;
-    const avatar = `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80`;
 
+    // Strictly register with status 'PENDING'
     await db.insert(users).values({
       id: userId,
       name: cleanName,
@@ -75,7 +91,7 @@ export async function registerUser(data: {
       role: 'Viewer',
       status: 'PENDING',
       department: data.department?.trim() || 'Engineering',
-      avatarUrl: avatar,
+      avatarUrl: null, // Clean name-initials badge fallback
     });
 
     const cookieStore = await cookies();

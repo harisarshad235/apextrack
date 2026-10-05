@@ -342,13 +342,13 @@ export function Workspace({
     });
   };
 
-  const handleApproveUser = (userId: string) => {
+  const handleApproveUser = (userId: string, role?: UserRole) => {
     if (!isAdmin) return;
 
     startTransition(async () => {
-      const res = await approveUser(userId);
+      const res = await approveUser(userId, role);
       if (res.success) {
-        showToast('User approved');
+        showToast(res.message || 'User approved');
       } else {
         showToast(res.error || 'Failed to approve user', 'error');
       }
@@ -405,20 +405,22 @@ export function Workspace({
           <div className="p-3 bg-slate-900 rounded-lg text-xs text-slate-400 mb-6 font-mono">
             Status: PENDING • Role: {currentUser.role}
           </div>
-          <div className="border-t border-slate-700 pt-4">
-            <p className="text-xs text-slate-500 mb-2">Dev Persona Switcher:</p>
-            <select
-              value={currentUser.id}
-              onChange={(e) => handleSwitchPersona(e.target.value)}
-              className="bg-slate-700 text-white text-xs px-3 py-1.5 rounded border border-slate-600 cursor-pointer"
-            >
-              {initialUsers.map((u) => (
-                <option key={u.id} value={u.id}>
-                  Switch to {u.name} ({u.role})
-                </option>
-              ))}
-            </select>
-          </div>
+          {process.env.NODE_ENV !== 'production' && (
+            <div className="border-t border-slate-700 pt-4">
+              <p className="text-xs text-slate-500 mb-2">Dev Persona Switcher:</p>
+              <select
+                value={currentUser.id}
+                onChange={(e) => handleSwitchPersona(e.target.value)}
+                className="bg-slate-700 text-white text-xs px-3 py-1.5 rounded border border-slate-600 cursor-pointer"
+              >
+                {initialUsers.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    Switch to {u.name} ({u.role})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
     );
