@@ -14,6 +14,13 @@
   "observability": {
     "enabled": true
   },
+  "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "apex.harisarshad.site",
+      "custom_domain": true
+    }
+  ],
   "d1_databases": [
     {
       "binding": "apextrack_db",
