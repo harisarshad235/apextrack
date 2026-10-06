@@ -3,6 +3,7 @@
 import React, { useState, useTransition, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { LogIn, UserPlus, Sparkles, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { loginAction } from '@/app/actions/auth';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { RegisterForm } from '@/components/auth/RegisterForm';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -32,18 +33,13 @@ function LoginWrapper() {
     setError(null);
     startTransition(async () => {
       try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: targetEmail, password: 'ApexTrack2026!' }),
-        });
-        const data = (await res.json()) as { success?: boolean; role?: string; error?: string };
-        if (!res.ok) {
-          if (res.status === 403 || data.error === 'PENDING_APPROVAL') {
+        const res = await loginAction({ email: targetEmail, password: 'ApexTrack2026!' });
+        if (!res.success) {
+          if (res.error === 'PENDING_APPROVAL') {
             window.location.href = '/awaiting-approval';
             return;
           }
-          setError(data.error || 'Persona sign-in failed');
+          setError(res.error || 'Persona sign-in failed');
           return;
         }
         window.location.href = '/';

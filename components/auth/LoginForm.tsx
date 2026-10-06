@@ -2,15 +2,10 @@
 
 import React, { useState } from 'react';
 import { LogIn, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import { loginAction } from '@/app/actions/auth';
 
 interface LoginFormProps {
   onSuccess?: () => void;
-}
-
-if (typeof window !== 'undefined' && typeof window.__name === 'undefined') {
-  window.__name = function (fn: any) {
-    return fn;
-  };
 }
 
 export function LoginForm({ onSuccess }: LoginFormProps) {
@@ -26,29 +21,23 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = (await res.json()) as { success?: boolean; role?: string; error?: string };
-
-      if (!res.ok) {
-        if (res.status === 403 || data.error === 'PENDING_APPROVAL') {
+      const res = await loginAction({ email, password });
+      if (!res.success) {
+        if (res.error === 'PENDING_APPROVAL') {
           window.location.href = '/awaiting-approval';
           return;
         }
-        setError(data.error || 'Invalid credentials');
+        setError(res.error || 'Invalid credentials');
         setLoading(false);
         return;
       }
 
       if (onSuccess) onSuccess();
-      // Successful login: hard refresh to load workspace layout with the new cookie
+      // Hard redirect on success to ensure layout mounts with session cookie
       window.location.href = '/';
-    } catch (err: any) {
-      setError('Network error occurred. Please try again.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Login failed. Please try again.';
+      setError(msg);
       setLoading(false);
     }
   };
