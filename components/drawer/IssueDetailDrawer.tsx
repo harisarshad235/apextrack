@@ -345,10 +345,10 @@ export function IssueDetailDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-900/60 backdrop-blur-sm flex justify-end animate-fade-in">
-      <div className="w-full max-w-3xl bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col border-l border-slate-200 dark:border-slate-800">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-sm flex justify-end animate-fade-in">
+      <div className="w-full max-w-3xl bg-white dark:bg-[#121215] h-full shadow-2xl flex flex-col border-l border-black/[0.06] dark:border-white/[0.08]">
         {/* Drawer Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.06] dark:border-white/[0.08] bg-slate-50/50 dark:bg-[#09090b]/80">
           <div className="flex items-center gap-3">
             {/* Issue Type Selector */}
             <div className="flex items-center">

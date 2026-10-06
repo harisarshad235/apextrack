@@ -80,6 +80,7 @@ export function Workspace({
 }: WorkspaceProps) {
   const [activeTab, setActiveTab] = useState<string>('board');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
   const [activeProjectId, setActiveProjectId] = useState<string>(
     initialProjects[0]?.id || 'proj-apex'
   );
@@ -427,15 +428,25 @@ export function Workspace({
   }
 
   return (
-    <div className="flex h-screen w-full bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden font-sans">
+    <div className="flex h-screen w-full bg-[#f8fafc] dark:bg-[#09090b] text-slate-900 dark:text-zinc-100 overflow-hidden font-sans">
       <Toast notification={notification} onClose={() => setNotification(null)} />
 
-      {/* Sidebar */}
+      {/* Dim backdrop overlay for mobile off-canvas drawer */}
+      {mobileSidebarOpen && (
+        <div
+          onClick={() => setMobileSidebarOpen(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden animate-fade-in"
+        />
+      )}
+
+      {/* Navigation Sidebar */}
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
+        mobileOpen={mobileSidebarOpen}
+        onCloseMobile={() => setMobileSidebarOpen(false)}
         currentUser={currentUser}
         users={initialUsers}
         projects={initialProjects}
@@ -450,13 +461,14 @@ export function Workspace({
       />
 
       {/* Main Container */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50 dark:bg-slate-900">
+      <main className="flex-1 flex flex-col w-full min-w-0 overflow-hidden bg-[#f8fafc] dark:bg-[#09090b]">
         {/* Top Header */}
         <Header
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           currentUser={currentUser}
           isViewer={isViewer}
+          onToggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)}
           onOpenCreateIssue={() => {
             if (isViewer) {
               showToast('Viewers cannot create issues. Please switch roles.', 'error');

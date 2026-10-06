@@ -10,8 +10,7 @@ import {
   Menu,
   Sparkles,
   Settings,
-  FolderKanban,
-  ChevronDown,
+  X,
 } from 'lucide-react';
 import { User, Project } from '@/lib/types';
 import { UserAvatar } from '@/components/ui/UserAvatar';
@@ -22,6 +21,8 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
   currentUser: User;
   users: User[];
   projects: Project[];
@@ -40,6 +41,8 @@ export function Sidebar({
   setActiveTab,
   sidebarOpen,
   setSidebarOpen,
+  mobileOpen = false,
+  onCloseMobile,
   currentUser,
   users,
   projects,
@@ -58,31 +61,39 @@ export function Sidebar({
   const isAdmin = currentUser.role === 'Admin';
   const showDevSwitcher = process.env.NODE_ENV !== 'production';
 
-  const activeProject =
-    projects.find((p) => p.id === activeProjectId) || projects[0];
-
   const handleSelectUser = (userId: string) => {
     startTransition(() => {
       onSwitchPersona(userId);
     });
   };
 
+  const handleNavClick = (tab: string) => {
+    setActiveTab(tab);
+    if (onCloseMobile) onCloseMobile();
+  };
+
   return (
     <aside
-      className={`bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 z-30 border-r border-slate-800/80 ${
-        sidebarOpen ? 'w-64' : 'w-18'
+      className={`bg-[#0e0e11] dark:bg-[#09090b] text-slate-300 flex flex-col transition-all duration-200 ease-in-out border-r border-black/[0.06] dark:border-white/[0.08] ${
+        /* Mobile off-canvas classes */
+        mobileOpen
+          ? 'fixed inset-y-0 left-0 z-50 w-72 translate-x-0 shadow-2xl md:shadow-none'
+          : 'fixed inset-y-0 left-0 z-50 w-72 -translate-x-full md:translate-x-0 md:static md:z-30'
+      } ${
+        /* Desktop width toggle */
+        sidebarOpen ? 'md:w-64' : 'md:w-18'
       }`}
     >
       {/* Brand Header */}
-      <div className="p-4 border-b border-slate-800/80">
+      <div className="p-4 border-b border-black/[0.06] dark:border-white/[0.08]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 overflow-hidden">
-            <ApexTrackLogo size={36} className="flex-shrink-0" />
-            {sidebarOpen && (
+            <ApexTrackLogo size={34} className="flex-shrink-0" />
+            {(sidebarOpen || mobileOpen) && (
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-base tracking-tight text-white">ApexTrack</span>
-                  <span className="text-[9px] font-mono font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1 py-0.2 rounded">
+                  <span className="font-bold text-base tracking-tight text-slate-900 dark:text-white">ApexTrack</span>
+                  <span className="text-[9px] font-mono font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-1 py-0.2 rounded">
                     v1.0
                   </span>
                 </div>
@@ -92,23 +103,37 @@ export function Sidebar({
               </div>
             )}
           </div>
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
-            title="Toggle Navigation Sidebar"
-          >
-            <Menu className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            {/* Close button on mobile */}
+            <button
+              onClick={onCloseMobile}
+              className="md:hidden p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition"
+              title="Close Navigation"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            {/* Toggle collapse on desktop */}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="hidden md:block p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition"
+              title="Toggle Navigation Sidebar"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Project Switcher in Sidebar */}
-        {sidebarOpen && (
-          <div className="mt-3.5 pt-3 border-t border-slate-800/80">
-            <div className="flex items-center justify-between text-[10px] uppercase font-bold text-slate-400 mb-1.5 tracking-wider">
+        {(sidebarOpen || mobileOpen) && (
+          <div className="mt-3.5 pt-3 border-t border-black/[0.06] dark:border-white/[0.08]">
+            <div className="flex items-center justify-between text-[10px] uppercase font-bold text-slate-400 mb-1.5 tracking-wider font-mono">
               <span>Active Project</span>
               <button
-                onClick={onOpenProjectsModal}
-                className="text-blue-400 hover:text-blue-300 capitalize text-[11px] font-semibold"
+                onClick={() => {
+                  onOpenProjectsModal();
+                  if (onCloseMobile) onCloseMobile();
+                }}
+                className="text-blue-500 hover:text-blue-400 capitalize text-[11px] font-semibold"
               >
                 Manage
               </button>
@@ -118,11 +143,12 @@ export function Sidebar({
               onChange={(e) => {
                 if (e.target.value === '__manage__') {
                   onOpenProjectsModal();
+                  if (onCloseMobile) onCloseMobile();
                 } else {
                   onSelectProject(e.target.value);
                 }
               }}
-              className="w-full bg-slate-800 text-xs text-white rounded-xl px-2.5 py-2 border border-slate-700/80 font-medium truncate focus:outline-none focus:border-blue-500 cursor-pointer"
+              className="w-full bg-slate-800/80 dark:bg-zinc-900 text-xs text-slate-900 dark:text-zinc-100 rounded-xl px-2.5 py-2 border border-black/[0.06] dark:border-white/[0.08] font-medium truncate focus:outline-none focus:border-blue-500 cursor-pointer"
             >
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -136,13 +162,13 @@ export function Sidebar({
       </div>
 
       {/* Active Sprint Progress Badge */}
-      {sidebarOpen && (
-        <div className="p-3 mx-3 my-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-xs shadow-inner">
+      {(sidebarOpen || mobileOpen) && (
+        <div className="p-3 mx-3 my-3 rounded-xl bg-slate-800/40 dark:bg-zinc-900/60 border border-black/[0.06] dark:border-white/[0.08] text-xs">
           <div className="flex items-center justify-between text-slate-400 mb-1">
             <span>Sprint Status</span>
             <span className="text-emerald-400 font-medium">Sprint 24 Active</span>
           </div>
-          <div className="w-full bg-slate-700/80 rounded-full h-1.5 overflow-hidden">
+          <div className="w-full bg-slate-700/60 dark:bg-zinc-800/80 rounded-full h-1.5 overflow-hidden">
             <div
               className="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
               style={{ width: `${completionRate}%` }}
@@ -160,42 +186,42 @@ export function Sidebar({
       {/* Nav Items */}
       <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
         <button
-          onClick={() => setActiveTab('board')}
+          onClick={() => handleNavClick('board')}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
             activeTab === 'board'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'hover:bg-slate-800/80 text-slate-400 hover:text-slate-200'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'hover:bg-white/5 text-slate-400 hover:text-slate-200'
           }`}
         >
           <Kanban className="w-4 h-4 flex-shrink-0" />
-          {sidebarOpen && <span>Kanban Board</span>}
+          {(sidebarOpen || mobileOpen) && <span>Kanban Board</span>}
         </button>
 
         <button
-          onClick={() => setActiveTab('backlog')}
+          onClick={() => handleNavClick('backlog')}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
             activeTab === 'backlog'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'hover:bg-slate-800/80 text-slate-400 hover:text-slate-200'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'hover:bg-white/5 text-slate-400 hover:text-slate-200'
           }`}
         >
           <Layers className="w-4 h-4 flex-shrink-0" />
-          {sidebarOpen && <span>Backlog & Sprint</span>}
+          {(sidebarOpen || mobileOpen) && <span>Backlog & Sprint</span>}
         </button>
 
         <button
-          onClick={() => setActiveTab('documents')}
+          onClick={() => handleNavClick('documents')}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
             activeTab === 'documents'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'hover:bg-slate-800/80 text-slate-400 hover:text-slate-200'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'hover:bg-white/5 text-slate-400 hover:text-slate-200'
           }`}
         >
           <FileText className="w-4 h-4 flex-shrink-0" />
-          {sidebarOpen && (
+          {(sidebarOpen || mobileOpen) && (
             <div className="flex items-center justify-between w-full">
               <span>Knowledge Base</span>
-              <span className="text-[10px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded-md font-mono">
+              <span className="text-[10px] bg-white/10 text-slate-300 px-1.5 py-0.5 rounded-md font-mono">
                 Confluence
               </span>
             </div>
@@ -203,15 +229,15 @@ export function Sidebar({
         </button>
 
         <button
-          onClick={() => setActiveTab('team')}
+          onClick={() => handleNavClick('team')}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
             activeTab === 'team'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'hover:bg-slate-800/80 text-slate-400 hover:text-slate-200'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'hover:bg-white/5 text-slate-400 hover:text-slate-200'
           }`}
         >
           <Users className="w-4 h-4 flex-shrink-0" />
-          {sidebarOpen && (
+          {(sidebarOpen || mobileOpen) && (
             <div className="flex items-center justify-between w-full">
               <span>Team & Access</span>
               {pendingCount > 0 && isAdmin ? (
@@ -230,27 +256,30 @@ export function Sidebar({
         </button>
 
         <button
-          onClick={() => setActiveTab('metrics')}
+          onClick={() => handleNavClick('metrics')}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
             activeTab === 'metrics'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'hover:bg-slate-800/80 text-slate-400 hover:text-slate-200'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'hover:bg-white/5 text-slate-400 hover:text-slate-200'
           }`}
         >
           <BarChart3 className="w-4 h-4 flex-shrink-0" />
-          {sidebarOpen && <span>Velocity Reports</span>}
+          {(sidebarOpen || mobileOpen) && <span>Velocity Reports</span>}
         </button>
       </nav>
 
       {/* User Session Profile & Avatar Click-to-Edit */}
-      <div className="p-3 border-t border-slate-800/80 bg-slate-900/90">
+      <div className="p-3 border-t border-black/[0.06] dark:border-white/[0.08] bg-[#0e0e11] dark:bg-[#09090b]">
         <div
-          onClick={onOpenProfileModal}
-          className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-slate-800/80 cursor-pointer transition group"
+          onClick={() => {
+            onOpenProfileModal();
+            if (onCloseMobile) onCloseMobile();
+          }}
+          className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-white/5 cursor-pointer transition group"
           title="Click to manage profile and custom avatar"
         >
           <UserAvatar user={currentUser} size="md" className="ring-2 ring-blue-500" />
-          {sidebarOpen && (
+          {(sidebarOpen || mobileOpen) && (
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold text-white truncate group-hover:text-blue-400 transition">
@@ -279,16 +308,16 @@ export function Sidebar({
         </div>
 
         {/* Persona Switcher (Dev Mode Only) */}
-        {sidebarOpen && showDevSwitcher && (
-          <div className="mt-3 pt-3 border-t border-slate-800">
-            <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 flex items-center gap-1">
+        {(sidebarOpen || mobileOpen) && showDevSwitcher && (
+          <div className="mt-3 pt-3 border-t border-black/[0.06] dark:border-white/[0.08]">
+            <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 flex items-center gap-1 font-mono">
               <Sparkles className="w-3 h-3 text-amber-400" /> Switch Persona {isPending && '...'}
             </label>
             <select
               value={currentUser.id}
               disabled={isPending}
               onChange={(e) => handleSelectUser(e.target.value)}
-              className="w-full bg-slate-800 text-slate-200 text-xs rounded-lg px-2 py-1.5 border border-slate-700 focus:outline-none focus:border-blue-500 cursor-pointer"
+              className="w-full bg-slate-800/80 dark:bg-zinc-900 text-slate-200 text-xs rounded-lg px-2 py-1.5 border border-black/[0.06] dark:border-white/[0.08] focus:outline-none focus:border-blue-500 cursor-pointer"
             >
               {users.map((u) => (
                 <option key={u.id} value={u.id}>
@@ -302,3 +331,4 @@ export function Sidebar({
     </aside>
   );
 }
+
