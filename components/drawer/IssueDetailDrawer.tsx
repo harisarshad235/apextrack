@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useTransition, useEffect } from 'react';
+import React, { useState, useRef, useTransition, useEffect, useMemo } from 'react';
 import {
   Trash2,
   X,
@@ -11,6 +11,7 @@ import {
   Flag,
   Link2,
   ListChecks,
+  AtSign,
 } from 'lucide-react';
 import { FullIssue, User, IssueStatus, Attachment, IssueType, IssuePriority, Swimlane, Subtask } from '@/lib/types';
 import { LinkType } from '@/db/schema';
@@ -35,6 +36,56 @@ const INVERSE_LINK: Record<LinkType, LinkType> = {
   is_blocked_by: 'blocks',
   relates_to: 'relates_to',
 };
+
+// Helper component to render comment text with interactive @mention pills and line breaks
+function RenderCommentBody({ text, users }: { text: string; users: User[] }) {
+  const MENTION_REGEX = /(@[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)?)/g;
+  const lines = text.split('\n');
+
+  return (
+    <div className="space-y-1">
+      {lines.map((line, lineIdx) => {
+        const parts = line.split(MENTION_REGEX);
+        return (
+          <p key={lineIdx} className="text-slate-600 dark:text-slate-300 leading-relaxed">
+            {parts.map((part, partIdx) => {
+              if (part.match(MENTION_REGEX)) {
+                const rawHandle = part.substring(1);
+                const matchedUser = users.find(
+                  (u) =>
+                    u.name.replace(/\s+/g, '.').toLowerCase() === rawHandle.toLowerCase() ||
+                    u.name.toLowerCase() === rawHandle.toLowerCase() ||
+                    u.name.split(' ')[0].toLowerCase() === rawHandle.toLowerCase()
+                );
+
+                return (
+                  <span
+                    key={partIdx}
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 rounded text-xs font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition cursor-pointer"
+                    title={matchedUser ? `${matchedUser.name} (${matchedUser.role})` : part}
+                  >
+                    {matchedUser && (
+                      <img
+                        src={
+                          matchedUser.avatarUrl ||
+                          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80'
+                        }
+                        alt={matchedUser.name}
+                        className="w-3.5 h-3.5 rounded-full object-cover"
+                      />
+                    )}
+                    <span>{part}</span>
+                  </span>
+                );
+              }
+              return <span key={partIdx}>{part}</span>;
+            })}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
 
 interface IssueDetailDrawerProps {
   issue: FullIssue;
@@ -88,12 +139,106 @@ export function IssueDetailDrawer({
   const [linkType, setLinkType] = useState<LinkType>('relates_to');
   const [linkError, setLinkError] = useState('');
 
+  // Autocomplete @mention popover states
+  const [showMentionMenu, setShowMentionMenu] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionStartIndex, setMentionStartIndex] = useState<number | null>(null);
+  const [selectedUserIndex, setSelectedUserIndex] = useState(0);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   useEffect(() => {
     setLocalSubtasks(issue.subtasks || []);
   }, [issue.key, issue.subtasks]);
 
   const doneSubtasks = localSubtasks.filter((s) => s.completed).length;
   const subtaskPct = localSubtasks.length ? Math.round((doneSubtasks / localSubtasks.length) * 100) : 0;
+
+  // Filter workspace team members based on mention search query
+  const filteredUsers = useMemo(() => {
+    if (!mentionQuery) return users;
+    const q = mentionQuery.toLowerCase();
+    return users.filter(
+      (u) =>
+        u.name.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        (u.department && u.department.toLowerCase().includes(q)) ||
+        (u.role && u.role.toLowerCase().includes(q))
+    );
+  }, [users, mentionQuery]);
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setCommentText(val);
+
+    const cursorPos = e.target.selectionStart;
+    const textBeforeCaret = val.slice(0, cursorPos);
+
+    const match = /(?:^|\s)@([a-zA-Z0-9._-]*)$/.exec(textBeforeCaret);
+    if (match) {
+      const query = match[1];
+      const atIdx = textBeforeCaret.lastIndexOf('@' + query);
+      setMentionQuery(query);
+      setMentionStartIndex(atIdx);
+      setSelectedUserIndex(0);
+      setShowMentionMenu(true);
+    } else {
+      setShowMentionMenu(false);
+    }
+  };
+
+  const insertMention = (user: User) => {
+    if (mentionStartIndex === null) return;
+    const handle = `@${user.name.replace(/\s+/g, '.')}`;
+    const textarea = textareaRef.current;
+    const cursorPos = textarea ? textarea.selectionStart : commentText.length;
+
+    const textBefore = commentText.slice(0, mentionStartIndex);
+    const textAfter = commentText.slice(cursorPos);
+
+    const newText = `${textBefore}${handle} ${textAfter}`;
+    setCommentText(newText);
+    setShowMentionMenu(false);
+
+    setTimeout(() => {
+      if (textarea) {
+        textarea.focus();
+        const newCursorPos = mentionStartIndex + handle.length + 1;
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+      }
+    }, 0);
+  };
+
+  const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (showMentionMenu && filteredUsers.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedUserIndex((prev) => (prev + 1) % filteredUsers.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedUserIndex((prev) => (prev - 1 + filteredUsers.length) % filteredUsers.length);
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        const userToMention = filteredUsers[selectedUserIndex];
+        if (userToMention) {
+          insertMention(userToMention);
+        }
+        return;
+      }
+      if (e.key === 'Escape') {
+        setShowMentionMenu(false);
+        return;
+      }
+    }
+
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveComment();
+    }
+  };
 
   const handleToggleSubtask = (s: Subtask) => {
     setLocalSubtasks((prev) => prev.map((x) => (x.id === s.id ? { ...x, completed: !s.completed } : x)));
@@ -195,6 +340,7 @@ export function IssueDetailDrawer({
     startTransition(() => {
       onAddComment(commentText);
       setCommentText('');
+      setShowMentionMenu(false);
     });
   };
 
@@ -702,12 +848,61 @@ export function IssueDetailDrawer({
                 {!isViewer && (
                   <div className="flex gap-3">
                     <UserAvatar user={currentUser} size="sm" className="mt-1" />
-                    <div className="flex-1 space-y-2">
+                    <div className="flex-1 space-y-2 relative">
+                      {/* Floating Autocomplete @Mention Dropdown */}
+                      {showMentionMenu && filteredUsers.length > 0 && (
+                        <div className="absolute bottom-full mb-2 left-0 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                          <div className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                            <span className="flex items-center gap-1">
+                              <AtSign className="w-3 h-3 text-blue-500" /> Mention Team Member
+                            </span>
+                            <span className="font-mono text-[9px] text-slate-400">↑↓ to navigate, Enter</span>
+                          </div>
+                          <div className="max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+                            {filteredUsers.map((u, idx) => (
+                              <button
+                                key={u.id}
+                                type="button"
+                                onClick={() => insertMention(u)}
+                                onMouseEnter={() => setSelectedUserIndex(idx)}
+                                className={`w-full text-left px-3 py-2 flex items-center gap-2.5 transition ${
+                                  idx === selectedUserIndex
+                                    ? 'bg-blue-50 dark:bg-blue-950/70 text-blue-900 dark:text-blue-100 font-medium'
+                                    : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                                }`}
+                              >
+                                <img
+                                  src={
+                                    u.avatarUrl ||
+                                    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80'
+                                  }
+                                  alt={u.name}
+                                  className="w-6 h-6 rounded-full object-cover border border-slate-200 dark:border-slate-700 flex-shrink-0"
+                                />
+                                <div className="flex-1 truncate text-xs">
+                                  <div className="font-semibold truncate flex items-center justify-between">
+                                    <span>{u.name}</span>
+                                    <span className="text-[10px] font-mono text-slate-400 font-normal">
+                                      @{u.name.replace(/\s+/g, '.')}
+                                    </span>
+                                  </div>
+                                  <div className="text-[10px] text-slate-400 truncate font-mono">
+                                    {u.role} &bull; {u.department || 'Workspace'}
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <textarea
+                        ref={textareaRef}
                         rows={2}
                         value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                        placeholder="Add a comment... (use @name to mention)"
+                        onChange={handleTextareaChange}
+                        onKeyDown={handleTextareaKeyDown}
+                        placeholder="Add a comment... (type @ to mention a team member)"
                         className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                       {commentText.trim() && (
@@ -723,7 +918,7 @@ export function IssueDetailDrawer({
                   </div>
                 )}
 
-                {/* Comment Thread */}
+                {/* Comment Thread with Rich Mention Pills */}
                 <div className="space-y-3">
                   {issue.comments?.map((c) => {
                     const author = c.author || users.find((u) => u.id === c.authorId);
@@ -744,9 +939,7 @@ export function IssueDetailDrawer({
                               {formattedDate}
                             </span>
                           </div>
-                          <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                            {c.body}
-                          </p>
+                          <RenderCommentBody text={c.body} users={users} />
                         </div>
                       </div>
                     );
@@ -795,4 +988,5 @@ export function IssueDetailDrawer({
     </div>
   );
 }
+
 
