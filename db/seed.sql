@@ -89,15 +89,168 @@ INSERT INTO documents (id, title, category, content, author_id, updated_by_id, c
   '# Release Runbook' || char(10) || char(10) || '1. Ensure all CI/CD integration tests pass.' || char(10) || '2. Verify zero Critical/High severity bugs in **In Progress** or **In Review**.' || char(10) || '3. Execute edge database migrations.' || char(10) || '4. Notify on-call engineer in Slack channel `#releases`.',
   'u4','u4', unixepoch('2026-09-30 08:45')*1000, unixepoch('2026-09-30 08:45')*1000),
  ('doc-4','ApexTrack System Architecture, RBAC & Operations Manual','Architecture',
-  '# ApexTrack System Architecture, RBAC & Operations Manual
+  '<!-- ========================================================================= -->
+<!-- APEXTRACK LIVING DOCUMENTATION MANIFEST & OPERATIONS HANDBOOK             -->
+<!-- Automatically generated and verified by scripts/generate-docs-manifest.ts -->
+<!-- ========================================================================= -->
 
-> **Executive Summary**: ApexTrack is an enterprise-grade, serverless alternative to Jira Software and Atlassian Confluence built on Cloudflare Workers, Cloudflare D1 distributed SQLite, and Cloudflare R2 zero-egress object storage.
+# ApexTrack User Operations Manual & Visual Handbook
+
+> **Living Documentation Status**: Active & Synchronized  
+> **Release Version**: `v0.1.0`  
+> **Target Deployment Environment**: `Cloudflare Pages Edge (V8 Serverless Isolates)`  
+> **Database Engine**: `Cloudflare D1 Distributed SQLite`  
+> **Object Storage**: `Cloudflare R2 Zero-Egress Storage`  
+> **Last Synchronized**: `2026-10-06 22:57:43 UTC`  
+
+## Active Application Route Inventory
+
+| Route Path | Type | Functional Purpose |
+| :--- | :--- | :--- |
+| `/` | `Page` | Main Workspace Dashboard, Kanban Board, Documents, Backlog & Reports |
+| `/login` | `Page` | User Authentication, Persona Fast-Switcher & Gateway |
+| `/login?tab=register` | `Page` | Self-Service User Registration & Onboarding Portal |
+| `/forgot-password` | `Page` | Self-Service Password Recovery Request via Resend Email |
+| `/reset-password` | `Page` | Cryptographic HMAC Token Password Reset & Update Form |
+| `/awaiting-approval` | `Page` | Holding Room for New Accounts Pending Administrator Review |
+| `/api/auth/logout` | `API` | Secure Session Invalidation & Cookie Revocation |
+| `/api/health` | `API` | Edge Runtime & Database Health Check Endpoint |
 
 ---
 
-## 1. Visual UI Map & Workspace Layout Guide
+## 1. Welcome to ApexTrack (The 30-Second Overview)
 
-Below is the complete ASCII wireframe layout map of the ApexTrack Workspace interface:
+### What is ApexTrack?
+ApexTrack is your team''s central workspace for managing agile software delivery, tracking tickets, and publishing architecture documentation. Unlike traditional enterprise issue trackers that require heavy servers and expensive per-seat subscriptions, ApexTrack is built directly on Cloudflare''s serverless edge network. It delivers sub-20 millisecond response times globally and has zero per-user licensing fees.
+
+### The 3-Step Work Lifecycle
+
+```
+  +--------------------+        +---------------------+        +--------------------+
+  |  1. CAPTURE WORK   |  --->  |  2. MOVE ON BOARD   |  --->  | 3. MEASURE VELOCITY|
+  | Stories, Bugs, ADRs|        | To Do -> Done Lanes |        | Burndown & Health  |
+  +--------------------+        +---------------------+        +--------------------+
+```
+
+1. **Capture Work**: Log User Stories, Bugs, Epics, Tasks, and Confluence-style Knowledge Base documents with rich markdown and attachments.
+2. **Move on Board**: Drag cards across customizable Kanban swimlanes to provide instant visual transparency on active progress.
+3. **Measure Delivery**: Monitor automated completion metrics, story point burndown charts, and Work-In-Progress (WIP) safety caps in real time.
+
+---
+
+## 2. Getting Started & Authentication Flows (Step-by-Step with Visuals)
+
+```
++-------------------------------------------------------------------------------------------------------------+
+|                                    FLOW 2: AUTHENTICATION & ACCESS LIFECYCLE                                |
+|                                                                                                             |
+|  [ 2.1 Register ]  ----->  [ 2.2 Holding Room ]  ----->  [ 2.3 Sign In ]  ----->  [ 2.4 Password Reset ]    |
+|  Enter name, email          Status: PENDING               Session Cookie           15-min Tokenized Email   |
+|  & strong password          Awaiting Admin Review         Admin / Member / Viewer  via Resend Integration   |
++-------------------------------------------------------------------------------------------------------------+
+```
+
+### Flow 2.1: Creating Your Account
+1. Open the login portal and click the **Create Account** tab (or navigate directly to `/login?tab=register`).
+2. Fill in your details:
+   - **Full Name**: Your first and last name (e.g., `Jordan Vance`).
+   - **Work Email Address**: Your corporate email (e.g., `jordan.v@company.com`).
+   - **Password**: A secure password (minimum 6 characters).
+   - **Department**: Your team (e.g., `Frontend`, `Backend`, `QA`, `DevOps`, `Product`).
+3. Click **Create Account & Enter Approval Queue**.
+
+![Create Account - Registration Form](/docs/assets/screenshots/01-create-account.png)
+
+```
++----------------------------------------------------------------------+
+| [ApexTrack Logo]                                                     |
+| Sign In  |  [ Create Account ]                                       |
+|----------------------------------------------------------------------|
+| Full Name:         [ Jordan Vance                                  ] |
+| Work Email:        [ jordan.v@company.com                          ] |
+| Password:          [ ••••••••••••                               👁️ ] |
+| Department:        [ Frontend Engineering                          ] |
+| [🔒 Gated Security: New accounts require Administrator approval]     |
+| [  Create Account & Enter Approval Queue                           ] |
++----------------------------------------------------------------------+
+```
+
+---
+
+### Flow 2.2: The Holding Room (Awaiting Admin Approval)
+**Why can''t I see tasks immediately?**  
+To protect organization privacy and enforce zero-trust governance, new accounts are created with a `PENDING` status and `Viewer` role. You will land on the holding page (`/awaiting-approval`).
+
+1. Once your registration is submitted, an automated notification is dispatched to your workspace administrator.
+2. The administrator reviews and approves your account from the **Team & Access** panel.
+3. Once approved, you can immediately sign in and access the full workspace.
+
+![Awaiting Approval - Holding Room](/docs/assets/screenshots/02-awaiting-approval.png)
+
+```
++----------------------------------------------------------------------+
+| [ ⏳ Clock Icon - Amber Glow ]                                       |
+| Account Pending Administrator Approval                               |
+|----------------------------------------------------------------------|
+| Welcome, Jordan Vance! Your account has been securely created.       |
+| Organization administrators have been notified. Once approved, you   |
+| will have full access to your team''s workspace.                      |
+|                                                                      |
+| [ Check Approval Status ]            [ Sign In with Another Account ]|
++----------------------------------------------------------------------+
+```
+
+---
+
+### Flow 2.3: Signing In & Secure Sessions
+1. Navigate to `/login` (or click **Sign In**).
+2. Enter your work email and password.
+3. Click **Sign In to Workspace**.
+4. ApexTrack generates an encrypted session cookie and directs you to your active project board.
+
+![Sign In - Authentication Portal](/docs/assets/screenshots/03-sign-in.png)
+
+```
++----------------------------------------------------------------------+
+| [ApexTrack Logo] ApexTrack [v1.0]                                    |
+| [ Sign In ]  |  Create Account                                       |
+|----------------------------------------------------------------------|
+| Work Email:        [ harisarshad235@gmail.com                      ] |
+| Password:          [ ••••••••••••                               👁️ ] |
+|                    [ Forgot password?                              ] |
+| [  Sign In to Workspace                                            ] |
++----------------------------------------------------------------------+
+```
+
+---
+
+### Flow 2.4: Self-Service Password Recovery
+If you forget your password, you can reset it in seconds without contacting IT support:
+
+1. Click **Forgot password?** on the sign-in form (or visit `/forgot-password`).
+2. Enter your work email address and click **Send Reset Link**.
+3. Check your email inbox for a message from `ApexTrack <notifications@harisarshad.site>`.
+4. Click the **Reset Password** button inside the email (valid for **15 minutes**).
+5. Enter your new password, confirm it, and click **Save New Password**.
+6. Sign in immediately with your new credentials.
+
+![Password Reset - Recovery Request and Reset](/docs/assets/screenshots/04-password-reset.png)
+
+```
++----------------------------------------------------------------------+
+| Password Recovery -> Email Link -> Set New Password                  |
+|----------------------------------------------------------------------|
+| 1. Enter email:    [ name@company.com ] -> [ Send Reset Link ]       |
+| 2. Check Inbox:    "Reset your ApexTrack password" (15 min link)     |
+| 3. Set Password:   New Password:     [ •••••••••••• ]                |
+|                    Confirm Password: [ •••••••••••• ]                |
+|                    [ Save New Password ]                             |
++----------------------------------------------------------------------+
+```
+
+---
+
+## 3. Daily Work & The Agile Board (For Team Members & Viewers)
 
 ```
 +-------------------------------------------------------------------------------------------------------------+
@@ -114,144 +267,230 @@ Below is the complete ASCII wireframe layout map of the ApexTrack Workspace inte
 | > Team & Access  | +-------------------+ +-------------------+ +-------------------+ +-------------------+ |
 | > Velocity Reports| | TO DO          [3]| | IN PROGRESS [WIP 5]| | IN REVIEW  [WIP 4]| | DONE           [8]| |
 |                  | | 0 pts             | | 12 pts            | | 7 pts             | | 28 pts            | |
-|                  | SPRINT STATS     | +-------------------+ +-------------------+ +-------------------+ +-------------------+ |
+|                  | +-------------------+ +-------------------+ +-------------------+ +-------------------+ |
 | Sprint 24        | | [Story]  APEX-103 | | [Bug] 🚩 APEX-101 | | [Task]   APEX-102 | | [Story]  APEX-104 | |
 | 80% Complete     | | Knowledge Base    | | D1 Database schema| | Kanban drag fix   | | RBAC Auth logic   | |
 |                  | | 8 pts    (Assignee)| | 5 pts    (Assignee)| | 3 pts    (Assignee)| | 5 pts    (Assignee)| |
 | PERSONA SWITCH   | +-------------------+ +-------------------+ +-------------------+ +-------------------+ |
-| [ Alex Chen (Admin) v ]                |                                                                    |
+| [ Alex Chen v ]  |                                                                                          |
 +------------------+------------------------------------------------------------------------------------------+
 ```
 
-### SLIDE-OUT ISSUE DETAIL DRAWER (Triggers on ticket click, e.g. APEX-101):
+### Flow 3.1: Understanding the Board Swimlanes
+Your project board is organized into four intuitive stages:
+1. **To Do**: Work scheduled for the current sprint that is ready for an engineer to pick up.
+2. **In Progress**: Tasks actively being coded or developed right now.
+3. **In Review**: Pull requests, quality assurance audits, and peer code reviews.
+4. **Done**: Tested, approved, and shipped functionality.
+
+---
+
+### Flow 3.2: Moving Cards & Drag-and-Drop Etiquette
+- **Drag a Card**: Click and hold any ticket card, then drag it across columns. When released, the issue status updates instantly across all connected clients.
+- **Keyboard Navigation**: Click a card and use arrow keys to navigate and reposition cards with full WCAG accessibility.
+- **Quick Filters**:
+  - **⚡ Only My Issues**: Filters the board to show only tickets assigned to your user account.
+  - **🚩 Flagged Blockers**: Highlights cards marked as impediments needing immediate team unblocking.
+  - **⏳ Recently Updated**: Sorts cards by latest activity timestamp.
+
+---
+
+### Flow 3.3: Understanding WIP (Work-In-Progress) Limits
+**Why does a column header turn red and pulse?**  
+Work-In-Progress (WIP) caps prevent teams from taking on too many parallel tasks at once, ensuring high quality and steady delivery.
+
+- In Progress is capped at **5 issues**.
+- In Review is capped at **4 issues**.
+- If a team member drags an extra ticket into a full column, the count badge turns **bold red with a pulsing alert** (`[WIP 6/5]`). This reminds the team to help review or finish existing cards before starting new work.
+
+![Kanban WIP Limit Alert - Red Pulsing Header](/docs/assets/screenshots/05-kanban-wip-alert.png)
 
 ```
-+-------------------------------------------------------------------------------------------------------------+
-| ISSUE DETAIL DRAWER                                                                                  [X]    |
-+-------------------------------------------------------------------------------------------------------------+
-| [Type: Bug v]  APEX-101  [Status: In Progress v]                           [🚩 Add Flag] [🗑️ Delete Issue]   |
-+-------------------------------------------------------------------------------------------------------------+
-| TITLE: Design and connect Cloudflare D1 distributed edge database schema                                    |
-| METADATA: Assignee: Marcus Brody | Reporter: Alex Chen | Priority: ▲▲ Critical | Points: [5 pts]            |
-+-------------------------------------------------------------------------------------------------------------+
-| DESCRIPTION                                                                                                 |
-| Integrate Cloudflare D1 with Drizzle ORM bindings to support global read caching and localized writes.    |
-+-------------------------------------------------------------------------------------------------------------+
-| SUBTASKS CHECKLIST                                                                      (2 of 3 completed) |
-| [==========------------------] 66%                                                                          |
-| [x] Define Drizzle ORM SQLite tables in db/schema.ts                                                        |
-| [x] Generate D1 migration scripts via drizzle-kit                                                           |
-| [ ] Benchmark edge response times across Anycast PoPs                                                       |
-| [+ Add a subtask and press Enter...]                                                                        |
-+-------------------------------------------------------------------------------------------------------------+
-| LINKED ISSUES (2)                                                                                           |
-| (blocks) [● APEX-102] Kanban drag-and-drop focus drops [In Review] [X]                                      |
-| (relates to) [● CORE-101] Anycast DNS failover [Dev Implementation] [X]                                     |
-| [Type: blocks v] [Select issue e.g. APEX-105 v] [+ Link]                                                    |
-+-------------------------------------------------------------------------------------------------------------+
-| ATTACHMENTS (2)                                                                         [+ Attach File]     |
-| 📁 d1_schema_v2.sql (14.5 KB) [⬇️]    📁 edge_latency_benchmark.pdf (1.8 MB) [⬇️]                            |
-+-------------------------------------------------------------------------------------------------------------+
-| ACTIVITY:  [Comments (4)]  [History (6)]                                                                    |
-| (Avatar) Alex Chen • 2026-10-03 14:20                                                                      |
-| "Ensure we test D1 local emulator fallback mode in CI/CD pipeline. CC @marcus.b"                            |
-| [+ Add a comment... (use @name to mention)]                                                                |
-+-------------------------------------------------------------------------------------------------------------+
++-----------------------+   +-----------------------+
+| IN PROGRESS  [WIP 3/5]|   | IN REVIEW    [WIP 5/4]|  <-- Red Pulsing Header!
+| 12 pts                |   | 14 pts (WIP Exceeded) |
++-----------------------+   +-----------------------+
 ```
 
-### Visual UI Callouts & Badges Index:
-- **🚩 Flagged (Amber Tint & Badge)**: Indicates an issue marked as an impediment or blocker.
-- **[WIP 5/5] (Red Pulsing Header)**: Triggered when column issue count exceeds Work-In-Progress limit (colIssues > limit).
-- **[⚡ Only My Issues]**: One-click filter to display tickets assigned to your active account.
-- **[🚩 Flagged Blockers]**: Filters board to display only blocked/flagged tickets.
-- **[⏳ Recently Updated]**: Sorts cards by latest history audit timestamp.
-- **🔔 (2) (Notification Bell)**: Header bell badge showing unread @mention alerts.
+---
+
+### Flow 3.4: Working with the Issue Detail Drawer
+Click any ticket key (such as `APEX-101`) to slide out the comprehensive ticket drawer.
+
+![Issue Detail Drawer - Full Feature View](/docs/assets/screenshots/06-issue-drawer-full.png)
+
+```
++-----------------------------------------------------------------------------+
+| ISSUE DETAIL DRAWER                                                  [ X ]  |
+|-----------------------------------------------------------------------------|
+| [Type: Bug v]  APEX-101  [Status: In Progress v]   [🚩 Add Flag] [🗑️ Delete] |
+| TITLE: Design and connect Cloudflare D1 distributed edge database schema    |
+| METADATA: Assignee: Marcus Brody | Reporter: Alex Chen | Points: [ 5 pts ]  |
+|-----------------------------------------------------------------------------|
+| DESCRIPTION                                                                 |
+| Integrate Cloudflare D1 with Drizzle ORM bindings for serverless caching.   |
+|-----------------------------------------------------------------------------|
+| SUBTASKS CHECKLIST                                       (2 of 3 completed) |
+| [===================---------] 66%                                          |
+| [x] Define Drizzle ORM SQLite tables in db/schema.ts                        |
+| [x] Generate D1 migration scripts via drizzle-kit                           |
+| [ ] Benchmark edge response times across Anycast PoPs                       |
+| [+ Add a subtask and press Enter...]                                        |
+|-----------------------------------------------------------------------------|
+| LINKED ISSUES (2)                                                           |
+| (blocks)    [● APEX-102] Kanban drag focus drops [In Review] [X]             |
+| (relates to)[● CORE-101] Anycast DNS failover [Dev Implementation] [X]      |
+| [Type: blocks v] [Select target issue v] [+ Link Issue]                     |
+|-----------------------------------------------------------------------------|
+| ATTACHMENTS (2)                                         [+ Attach File]     |
+| 📁 d1_schema_v2.sql (14.5 KB) [⬇️]  📁 latency_report.pdf (1.8 MB) [⬇️]     |
+|-----------------------------------------------------------------------------|
+| ACTIVITY: Comments (4) | History (6)                                        |
+| Alex Chen • 2 hours ago:                                                    |
+| "Ensure we test D1 local emulator in CI/CD pipeline. CC @marcus.b"          |
+| [+ Add a comment... (use @name to mention colleagues)]                      |
++-----------------------------------------------------------------------------+
+```
+
+- **Story Points**: Enter estimated complexity (e.g., 1, 2, 3, 5, 8, 13) to feed velocity burndown charts.
+- **Subtask Checklist**: Type an item name and hit Enter. Checking off boxes updates the live percentage progress bar.
+- **Flagging Impediments**: Click **🚩 Add Flag**. The card displays an amber badge on the board so leads can step in to unblock you.
+- **Linking Issues**: Relate dependencies using `blocks`, `is_blocked_by`, or `relates_to` relationships.
+- **Colleague Mentions & Notification Bell (🔔)**: Type `@name` (e.g. `@sarah`, `@marcus`) in comments. The tagged colleague receives an unread counter on their notification bell in the top navigation bar.
 
 ---
 
-## 2. User Flows by Persona (Step-by-Step Practical Guides)
+## 4. Sprint Planning & Delivery (For Project Managers & Leads)
 
-### 2.1 For All Members & Viewers
+### Flow 4.1: Managing the Global Backlog vs. Active Sprint Pools
+1. Click **Backlog** in the left sidebar navigation.
+2. The backlog screen separates work into:
+   - **Active Sprint (Sprint 24)**: Committed tickets currently under execution.
+   - **Upcoming Sprint (Sprint 25)**: Scope staged for next sprint''s kickoff.
+   - **Product Backlog Pool**: Unscheduled tickets, feature ideas, and technical debt.
+3. Drag tickets from the backlog pool into an upcoming sprint and verify total planned story points before starting the sprint.
 
-#### A. Sign Up & Holding Screen (PENDING Status)
-1. Navigate to /login?tab=register or click Register.
-2. Fill in your Name, Email, and Password. Upon submitting, your account is created with status = PENDING.
-3. You will automatically land on the /awaiting-approval holding page.
-4. Edge middleware enforces security by restricting pending users from viewing workspace telemetry until an Administrator approves your account.
-
-#### B. Navigating the Kanban Board & WIP Limits
-1. Access the Board tab from the left sidebar.
-2. Columns reflect dynamic swimlanes (To Do, In Progress, In Review, Done).
-3. Drag cards between swimlanes to update issue status instantly.
-4. **WIP Limits**: Swimlane headers set safety caps (In Progress: 5, In Review: 4). If a column exceeds its WIP limit, the issue counter badge turns bold red (bg-red-500 text-white animate-pulse) to alert team members to clear bottlenecks.
-
-#### C. Using the Issue Detail Drawer
-1. Click on any ticket card key (e.g. APEX-101) to slide out the Issue Detail Drawer.
-2. **Story Points**: Edit the story point value (0-100) to feed velocity tracking.
-3. **Subtask Checklist**: Type a subtask name in the text box and press Enter to create item checklist. Check off completed items to update the progress bar (X of Y completed).
-4. **Issue Linking**: Relate tickets by picking a relationship type (blocks, is_blocked_by, relates_to), typing the target key (e.g., APEX-102), and clicking Link.
-5. **Flagging Impediments**: Click 🚩 Add Flag in the drawer header. The ticket card turns amber (bg-amber-500/10 border-amber-500/60) and displays a flag badge on the board.
-
-#### D. Mentioning Teammates & Notifications
-1. In the Issue Drawer comments box, type a comment containing @name (e.g., @alex, @sarah, @marcus).
-2. When posted, ApexTrack parses the mention, identifies the target user, and inserts a notification into notifications.
-3. The tagged user receives an unread badge count on the Notification Bell (🔔) in the top navigation bar. Clicking the bell opens a popover to preview mentions and jump directly to the issue.
+![Backlog & Sprint Planning View](/docs/assets/screenshots/07-backlog-sprint-planning.png)
 
 ---
 
-## 2.2 For Project Leads & Technical PMs
+### Flow 4.2: Reading Velocity Reports & Burndown Charts
+Click **Velocity Reports** in the left sidebar to access team analytics.
 
-#### A. Sprint Backlog Management
-1. Click Backlog in the sidebar.
-2. Review unassigned tickets in the global backlog pool vs. active sprint queues (Sprint 24, Sprint 25).
-3. Assign backlog items to upcoming sprints and set target story points before sprint kickoff.
+![Velocity Reports & Sprint Burndown Chart](/docs/assets/screenshots/08-velocity-burndown.png)
 
-#### B. Reading Velocity Reports & Sprint Burndown
-1. Click Velocity Reports in the sidebar.
-2. **Metric Cards**: Monitor Overall Completion Rate %, Total Velocity Points Burned vs Committed, Active In-Flight tickets, and Open Defect counts.
-3. **Sprint Burndown Chart**:
-   - **Ideal Burn (Dashed Line)**: Plots linear progress from total committed story points at sprint start down to 0 at sprint end date.
-   - **Actual Burn (Solid Blue Line)**: Plots actual remaining story points day-by-day based on tickets moved to Done.
-   - **Trajectory Analysis**: If the solid line is above the dashed line, the sprint is behind schedule; if below, the sprint is ahead of schedule.
+```
++-----------------------------------------------------------------------------+
+| SPRINT 24 BURNDOWN & VELOCITY DASHBOARD                                     |
+|-----------------------------------------------------------------------------|
+| [Completion Rate: 75%]  [Velocity: 28/35 pts]  [In Flight: 5] [Defects: 2]  |
+|                                                                             |
+| Story                                                                       |
+| Points                                                                      |
+|  35 | *                                                                     |
+|  28 |   *                                                                  |
+|  21 |     *   (Ideal Burn - Dashed Line)                                   |
+|  14 |       *=====                                                        |
+|   7 |         *     ===== (Actual Burn - Solid Blue Line)                  |
+|   0 +----------*-----------*---------------------------------------> Day    |
+|    Day 1      Day 5       Day 10                                  Day 14    |
++-----------------------------------------------------------------------------+
+```
+
+- **Metric Cards**:
+  - **Completion Rate**: Percentage of committed story points moved to Done.
+  - **Velocity**: Story points completed out of total sprint scope (e.g., 28 of 35 pts).
+  - **In Flight**: Count of issues currently undergoing active engineering.
+  - **Open Defects**: Active bug tickets requiring resolution before release.
+- **Burndown Chart Interpretation**:
+  - **Dashed Line (Ideal Burn)**: Linear guide showing where the team should be if work is completed evenly every day.
+  - **Solid Blue Line (Actual Burn)**: Real-time points remaining.
+  - **Trajectory Rule**: If the solid blue line is **below** the dashed line, the team is **ahead of schedule**; if **above**, the team is **behind schedule**.
 
 ---
 
-## 2.3 For Workspace Administrators
+## 5. Team Management & Governance (For Workspace Admins)
 
-#### A. In-App User Approvals & Role Management
-1. Click Team & Access in the left sidebar.
-2. Under Pending User Approvals, locate new registrations (status = PENDING).
-3. Select the appropriate role from the dropdown: Admin, Member, or Viewer.
-4. Click Approve to activate the user account immediately.
+### Flow 5.1: The In-App Approval Center (`/team`)
+Administrators have exclusive access to the **Team & Access** panel to oversee team membership:
 
-#### B. Emergency Direct Database Promotion (Cloudflare D1 Console)
-If an Admin account is accidentally locked out or emergency access is needed via CLI:
+1. Click **Team & Access** in the left sidebar.
+2. Review new registrations in the **Pending User Approvals** table.
+3. Choose the appropriate role from the dropdown:
+   - **Admin**: Full access to settings, user approvals, and project configuration.
+   - **Member**: Standard team member who can create, edit, drag, and comment on tickets.
+   - **Viewer**: Read-only stakeholder who can inspect tickets, read documents, and comment.
+4. Click **Approve** to activate the user immediately.
+
+![Admin Team Approvals - Role Assignment](/docs/assets/screenshots/09-admin-team-approvals.png)
+
+---
+
+### Flow 5.2: Role Permission Matrix (Plain English Breakdown)
+
+| Feature / Action | Admin | Member | Viewer |
+| :--- | :---: | :---: | :---: |
+| **Sign In & View Kanban Board** | ✅ | ✅ | ✅ |
+| **Read Knowledge Base Documents** | ✅ | ✅ | ✅ |
+| **View Sprint Velocity Reports** | ✅ | ✅ | ✅ |
+| **Comment on Issues & Mention Colleagues** | ✅ | ✅ | ✅ |
+| **Create New Issues & User Stories** | ✅ | ✅ | ❌ |
+| **Drag & Drop Cards Across Swimlanes** | ✅ | ✅ | ❌ |
+| **Edit Story Points, Estimates & Subtasks** | ✅ | ✅ | ❌ |
+| **Create & Edit Knowledge Base Docs** | ✅ | ✅ | ❌ |
+| **Delete Issues or Documents** | ✅ | ❌ | ❌ |
+| **Approve Pending Users & Manage Roles** | ✅ | ❌ | ❌ |
+| **Configure Project Settings & WIP Caps** | ✅ | ❌ | ❌ |
+
+---
+
+### Flow 5.3: Emergency Access & Cloudflare D1 Console Recovery
+If an administrator is ever locked out of their account or requires CLI emergency access, they can directly approve and promote any account using Wrangler:
+
 ```bash
-wrangler d1 execute apextrack_db --remote --command="UPDATE users SET status=''APPROVED'', role=''Admin'' WHERE email=''admin@apextrack.io'';"
+# Direct Administrator Promotion via Cloudflare D1
+npx wrangler d1 execute apextrack_db --remote --command="UPDATE users SET status=''APPROVED'', role=''Admin'' WHERE email=''harisarshad235@gmail.com'';"
 ```
 
 ---
 
-## 3. Beginner-Friendly Edge Infrastructure Explainer
+## 6. Architecture Explained in 2 Minutes (Layman Edition)
 
-### 3.1 Plain-English Cloudflare Edge Stack Architecture
+### What is "The Edge"?
+Traditional apps host their servers and databases in a single data center (such as Northern Virginia or Frankfurt). If a team member in London, Tokyo, or Sydney accesses the site, requests must travel thousands of miles across undersea cables, causing slow page loads.
 
-| Cloudflare Technology | What It Is | Why It Outperforms Traditional Jira |
+ApexTrack runs on **Cloudflare Pages and Workers**, which deploy your code to over **300 global data centers**. When you open ApexTrack, you connect to a server within a few miles of your physical location, resulting in instant page loads and zero lag.
+
+### Where Data and Files Live
+
+| Technology | What It Stores | Why It Matters |
 | :--- | :--- | :--- |
-| **Next.js on Cloudflare Pages** | Serverless Web Application framework running on V8 edge isolates across 300+ global data centers. | Eliminates centralized origin servers; pages load in <20ms globally without server cold starts. |
-| **Cloudflare D1 SQLite** | Serverless distributed SQL database natively integrated into edge functions. | Zero database server management, zero port configurations, sub-15ms edge read caching. |
-| **Cloudflare R2 Storage** | High-performance object storage for issue and document file attachments. | S3-compatible file storage with **zero bandwidth egress fees**, saving thousands in bandwidth costs. |
+| **Cloudflare D1 (SQLite)** | Issues, Sprints, Comments, User Profiles, Documents | Ultra-fast distributed database running queries in sub-15ms. |
+| **Cloudflare R2 Storage** | Attachments, PDFs, Image Screenshots, Log Files | High-speed file storage with **zero egress bandwidth fees**. |
+| **Resend API** | Transactional Password Reset & Admin Alert Emails | Reliable sub-second email delivery without managing SMTP servers. |
 
-### 3.2 Comparison Table: Per-Seat Jira vs. ApexTrack Edge Platform
+---
 
-| Feature / Dimension | Traditional Per-Seat Jira | ApexTrack Edge Architecture |
+## 7. Visual Screenshot Asset Catalog & Placeholder Index
+
+The manual is pre-configured with standard visual placeholders. Team members capturing screenshots can save high-resolution PNGs to `/docs/assets/screenshots/` matching these exact slugs:
+
+| Slug | Image File Path | Target Interface View |
 | :--- | :--- | :--- |
-| **Pricing Model** | $8 - $16 per user / month (Expensive scaling) | Open Source / Zero per-seat fee (Cloudflare free/usage tier) |
-| **Global Latency** | 200ms - 1500ms (Centralized US/EU AWS regions) | Sub-20ms worldwide (Anycast Edge deployment) |
-| **Database Architecture** | Heavy PostgreSQL / MySQL instances | Cloudflare D1 distributed edge SQLite |
-| **File Storage Egress** | Charged per GB downloaded (AWS S3 fees) | Cloudflare R2 ($0 Egress Bandwidth Fees) |
-| **User Onboarding** | Manual enterprise license provisioning | Self-serve registration + In-App Admin Approval |
-| **UI Responsiveness** | Heavy SPA bundle with slow initial load | Lightweight Next.js Server Components + Optimistic UI |',
+| `01-create-account` | `/docs/assets/screenshots/01-create-account.png` | Registration form with validation fields |
+| `02-awaiting-approval` | `/docs/assets/screenshots/02-awaiting-approval.png` | Holding page for PENDING users |
+| `03-sign-in` | `/docs/assets/screenshots/03-sign-in.png` | Sign-in dialog with email and password |
+| `04-password-reset` | `/docs/assets/screenshots/04-password-reset.png` | Password recovery request & new password form |
+| `05-kanban-wip-alert` | `/docs/assets/screenshots/05-kanban-wip-alert.png` | Kanban board with red pulsing WIP limit alert |
+| `06-issue-drawer-full` | `/docs/assets/screenshots/06-issue-drawer-full.png` | Slide-out drawer with subtasks and comments |
+| `07-backlog-sprint-planning` | `/docs/assets/screenshots/07-backlog-sprint-planning.png` | Backlog queue and sprint staging view |
+| `08-velocity-burndown` | `/docs/assets/screenshots/08-velocity-burndown.png` | Velocity report and sprint burndown chart |
+| `09-admin-team-approvals` | `/docs/assets/screenshots/09-admin-team-approvals.png` | Team management approval table with role selectors |
+
+---
+
+*© 2026 ApexTrack Systems. All rights reserved. Generated automatically via `npm run docs:sync`.*
+',
   'u1','u1', unixepoch('2026-10-06 01:00')*1000, unixepoch('2026-10-06 01:00')*1000);
 
 -- Attachment metadata (R2 objects are uploaded in Phase 4) -----------

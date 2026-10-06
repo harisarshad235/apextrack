@@ -27,6 +27,422 @@ interface DocumentReaderModalProps {
   onEdit: () => void;
 }
 
+// =========================================================================
+// INTERACTIVE TAILWIND VISUAL WORKFLOW MOCKUPS
+// =========================================================================
+
+function VisualRegisterMockup() {
+  return (
+    <div className="my-6 p-4 md:p-6 rounded-2xl bg-slate-900 text-slate-100 border border-slate-800 shadow-xl font-sans not-prose">
+      <div className="text-xs font-mono font-bold text-blue-400 mb-3 flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <span className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+          FLOW 2.1: ACCOUNT REGISTRATION & ONBOARDING PORTAL
+        </span>
+        <span className="bg-blue-500/20 text-blue-300 text-[10px] px-2 py-0.5 rounded font-mono">
+          Interactive Mockup
+        </span>
+      </div>
+
+      <div className="max-w-md mx-auto p-4 rounded-2xl bg-slate-800/90 border border-slate-700/80 shadow-lg space-y-3">
+        <div className="flex items-center justify-center gap-1.5 pb-2 border-b border-slate-700/60">
+          <span className="font-bold text-sm text-white">ApexTrack</span>
+          <span className="text-[10px] font-mono bg-blue-500/20 text-blue-400 px-1.5 py-0.2 rounded font-bold">v1.0</span>
+        </div>
+        <div className="grid grid-cols-2 p-0.5 bg-slate-900/80 rounded-lg text-xs font-semibold text-center">
+          <span className="py-1 text-slate-400">Sign In</span>
+          <span className="py-1 bg-blue-600 text-white rounded-md shadow-xs">Create Account</span>
+        </div>
+        <div className="space-y-2 text-xs">
+          <div>
+            <label className="text-[11px] font-medium text-slate-400 block mb-0.5">Full Name *</label>
+            <div className="p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-xs">Jordan Vance</div>
+          </div>
+          <div>
+            <label className="text-[11px] font-medium text-slate-400 block mb-0.5">Work Email Address *</label>
+            <div className="p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-xs">jordan.v@apextrack.io</div>
+          </div>
+          <div>
+            <label className="text-[11px] font-medium text-slate-400 block mb-0.5">Password *</label>
+            <div className="p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-400 font-mono text-xs">••••••••••••</div>
+          </div>
+          <div>
+            <label className="text-[11px] font-medium text-slate-400 block mb-0.5">Department</label>
+            <div className="p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-xs">Frontend Engineering</div>
+          </div>
+        </div>
+        <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300">
+          🔒 <strong>Gated Security:</strong> New accounts land in the <strong>PENDING</strong> holding queue until approved by an Admin.
+        </div>
+        <button type="button" className="w-full py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg shadow-sm">
+          Create Account & Enter Approval Queue
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function VisualHoldingRoomMockup() {
+  return (
+    <div className="my-6 p-4 md:p-6 rounded-2xl bg-slate-900 text-slate-100 border border-slate-800 shadow-xl font-sans not-prose">
+      <div className="text-xs font-mono font-bold text-amber-400 mb-3 flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <span className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+          FLOW 2.2: THE HOLDING ROOM (AWAITING APPROVAL)
+        </span>
+        <span className="bg-amber-500/20 text-amber-300 text-[10px] px-2 py-0.5 rounded font-mono">
+          Pending State View
+        </span>
+      </div>
+
+      <div className="max-w-md mx-auto p-6 rounded-2xl bg-slate-800/90 border border-slate-700/80 shadow-lg text-center space-y-4">
+        <div className="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400 text-xl font-bold">
+          ⏳
+        </div>
+        <div>
+          <h3 className="text-base font-bold text-white">Account Awaiting Administrator Approval</h3>
+          <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+            Welcome, <strong className="text-white">Jordan Vance</strong>! Your account has been registered with status <span className="bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-mono font-bold">PENDING</span>.
+          </p>
+        </div>
+        <div className="p-3 bg-slate-900/80 border border-slate-700/60 rounded-xl text-[11px] text-slate-300 text-left space-y-1">
+          <div className="flex justify-between"><span className="text-slate-500">Email:</span><span>jordan.v@apextrack.io</span></div>
+          <div className="flex justify-between"><span className="text-slate-500">Assigned Role:</span><span className="text-blue-400 font-semibold">Viewer (Pending)</span></div>
+          <div className="flex justify-between"><span className="text-slate-500">Admin Notification:</span><span className="text-emerald-400">✓ Dispatched</span></div>
+        </div>
+        <div className="flex gap-2 pt-1">
+          <button type="button" className="flex-1 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg">Check Status</button>
+          <button type="button" className="py-2 px-3 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold rounded-lg">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VisualSignInMockup() {
+  return (
+    <div className="my-6 p-4 md:p-6 rounded-2xl bg-slate-900 text-slate-100 border border-slate-800 shadow-xl font-sans not-prose">
+      <div className="text-xs font-mono font-bold text-blue-400 mb-3 flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <span className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+          FLOW 2.3: SIGN IN PORTAL & DEMO FAST-SWITCHER
+        </span>
+        <span className="bg-blue-500/20 text-blue-300 text-[10px] px-2 py-0.5 rounded font-mono">
+          Authentication Gateway
+        </span>
+      </div>
+
+      <div className="max-w-md mx-auto p-4 rounded-2xl bg-slate-800/90 border border-slate-700/80 shadow-lg space-y-3">
+        <div className="space-y-2 text-xs">
+          <div>
+            <label className="text-[11px] font-medium text-slate-400 block mb-0.5">Work Email Address</label>
+            <div className="p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-xs">harisarshad235@gmail.com</div>
+          </div>
+          <div>
+            <div className="flex justify-between text-[11px] mb-0.5">
+              <span className="font-medium text-slate-400">Password</span>
+              <span className="text-blue-400 font-semibold cursor-pointer">Forgot password?</span>
+            </div>
+            <div className="p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-xs flex justify-between">
+              <span>••••••••••••</span>
+              <span className="text-slate-400">👁️</span>
+            </div>
+          </div>
+        </div>
+        <button type="button" className="w-full py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg">
+          Sign In to Workspace
+        </button>
+        <div className="pt-2 border-t border-slate-700/60">
+          <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1.5 font-mono">⚡ Fast Persona Switcher (Dev Mode)</span>
+          <div className="grid grid-cols-3 gap-1.5 text-[10px]">
+            <div className="p-1.5 rounded bg-slate-900 border border-slate-700 text-left cursor-pointer">
+              <div className="font-bold text-white truncate">Alex Chen</div>
+              <div className="text-amber-400 font-mono">Admin</div>
+            </div>
+            <div className="p-1.5 rounded bg-slate-900 border border-slate-700 text-left cursor-pointer">
+              <div className="font-bold text-white truncate">Sarah J.</div>
+              <div className="text-blue-400 font-mono">Member</div>
+            </div>
+            <div className="p-1.5 rounded bg-slate-900 border border-slate-700 text-left cursor-pointer">
+              <div className="font-bold text-white truncate">Devin V.</div>
+              <div className="text-slate-400 font-mono">Viewer</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VisualPasswordResetMockup() {
+  return (
+    <div className="my-6 p-4 md:p-6 rounded-2xl bg-slate-900 text-slate-100 border border-slate-800 shadow-xl font-sans not-prose">
+      <div className="text-xs font-mono font-bold text-purple-400 mb-3 flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <span className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+          FLOW 2.4: SELF-SERVICE PASSWORD RECOVERY LIFECYCLE
+        </span>
+        <span className="bg-purple-500/20 text-purple-300 text-[10px] px-2 py-0.5 rounded font-mono">
+          3-Step Pipeline
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+        {/* Step 1 */}
+        <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[10px]">1</span>
+              <span className="font-bold text-white">Request Link</span>
+            </div>
+            <p className="text-[11px] text-slate-400 mb-2">Enter work email at <code className="text-blue-300">/forgot-password</code></p>
+            <div className="p-2 rounded bg-slate-900 border border-slate-700 text-slate-300 text-[11px] truncate">name@company.com</div>
+          </div>
+          <span className="text-[10px] text-emerald-400 font-mono mt-3">✓ Anti-harvesting protected</span>
+        </div>
+
+        {/* Step 2 */}
+        <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[10px]">2</span>
+              <span className="font-bold text-white">Resend Email</span>
+            </div>
+            <p className="text-[11px] text-slate-400 mb-2">Transactional email dispatched with HMAC signature.</p>
+            <div className="p-2 rounded bg-blue-950/60 border border-blue-800/60 text-center">
+              <span className="text-blue-300 font-bold text-[11px]">[ Reset Password Button ]</span>
+            </div>
+          </div>
+          <span className="text-[10px] text-amber-300 font-mono mt-3">⏳ 15-minute expiration TTL</span>
+        </div>
+
+        {/* Step 3 */}
+        <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[10px]">3</span>
+              <span className="font-bold text-white">Set New Password</span>
+            </div>
+            <p className="text-[11px] text-slate-400 mb-2">Validated token updates PBKDF2 hash in D1 database.</p>
+            <div className="p-2 rounded bg-slate-900 border border-slate-700 text-emerald-400 text-[11px] font-bold text-center">
+              ✓ Password Updated!
+            </div>
+          </div>
+          <span className="text-[10px] text-blue-400 font-mono mt-3">🔒 Instant login redirect</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VisualWipAlertMockup() {
+  return (
+    <div className="my-6 p-4 md:p-5 rounded-2xl bg-slate-900 text-slate-100 border border-slate-800 shadow-xl font-sans not-prose">
+      <div className="text-xs font-mono font-bold text-rose-400 mb-3 flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <span className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+          FLOW 3.3: WORK-IN-PROGRESS (WIP) LIMIT & BOTTLENECK ALERT
+        </span>
+        <span className="bg-rose-500/20 text-rose-300 text-[10px] px-2 py-0.5 rounded font-mono">
+          Kanban Health Guard
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Normal Column */}
+        <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold text-slate-200">IN PROGRESS</span>
+            <span className="text-[10px] font-mono bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded font-bold">WIP 3/5 (Healthy)</span>
+          </div>
+          <p className="text-[11px] text-slate-400 mb-3">Under maximum capacity limit of 5 parallel issues.</p>
+          <div className="p-2 rounded bg-slate-900 border border-slate-700 text-xs text-slate-300">
+            <span className="font-mono text-blue-400 text-[10px] font-bold">APEX-101</span> · D1 Edge Schema (5 pts)
+          </div>
+        </div>
+
+        {/* Overloaded Column */}
+        <div className="p-3.5 rounded-xl bg-red-950/30 border-2 border-red-500/80 shadow-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold text-red-300">IN REVIEW</span>
+            <span className="text-[10px] font-mono bg-red-600 text-white px-2 py-0.5 rounded font-bold animate-pulse">
+              ⚠️ WIP 5/4 (OVERLOADED)
+            </span>
+          </div>
+          <p className="text-[11px] text-red-300 font-medium mb-3">Capacity limit breached! Team must review tickets before taking new tasks.</p>
+          <div className="p-2 rounded bg-slate-900 border border-red-500/50 text-xs text-slate-300">
+            <span className="font-mono text-blue-400 text-[10px] font-bold">APEX-102</span> · Kanban Drag Focus (3 pts)
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VisualBacklogMockup() {
+  return (
+    <div className="my-6 p-4 md:p-5 rounded-2xl bg-slate-900 text-slate-100 border border-slate-800 shadow-xl font-sans not-prose">
+      <div className="text-xs font-mono font-bold text-blue-400 mb-3 flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <span className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+          FLOW 4.1: SPRINT BACKLOG & CAPACITY PLANNING
+        </span>
+        <span className="bg-blue-500/20 text-blue-300 text-[10px] px-2 py-0.5 rounded font-mono">
+          Staging Pools
+        </span>
+      </div>
+
+      <div className="space-y-3 text-xs">
+        {/* Active Sprint */}
+        <div className="p-3 rounded-xl bg-blue-950/40 border border-blue-800/60">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-white">Sprint 24 (Active)</span>
+              <span className="bg-blue-500/20 text-blue-300 text-[10px] px-1.5 py-0.2 rounded font-mono">Oct 1 – Oct 15</span>
+            </div>
+            <span className="font-mono text-emerald-400 font-bold">28 pts committed</span>
+          </div>
+          <div className="space-y-1.5">
+            <div className="p-2 rounded bg-slate-900 border border-slate-800 flex justify-between items-center text-[11px]">
+              <span><span className="text-blue-400 font-mono font-bold mr-2">APEX-101</span> Design & connect D1 database</span>
+              <span className="bg-slate-800 px-1.5 py-0.2 rounded font-mono">5 pts</span>
+            </div>
+            <div className="p-2 rounded bg-slate-900 border border-slate-800 flex justify-between items-center text-[11px]">
+              <span><span className="text-blue-400 font-mono font-bold mr-2">APEX-103</span> Confluence-style Docs editor</span>
+              <span className="bg-slate-800 px-1.5 py-0.2 rounded font-mono">8 pts</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Backlog Pool */}
+        <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-bold text-slate-300">Product Backlog Pool (Unscheduled)</span>
+            <span className="font-mono text-slate-400">4 issues</span>
+          </div>
+          <div className="p-2 rounded bg-slate-900/80 border border-slate-800 flex justify-between items-center text-[11px] text-slate-400">
+            <span><span className="text-blue-400 font-mono font-bold mr-2">APEX-105</span> Zero Trust SSO webhook payload schema</span>
+            <span className="bg-slate-800 px-1.5 py-0.2 rounded font-mono text-slate-400">2 pts</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VisualVelocityMockup() {
+  return (
+    <div className="my-6 p-4 md:p-5 rounded-2xl bg-slate-900 text-slate-100 border border-slate-800 shadow-xl font-sans not-prose">
+      <div className="text-xs font-mono font-bold text-emerald-400 mb-3 flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <span className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          FLOW 4.2: SPRINT BURNDOWN & VELOCITY DASHBOARD
+        </span>
+        <span className="bg-emerald-500/20 text-emerald-300 text-[10px] px-2 py-0.5 rounded font-mono">
+          Live Telemetry
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4 text-xs">
+        <div className="p-2.5 rounded-xl bg-slate-800 border border-slate-700">
+          <span className="text-[10px] text-slate-400 block font-mono">Completion Rate</span>
+          <span className="font-bold text-sm text-emerald-400">75%</span>
+        </div>
+        <div className="p-2.5 rounded-xl bg-slate-800 border border-slate-700">
+          <span className="text-[10px] text-slate-400 block font-mono">Velocity Burned</span>
+          <span className="font-bold text-sm text-blue-400">28 / 35 pts</span>
+        </div>
+        <div className="p-2.5 rounded-xl bg-slate-800 border border-slate-700">
+          <span className="text-[10px] text-slate-400 block font-mono">Active In-Flight</span>
+          <span className="font-bold text-sm text-amber-400">5 issues</span>
+        </div>
+        <div className="p-2.5 rounded-xl bg-slate-800 border border-slate-700">
+          <span className="text-[10px] text-slate-400 block font-mono">Open Defects</span>
+          <span className="font-bold text-sm text-rose-400">2 defects</span>
+        </div>
+      </div>
+
+      {/* SVG Burndown Visual */}
+      <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
+        <div className="flex justify-between text-[11px] text-slate-400 mb-2">
+          <span>Sprint 24 Burndown Trajectory</span>
+          <span className="text-emerald-400 font-bold">● Ahead of Schedule</span>
+        </div>
+        <svg viewBox="0 0 400 120" className="w-full h-24 stroke-current">
+          {/* Grid lines */}
+          <line x1="40" y1="20" x2="380" y2="20" stroke="#334155" strokeWidth="1" strokeDasharray="2,2" />
+          <line x1="40" y1="60" x2="380" y2="60" stroke="#334155" strokeWidth="1" strokeDasharray="2,2" />
+          <line x1="40" y1="100" x2="380" y2="100" stroke="#334155" strokeWidth="1" />
+          
+          {/* Ideal line (dashed) */}
+          <line x1="40" y1="20" x2="380" y2="100" stroke="#94a3b8" strokeWidth="2" strokeDasharray="4,4" />
+          
+          {/* Actual line (solid blue) */}
+          <polyline points="40,20 120,35 200,45 280,85 360,95" fill="none" stroke="#3b82f6" strokeWidth="3" />
+        </svg>
+        <div className="flex justify-between text-[10px] font-mono text-slate-500 mt-1">
+          <span>Day 1 (35 pts)</span>
+          <span>Day 7 (Mid-Sprint)</span>
+          <span>Day 14 (Target: 0 pts)</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VisualAdminApprovalsMockup() {
+  return (
+    <div className="my-6 p-4 md:p-5 rounded-2xl bg-slate-900 text-slate-100 border border-slate-800 shadow-xl font-sans not-prose">
+      <div className="text-xs font-mono font-bold text-amber-400 mb-3 flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <span className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+          FLOW 5.1: IN-APP USER APPROVALS & ROLE MANAGEMENT
+        </span>
+        <span className="bg-amber-500/20 text-amber-300 text-[10px] px-2 py-0.5 rounded font-mono">
+          Admin Control Center
+        </span>
+      </div>
+
+      <div className="rounded-xl border border-slate-700 overflow-hidden text-xs">
+        <div className="grid grid-cols-4 p-2.5 bg-slate-800 font-bold text-slate-300 border-b border-slate-700">
+          <span>User Name</span>
+          <span>Email</span>
+          <span>Role Assignment</span>
+          <span className="text-right">Action</span>
+        </div>
+        <div className="grid grid-cols-4 p-2.5 bg-slate-900/90 items-center border-b border-slate-800">
+          <span className="font-semibold text-white">Jordan Vance</span>
+          <span className="text-slate-400 font-mono text-[11px]">jordan.v@apextrack.io</span>
+          <div>
+            <span className="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-blue-400 font-semibold text-[11px]">
+              Member ▾
+            </span>
+          </div>
+          <div className="text-right">
+            <button type="button" className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[11px] font-bold">
+              ✓ Approve
+            </button>
+          </div>
+        </div>
+        <div className="grid grid-cols-4 p-2.5 bg-slate-900/60 items-center">
+          <span className="font-semibold text-white">Priya Natarajan</span>
+          <span className="text-slate-400 font-mono text-[11px]">priya.n@apextrack.io</span>
+          <div>
+            <span className="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300 text-[11px]">
+              Viewer ▾
+            </span>
+          </div>
+          <div className="text-right">
+            <button type="button" className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[11px] font-bold">
+              ✓ Approve
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Pure Tailwind UI Mockup Component for Workspace Layout Overview
 function VisualWorkspaceMockup() {
   return (
@@ -372,12 +788,79 @@ export function DocumentReaderModal({
       );
     },
 
+    img: ({ src, alt }: any) => {
+      const s = (src || '').toLowerCase();
+      const a = (alt || '').toLowerCase();
+
+      if (s.includes('01-') || s.includes('create-account') || a.includes('create account') || a.includes('registration')) {
+        return <VisualRegisterMockup />;
+      }
+      if (s.includes('02-') || s.includes('awaiting-approval') || a.includes('awaiting approval') || a.includes('holding')) {
+        return <VisualHoldingRoomMockup />;
+      }
+      if (s.includes('03-') || s.includes('sign-in') || a.includes('sign in') || a.includes('login')) {
+        return <VisualSignInMockup />;
+      }
+      if (s.includes('04-') || s.includes('password-reset') || a.includes('password reset') || a.includes('recovery')) {
+        return <VisualPasswordResetMockup />;
+      }
+      if (s.includes('05-') || s.includes('wip') || a.includes('wip') || a.includes('work-in-progress')) {
+        return <VisualWipAlertMockup />;
+      }
+      if (s.includes('06-') || s.includes('drawer') || a.includes('drawer') || a.includes('issue detail')) {
+        return <VisualDrawerMockup />;
+      }
+      if (s.includes('07-') || s.includes('backlog') || a.includes('backlog') || a.includes('sprint planning')) {
+        return <VisualBacklogMockup />;
+      }
+      if (s.includes('08-') || s.includes('velocity') || s.includes('burndown') || a.includes('velocity') || a.includes('burndown')) {
+        return <VisualVelocityMockup />;
+      }
+      if (s.includes('09-') || s.includes('approval') || s.includes('admin') || a.includes('approval') || a.includes('team')) {
+        return <VisualAdminApprovalsMockup />;
+      }
+
+      return (
+        <div className="my-6 rounded-2xl overflow-hidden border border-slate-200 dark:border-zinc-700 bg-slate-100 dark:bg-zinc-800 p-2 text-center">
+          <img src={src} alt={alt || 'Visual Documentation Screenshot'} className="max-w-full h-auto rounded-xl mx-auto shadow-md" />
+          {alt && <p className="text-xs text-slate-500 dark:text-zinc-400 mt-2 font-medium">{alt}</p>}
+        </div>
+      );
+    },
+
     code: ({ node, inline, className, children, ...props }: any) => {
       const rawText = String(children).replace(/\n$/, '');
       const match = /language-(\w+)/.exec(className || '');
       const lang = match ? match[1] : '';
 
       // Intercept ASCII wireframe code blocks and replace with Pure Tailwind UI Components
+      if (rawText.includes('FLOW 2.1') || (rawText.includes('Full Name:') && rawText.includes('Create Account'))) {
+        return <VisualRegisterMockup />;
+      }
+      if (rawText.includes('FLOW 2.2') || rawText.includes('Awaiting Administrator Approval') || rawText.includes('Holding Room')) {
+        return <VisualHoldingRoomMockup />;
+      }
+      if (rawText.includes('FLOW 2.3') || (rawText.includes('Sign In to Workspace') && rawText.includes('Persona Switcher'))) {
+        return <VisualSignInMockup />;
+      }
+      if (rawText.includes('FLOW 2.4') || rawText.includes('Password Recovery -> Email Link') || rawText.includes('Password Recovery')) {
+        return <VisualPasswordResetMockup />;
+      }
+      if (rawText.includes('FLOW 3.3') || rawText.includes('WIP 5/4') || rawText.includes('WIP Exceeded') || rawText.includes('Pulsing Header')) {
+        return <VisualWipAlertMockup />;
+      }
+      if (rawText.includes('ISSUE DETAIL DRAWER')) {
+        return <VisualDrawerMockup />;
+      }
+      if (rawText.includes('FLOW 4.1') || rawText.includes('BACKLOG & CAPACITY') || rawText.includes('Sprint 24 (Active)')) {
+        return <VisualBacklogMockup />;
+      }
+      if (rawText.includes('FLOW 4.2') || rawText.includes('BURNDOWN & VELOCITY') || rawText.includes('Sprint 24 Burndown')) {
+        return <VisualVelocityMockup />;
+      }
+      if (rawText.includes('FLOW 5.1') || rawText.includes('IN-APP USER APPROVALS') || rawText.includes('Pending User Approvals')) {
+        return <VisualAdminApprovalsMockup />;
+      }
       if (
         lang === 'ascii' ||
         lang === 'wireframe' ||
@@ -386,10 +869,6 @@ export function DocumentReaderModal({
         rawText.includes('KANBAN BOARD')
       ) {
         return <VisualWorkspaceMockup />;
-      }
-
-      if (rawText.includes('ISSUE DETAIL DRAWER')) {
-        return <VisualDrawerMockup />;
       }
 
       if (lang === 'kanban' || lang === 'card') {
