@@ -40,6 +40,7 @@ export const users = sqliteTable(
     id: text('id').primaryKey(),
     name: text('name').notNull(),
     email: text('email').notNull(),
+    passwordHash: text('password_hash'),
     role: text('role', { enum: USER_ROLES }).notNull().default('Viewer'),
     status: text('status', { enum: USER_STATUSES }).notNull().default('PENDING'),
     department: text('department'),
