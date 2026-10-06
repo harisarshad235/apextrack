@@ -12,6 +12,8 @@ import {
   issueHistory,
   projects,
   swimlanes,
+  subtasks,
+  issueLinks,
 } from '@/db/schema';
 import { FullIssue, FullDocument, WorkspaceMetrics, User, Sprint, Project, Swimlane } from './types';
 import { desc, asc } from 'drizzle-orm';
@@ -70,6 +72,18 @@ export async function getWorkspaceData(): Promise<{
   const rawAttachments = await db.select().from(attachments);
   const rawLabels = await db.select().from(labels);
   const rawIssueLabels = await db.select().from(issueLabels);
+  const rawSubtasks = await db.select().from(subtasks).orderBy(asc(subtasks.sortOrder));
+  const rawLinks = await db.select().from(issueLinks);
+
+  const subtasksByIssue = new Map<string, (typeof subtasks.$inferSelect)[]>();
+  rawSubtasks.forEach((s) => {
+    subtasksByIssue.set(s.issueId, [...(subtasksByIssue.get(s.issueId) || []), s]);
+  });
+  const linksByIssue = new Map<string, (typeof issueLinks.$inferSelect)[]>();
+  rawLinks.forEach((l) => {
+    linksByIssue.set(l.sourceIssueId, [...(linksByIssue.get(l.sourceIssueId) || []), l]);
+    linksByIssue.set(l.targetIssueId, [...(linksByIssue.get(l.targetIssueId) || []), l]);
+  });
 
   // Map labels
   const labelMap = new Map<number, string>();
@@ -122,6 +136,8 @@ export async function getWorkspaceData(): Promise<{
       comments: commentsByIssue.get(issue.key) || [],
       history: historyByIssue.get(issue.key) || [],
       attachments: issueAttachmentsMap.get(issue.key) || [],
+      subtasks: subtasksByIssue.get(issue.key) || [],
+      links: linksByIssue.get(issue.key) || [],
       assignee: issue.assigneeId ? userMap.get(issue.assigneeId) : null,
       reporter: issue.reporterId ? userMap.get(issue.reporterId) : null,
       sprint: issue.sprintId ? sprintMap.get(issue.sprintId) : null,

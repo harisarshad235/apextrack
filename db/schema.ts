@@ -138,6 +138,7 @@ export const issues = sqliteTable(
     storyPoints: integer('story_points').notNull().default(0),
     dueDate: text('due_date'),
     rank: integer('rank').notNull().default(0),
+    isFlagged: integer('is_flagged', { mode: 'boolean' }).notNull().default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -202,6 +203,58 @@ export const issueHistory = sqliteTable(
     createdAt: createdAt(),
   },
   (t) => [index('history_issue_idx').on(t.issueKey)],
+);
+
+/* ------------------------------------------------------------------ */
+/* Subtasks, Issue Links & Notifications                               */
+/* NOTE: issues' primary key is `key` (e.g. APEX-101), so FKs target it.*/
+/* ------------------------------------------------------------------ */
+export const LINK_TYPES = ['blocks', 'is_blocked_by', 'relates_to'] as const;
+export type LinkType = (typeof LINK_TYPES)[number];
+
+export const subtasks = sqliteTable(
+  'subtasks',
+  {
+    id: text('id').primaryKey(),
+    issueId: text('issue_id')
+      .notNull()
+      .references(() => issues.key, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    title: text('title').notNull(),
+    completed: integer('completed', { mode: 'boolean' }).notNull().default(false),
+    sortOrder: integer('sort_order').notNull().default(0),
+  },
+  (t) => [index('subtasks_issue_idx').on(t.issueId)],
+);
+
+export const issueLinks = sqliteTable(
+  'issue_links',
+  {
+    id: text('id').primaryKey(),
+    sourceIssueId: text('source_issue_id')
+      .notNull()
+      .references(() => issues.key, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    targetIssueId: text('target_issue_id')
+      .notNull()
+      .references(() => issues.key, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    relationType: text('relation_type', { enum: LINK_TYPES }).notNull().default('relates_to'),
+  },
+  (t) => [index('issue_links_source_idx').on(t.sourceIssueId), index('issue_links_target_idx').on(t.targetIssueId)],
+);
+
+export const notifications = sqliteTable(
+  'notifications',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    authorId: text('author_id').references(() => users.id, { onDelete: 'set null' }),
+    issueId: text('issue_id').references(() => issues.key, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    message: text('message').notNull(),
+    read: integer('read', { mode: 'boolean' }).notNull().default(false),
+    createdAt: text('created_at').notNull(),
+  },
+  (t) => [index('notifications_user_idx').on(t.userId, t.read)],
 );
 
 /* ------------------------------------------------------------------ */
@@ -283,6 +336,11 @@ export const issuesRelations = relations(issues, ({ one, many }) => ({
   comments: many(comments),
   history: many(issueHistory),
   attachments: many(attachments),
+  subtasks: many(subtasks),
+}));
+
+export const subtasksRelations = relations(subtasks, ({ one }) => ({
+  issue: one(issues, { fields: [subtasks.issueId], references: [issues.key] }),
 }));
 
 export const labelsRelations = relations(labels, ({ many }) => ({ issues: many(issueLabels) }));
@@ -325,3 +383,6 @@ export type HistoryEntry = typeof issueHistory.$inferSelect;
 export type Document = typeof documents.$inferSelect;
 export type Attachment = typeof attachments.$inferSelect;
 export type Sprint = typeof sprints.$inferSelect;
+export type Subtask = typeof subtasks.$inferSelect;
+export type IssueLink = typeof issueLinks.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;

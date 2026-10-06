@@ -8,16 +8,41 @@ import {
   Download,
   Plus,
   Edit3,
+  Flag,
+  Link2,
+  ListChecks,
 } from 'lucide-react';
-import { FullIssue, User, IssueStatus, Attachment, IssueType, IssuePriority, Swimlane } from '@/lib/types';
+import { FullIssue, User, IssueStatus, Attachment, IssueType, IssuePriority, Swimlane, Subtask } from '@/lib/types';
+import { LinkType } from '@/db/schema';
 import { COLUMNS, getTypeConfig, getPriorityConfig } from '@/lib/config';
 import { UserAvatar } from '@/components/ui/UserAvatar';
+import {
+  toggleIssueFlag,
+  addSubtask,
+  toggleSubtask,
+  deleteSubtask,
+  addIssueLink,
+  removeIssueLink,
+} from '@/app/actions/issues';
+
+const LINK_LABELS: Record<LinkType, string> = {
+  blocks: 'blocks',
+  is_blocked_by: 'is blocked by',
+  relates_to: 'relates to',
+};
+const INVERSE_LINK: Record<LinkType, LinkType> = {
+  blocks: 'is_blocked_by',
+  is_blocked_by: 'blocks',
+  relates_to: 'relates_to',
+};
 
 interface IssueDetailDrawerProps {
   issue: FullIssue;
   users: User[];
   currentUser: User;
   swimlanes?: Swimlane[];
+  allIssues?: FullIssue[];
+  onNavigateIssue?: (issueKey: string) => void;
   isViewer: boolean;
   onClose: () => void;
   onStatusChange: (status: string) => void;
@@ -40,6 +65,8 @@ export function IssueDetailDrawer({
   users,
   currentUser,
   swimlanes = [],
+  allIssues = [],
+  onNavigateIssue,
   isViewer,
   onClose,
   onStatusChange,
@@ -55,6 +82,72 @@ export function IssueDetailDrawer({
   const [descInput, setDescInput] = useState(issue.description || '');
   const [isUploading, setIsUploading] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [localSubtasks, setLocalSubtasks] = useState<Subtask[]>(issue.subtasks || []);
+  const [newSubtask, setNewSubtask] = useState('');
+  const [linkTarget, setLinkTarget] = useState('');
+  const [linkType, setLinkType] = useState<LinkType>('relates_to');
+  const [linkError, setLinkError] = useState('');
+
+  useEffect(() => {
+    setLocalSubtasks(issue.subtasks || []);
+  }, [issue.key, issue.subtasks]);
+
+  const doneSubtasks = localSubtasks.filter((s) => s.completed).length;
+  const subtaskPct = localSubtasks.length ? Math.round((doneSubtasks / localSubtasks.length) * 100) : 0;
+
+  const handleToggleSubtask = (s: Subtask) => {
+    setLocalSubtasks((prev) => prev.map((x) => (x.id === s.id ? { ...x, completed: !s.completed } : x)));
+    startTransition(async () => {
+      await toggleSubtask(s.id, !s.completed);
+    });
+  };
+
+  const handleAddSubtask = () => {
+    const title = newSubtask.trim();
+    if (!title) return;
+    const tempId = `tmp-${Date.now()}`;
+    setLocalSubtasks((prev) => [
+      ...prev,
+      { id: tempId, issueId: issue.key, title, completed: false, sortOrder: prev.length },
+    ]);
+    setNewSubtask('');
+    startTransition(async () => {
+      await addSubtask(issue.key, title);
+    });
+  };
+
+  const handleDeleteSubtask = (id: string) => {
+    setLocalSubtasks((prev) => prev.filter((x) => x.id !== id));
+    startTransition(async () => {
+      await deleteSubtask(id);
+    });
+  };
+
+  const handleAddLink = () => {
+    if (!linkTarget.trim()) return;
+    setLinkError('');
+    startTransition(async () => {
+      const res = await addIssueLink(issue.key, linkTarget, linkType);
+      if (res.success) setLinkTarget('');
+      else setLinkError(res.error || 'Failed to link');
+    });
+  };
+
+  const linkedChips = (issue.links || []).map((l) => {
+    const outgoing = l.sourceIssueId === issue.key;
+    const otherKey = outgoing ? l.targetIssueId : l.sourceIssueId;
+    const rel = outgoing ? l.relationType : INVERSE_LINK[l.relationType];
+    return { link: l, otherKey, rel, other: allIssues.find((i) => i.key === otherKey) };
+  });
+
+  const statusDot = (status?: string) =>
+    status === 'Done'
+      ? 'bg-emerald-500'
+      : status === 'In Progress'
+      ? 'bg-blue-500'
+      : status === 'In Review'
+      ? 'bg-purple-500'
+      : 'bg-slate-400';
 
   useEffect(() => {
     setTitleInput(issue.title);
@@ -163,6 +256,20 @@ export function IssueDetailDrawer({
           </div>
 
           <div className="flex items-center gap-2">
+            {!isViewer && (
+              <button
+                onClick={() => startTransition(async () => { await toggleIssueFlag(issue.key); })}
+                className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg border transition ${
+                  issue.isFlagged
+                    ? 'bg-amber-500 border-amber-500 text-white hover:bg-amber-600'
+                    : 'border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-amber-500 hover:text-amber-600'
+                }`}
+                title={issue.isFlagged ? 'Remove impediment flag' : 'Flag as impediment'}
+              >
+                <Flag className="w-3.5 h-3.5" />
+                {issue.isFlagged ? 'Remove Flag' : 'Add Flag'}
+              </button>
+            )}
             {!isViewer && (
               <button
                 onClick={onDelete}
@@ -357,6 +464,149 @@ export function IssueDetailDrawer({
               placeholder="Add a detailed description or reproduction steps..."
               className="w-full text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+
+          {/* Subtasks Checklist */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <ListChecks className="w-3.5 h-3.5" /> Subtasks
+              </h3>
+              {localSubtasks.length > 0 && (
+                <span className="text-[11px] font-mono text-slate-500">
+                  {doneSubtasks} of {localSubtasks.length} completed
+                </span>
+              )}
+            </div>
+            {localSubtasks.length > 0 && (
+              <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="h-1.5 rounded-full bg-emerald-500 transition-all duration-300"
+                  style={{ width: `${subtaskPct}%` }}
+                />
+              </div>
+            )}
+            <ul className="space-y-1">
+              {localSubtasks.map((s) => (
+                <li key={s.id} className="flex items-center gap-2 group text-xs py-1">
+                  <input
+                    type="checkbox"
+                    checked={s.completed}
+                    disabled={isViewer}
+                    onChange={() => handleToggleSubtask(s)}
+                    className="w-3.5 h-3.5 accent-emerald-600 cursor-pointer"
+                  />
+                  <span
+                    className={`flex-1 ${
+                      s.completed ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-200'
+                    }`}
+                  >
+                    {s.title}
+                  </span>
+                  {!isViewer && (
+                    <button
+                      onClick={() => handleDeleteSubtask(s.id)}
+                      className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition"
+                      title="Delete subtask"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+            {!isViewer && (
+              <input
+                type="text"
+                value={newSubtask}
+                onChange={(e) => setNewSubtask(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddSubtask();
+                  }
+                }}
+                placeholder="Add a subtask and press Enter..."
+                className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            )}
+          </div>
+
+          {/* Linked Issues */}
+          <div className="space-y-2">
+            <h3 className="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <Link2 className="w-3.5 h-3.5" /> Linked Issues ({linkedChips.length})
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {linkedChips.map(({ link, otherKey, rel, other }) => (
+                <span
+                  key={link.id}
+                  className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
+                >
+                  <span className="text-slate-400">{LINK_LABELS[rel]}</span>
+                  <button
+                    onClick={() => onNavigateIssue?.(otherKey)}
+                    className="flex items-center gap-1.5 font-mono font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                    title={other?.title || otherKey}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${statusDot(other?.status)}`} />
+                    {otherKey}
+                  </button>
+                  {other && <span className="text-slate-400 hidden sm:inline">{other.status}</span>}
+                  {!isViewer && (
+                    <button
+                      onClick={() => startTransition(async () => { await removeIssueLink(link.id); })}
+                      className="text-slate-400 hover:text-red-500"
+                      title="Remove link"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </span>
+              ))}
+              {linkedChips.length === 0 && (
+                <p className="text-xs text-slate-400 italic">No linked issues.</p>
+              )}
+            </div>
+            {!isViewer && (
+              <div className="space-y-1">
+                <div className="flex gap-2">
+                  <select
+                    value={linkType}
+                    onChange={(e) => setLinkType(e.target.value as LinkType)}
+                    className="text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 text-slate-800 dark:text-slate-200"
+                  >
+                    <option value="blocks">blocks</option>
+                    <option value="is_blocked_by">is blocked by</option>
+                    <option value="relates_to">relates to</option>
+                  </select>
+                  <input
+                    list="link-issue-options"
+                    value={linkTarget}
+                    onChange={(e) => setLinkTarget(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddLink()}
+                    placeholder="e.g. APEX-102"
+                    className="flex-1 text-xs font-mono bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <datalist id="link-issue-options">
+                    {allIssues
+                      .filter((i) => i.key !== issue.key)
+                      .map((i) => (
+                        <option key={i.key} value={i.key}>
+                          {i.title}
+                        </option>
+                      ))}
+                  </datalist>
+                  <button
+                    onClick={handleAddLink}
+                    className="px-3 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                  >
+                    Link
+                  </button>
+                </div>
+                {linkError && <p className="text-[11px] text-red-500">{linkError}</p>}
+              </div>
+            )}
           </div>
 
           {/* Attachments Section */}

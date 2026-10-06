@@ -11,6 +11,9 @@ import {
   Trash2,
   Edit2,
   Kanban,
+  Flag,
+  Zap,
+  Clock,
 } from 'lucide-react';
 import { FullIssue, User, Swimlane } from '@/lib/types';
 import { getTypeConfig, getPriorityConfig } from '@/lib/config';
@@ -26,7 +29,13 @@ interface KanbanBoardProps {
   onUpdateSwimlane: (swimlaneId: string, data: { name?: string; color?: string }) => void;
   onDeleteSwimlane: (swimlaneId: string) => void;
   isViewer: boolean;
+  currentUserId?: string;
 }
+
+const DEFAULT_WIP_LIMITS: Record<string, number> = {
+  'in progress': 5,
+  'in review': 4,
+};
 
 export function KanbanBoardView({
   issues,
@@ -38,8 +47,12 @@ export function KanbanBoardView({
   onUpdateSwimlane,
   onDeleteSwimlane,
   isViewer,
+  currentUserId,
 }: KanbanBoardProps) {
   const [draggedIssueId, setDraggedIssueId] = useState<string | null>(null);
+  const [onlyMine, setOnlyMine] = useState(false);
+  const [onlyFlagged, setOnlyFlagged] = useState(false);
+  const [recentFirst, setRecentFirst] = useState(false);
 
   // Inline swimlane editing state
   const [editingLaneId, setEditingLaneId] = useState<string | null>(null);
@@ -132,12 +145,57 @@ export function KanbanBoardView({
     },
   ];
 
+  const lastActivity = (i: FullIssue) =>
+    Math.max(
+      new Date(i.history?.[0]?.createdAt ?? 0).getTime(),
+      ...(i.history || []).map((h) => new Date(h.createdAt).getTime()),
+      new Date(i.updatedAt).getTime()
+    );
+
+  const visibleIssues = issues
+    .filter((i) => !onlyMine || (!!currentUserId && i.assigneeId === currentUserId))
+    .filter((i) => !onlyFlagged || i.isFlagged === true);
+  const sortedIssues = recentFirst
+    ? [...visibleIssues].sort((a, b) => lastActivity(b) - lastActivity(a))
+    : visibleIssues;
+
+  const pillClass = (active: boolean, tone: string) =>
+    `flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition ${
+      active
+        ? tone
+        : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-400'
+    }`;
+
   return (
-    <div className="flex gap-5 h-full items-start overflow-x-auto pb-4">
+    <div className="flex flex-col h-full">
+    {/* Quick Filter Bar */}
+    <div className="flex items-center gap-2 mb-4 flex-wrap">
+      <button
+        onClick={() => setOnlyMine((v) => !v)}
+        className={pillClass(onlyMine, 'bg-blue-600 border-blue-600 text-white')}
+      >
+        <Zap className="w-3.5 h-3.5" /> Only My Issues
+      </button>
+      <button
+        onClick={() => setOnlyFlagged((v) => !v)}
+        className={pillClass(onlyFlagged, 'bg-amber-500 border-amber-500 text-white')}
+      >
+        <Flag className="w-3.5 h-3.5" /> Flagged Blockers
+      </button>
+      <button
+        onClick={() => setRecentFirst((v) => !v)}
+        className={pillClass(recentFirst, 'bg-emerald-600 border-emerald-600 text-white')}
+      >
+        <Clock className="w-3.5 h-3.5" /> Recently Updated
+      </button>
+    </div>
+    <div className="flex gap-5 flex-1 min-h-0 items-start overflow-x-auto pb-4">
       {activeLanes.map((lane) => {
-        const colIssues = issues.filter(
+        const colIssues = sortedIssues.filter(
           (i) => i.status.toLowerCase() === lane.name.toLowerCase()
         );
+        const wipLimit = DEFAULT_WIP_LIMITS[lane.name.toLowerCase()];
+        const overWip = wipLimit !== undefined && colIssues.length > wipLimit;
         const colPoints = colIssues.reduce(
           (acc, curr) => acc + (Number(curr.storyPoints) || 0),
           0
@@ -190,8 +248,16 @@ export function KanbanBoardView({
                     <span className="font-bold text-sm tracking-wide text-slate-800 dark:text-slate-100 truncate">
                       {lane.name}
                     </span>
-                    <span className="text-xs bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-mono px-2 py-0.5 rounded-full font-bold flex-shrink-0">
+                    <span
+                      className={`text-xs font-mono px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${
+                        overWip
+                          ? 'bg-red-500 text-white animate-pulse'
+                          : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                      }`}
+                      title={wipLimit !== undefined ? `WIP limit: ${wipLimit}` : undefined}
+                    >
                       {colIssues.length}
+                      {wipLimit !== undefined && `/${wipLimit}`}
                     </span>
 
                     {!isViewer && (
@@ -241,7 +307,11 @@ export function KanbanBoardView({
                     draggable={!isViewer}
                     onDragStart={(e) => handleDragStart(e, issue.key)}
                     onClick={() => onSelectIssue(issue.key)}
-                    className="bg-white dark:bg-slate-800 rounded-xl p-3.5 shadow-sm border border-slate-200/90 dark:border-slate-700/80 hover:shadow-md hover:border-blue-400 dark:hover:border-blue-500 transition-all cursor-pointer group"
+                    className={`rounded-xl p-3.5 shadow-sm border hover:shadow-md transition-all cursor-pointer group ${
+                      issue.isFlagged
+                        ? 'bg-amber-500/10 border-amber-500/60 hover:border-amber-500'
+                        : 'bg-white dark:bg-slate-800 border-slate-200/90 dark:border-slate-700/80 hover:border-blue-400 dark:hover:border-blue-500'
+                    }`}
                   >
                     {/* Top Row: Type, Key, Priority & Edit Action */}
                     <div className="flex items-center justify-between mb-2">
@@ -252,6 +322,14 @@ export function KanbanBoardView({
                         <span className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 group-hover:text-blue-600 transition">
                           {issue.key}
                         </span>
+                        {issue.isFlagged && (
+                          <span
+                            className="p-0.5 rounded bg-amber-500 text-white"
+                            title="Flagged impediment"
+                          >
+                            <Flag className="w-3 h-3" />
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-1.5">
                         <span
@@ -379,6 +457,7 @@ export function KanbanBoardView({
           )}
         </div>
       )}
+    </div>
     </div>
   );
 }

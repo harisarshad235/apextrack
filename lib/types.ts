@@ -14,6 +14,9 @@ import {
   IssueType,
   IssuePriority,
   IssueStatus,
+  Subtask,
+  IssueLink,
+  Notification as AppNotification,
 } from '@/db/schema';
 
 export type {
@@ -32,6 +35,9 @@ export type {
   IssueType,
   IssuePriority,
   IssueStatus,
+  Subtask,
+  IssueLink,
+  AppNotification,
 };
 
 export interface FullIssue extends Issue {
@@ -39,6 +45,8 @@ export interface FullIssue extends Issue {
   comments: (Comment & { author?: User | null })[];
   history: HistoryEntry[];
   attachments: Attachment[];
+  subtasks: Subtask[];
+  links: IssueLink[];
   assignee?: User | null;
   reporter?: User | null;
   sprint?: Sprint | null;

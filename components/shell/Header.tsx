@@ -6,6 +6,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { UserAvatar } from '@/components/ui/UserAvatar';
 import { logoutUser } from '@/app/actions/auth';
 import { User } from '@/lib/types';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface HeaderProps {
   searchQuery: string;
@@ -15,6 +16,7 @@ interface HeaderProps {
   onOpenCreateIssue: () => void;
   onOpenCreateDoc: () => void;
   onOpenProfileModal: () => void;
+  onSelectIssue?: (issueKey: string) => void;
 }
 
 export function Header({
@@ -25,6 +27,7 @@ export function Header({
   onOpenCreateIssue,
   onOpenCreateDoc,
   onOpenProfileModal,
+  onSelectIssue,
 }: HeaderProps) {
   return (
     <header className="h-16 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between px-6 z-20 flex-shrink-0 transition-colors">
@@ -53,6 +56,9 @@ export function Header({
       <div className="flex items-center gap-3 ml-4">
         {/* Theme Toggle */}
         <ThemeToggle />
+
+        {/* In-app @mention notifications */}
+        <NotificationBell onSelectIssue={onSelectIssue} />
 
         {/* Quick Create Issue Action */}
         <button

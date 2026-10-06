@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { eq } from 'drizzle-orm';
+import { eq, and, desc, max, inArray } from 'drizzle-orm';
 import { getDb } from '@/lib/db';
 import { requireRole, getCurrentUser } from '@/lib/auth';
 import {
@@ -12,9 +12,14 @@ import {
   issueLabels,
   projectCounters,
   projects,
+  users,
+  subtasks,
+  issueLinks,
+  notifications,
   IssueStatus,
   IssueType,
   IssuePriority,
+  LinkType,
 } from '@/db/schema';
 
 export async function moveIssueStatus(issueKey: string, newStatus: string) {
@@ -250,10 +255,202 @@ export async function addComment(issueKey: string, body: string) {
       body: body.trim(),
     });
 
+    // @mention parsing -> notifications
+    const tokens = Array.from(body.matchAll(/@([\w.-]+)/g)).map((m) => m[1].toLowerCase().replace(/[.-]+$/, ''));
+    if (tokens.length > 0) {
+      const allUsers = await db.select().from(users);
+      const mentioned = new Map<string, string>();
+      for (const u of allUsers) {
+        if (u.id === currentUser.id) continue;
+        const full = u.name.toLowerCase().replace(/\s+/g, '');
+        const dotted = u.name.toLowerCase().replace(/\s+/g, '.');
+        const first = u.name.toLowerCase().split(/\s+/)[0];
+        const emailLocal = u.email.toLowerCase().split('@')[0];
+        if (tokens.some((t) => t === full || t === dotted || t === first || t === emailLocal)) {
+          mentioned.set(u.id, u.name);
+        }
+      }
+      if (mentioned.size > 0) {
+        const now = new Date().toISOString();
+        await db.insert(notifications).values(
+          Array.from(mentioned.keys()).map((userId) => ({
+            id: `n-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+            userId,
+            authorId: currentUser.id,
+            issueId: issueKey,
+            message: `${currentUser.name} mentioned you in ${issueKey}: "${body.trim().slice(0, 100)}"`,
+            read: false,
+            createdAt: now,
+          }))
+        );
+      }
+    }
+
     revalidatePath('/');
     return { success: true, message: 'Comment saved' };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to add comment';
     return { success: false, error: message };
+  }
+}
+
+/* ---------------------------- Flags ---------------------------- */
+export async function toggleIssueFlag(issueKey: string) {
+  try {
+    const currentUser = await requireRole(['Admin', 'Member']);
+    const db = getDb();
+    const existing = await db.query.issues.findFirst({ where: eq(issues.key, issueKey) });
+    if (!existing) return { success: false, error: 'Issue not found' };
+
+    const next = !existing.isFlagged;
+    await db.batch([
+      db.update(issues).set({ isFlagged: next, updatedAt: new Date() }).where(eq(issues.key, issueKey)),
+      db.insert(issueHistory).values({
+        id: `h-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        issueKey,
+        actorId: currentUser.id,
+        actorName: currentUser.name,
+        action: next ? 'Flagged issue as impediment' : 'Removed impediment flag',
+        field: 'isFlagged',
+        fromValue: String(!next),
+        toValue: String(next),
+      }),
+    ]);
+    revalidatePath('/');
+    return { success: true, flagged: next };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to toggle flag' };
+  }
+}
+
+/* --------------------------- Subtasks --------------------------- */
+export async function addSubtask(issueKey: string, title: string) {
+  try {
+    await requireRole(['Admin', 'Member']);
+    const clean = title.trim();
+    if (!clean) return { success: false, error: 'Subtask title required' };
+    const db = getDb();
+    const [row] = await db
+      .select({ m: max(subtasks.sortOrder) })
+      .from(subtasks)
+      .where(eq(subtasks.issueId, issueKey));
+    const id = `st-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    await db.insert(subtasks).values({
+      id,
+      issueId: issueKey,
+      title: clean,
+      sortOrder: (row?.m ?? -1) + 1,
+    });
+    revalidatePath('/');
+    return { success: true, id };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to add subtask' };
+  }
+}
+
+export async function toggleSubtask(subtaskId: string, completed: boolean) {
+  try {
+    await requireRole(['Admin', 'Member']);
+    await getDb().update(subtasks).set({ completed }).where(eq(subtasks.id, subtaskId));
+    revalidatePath('/');
+    return { success: true };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to update subtask' };
+  }
+}
+
+export async function deleteSubtask(subtaskId: string) {
+  try {
+    await requireRole(['Admin', 'Member']);
+    await getDb().delete(subtasks).where(eq(subtasks.id, subtaskId));
+    revalidatePath('/');
+    return { success: true };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to delete subtask' };
+  }
+}
+
+/* ------------------------- Issue Links ------------------------- */
+export async function addIssueLink(sourceKey: string, targetKey: string, relationType: LinkType) {
+  try {
+    await requireRole(['Admin', 'Member']);
+    const target = targetKey.trim().toUpperCase();
+    if (target === sourceKey) return { success: false, error: 'Cannot link an issue to itself' };
+    const db = getDb();
+    const targetIssue = await db.query.issues.findFirst({ where: eq(issues.key, target) });
+    if (!targetIssue) return { success: false, error: `Issue ${target} not found` };
+
+    const dup = await db
+      .select()
+      .from(issueLinks)
+      .where(
+        and(
+          eq(issueLinks.sourceIssueId, sourceKey),
+          eq(issueLinks.targetIssueId, target),
+          eq(issueLinks.relationType, relationType)
+        )
+      );
+    if (dup.length > 0) return { success: false, error: 'Link already exists' };
+
+    await db.insert(issueLinks).values({
+      id: `l-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      sourceIssueId: sourceKey,
+      targetIssueId: target,
+      relationType,
+    });
+    revalidatePath('/');
+    return { success: true };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to link issue' };
+  }
+}
+
+export async function removeIssueLink(linkId: string) {
+  try {
+    await requireRole(['Admin', 'Member']);
+    await getDb().delete(issueLinks).where(eq(issueLinks.id, linkId));
+    revalidatePath('/');
+    return { success: true };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to remove link' };
+  }
+}
+
+/* ------------------------- Notifications ------------------------- */
+export async function getMyNotifications() {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false as const, notifications: [] };
+    const rows = await getDb()
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, user.id))
+      .orderBy(desc(notifications.createdAt))
+      .limit(20);
+    return { success: true as const, notifications: rows };
+  } catch {
+    return { success: false as const, notifications: [] };
+  }
+}
+
+export async function markNotificationsRead(ids?: string[]) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { success: false };
+    const db = getDb();
+    const unread = await db
+      .select()
+      .from(notifications)
+      .where(and(eq(notifications.userId, user.id), eq(notifications.read, false)));
+    const targets = unread.filter((n) => !ids || ids.includes(n.id));
+    if (targets.length > 0) {
+      await db
+        .update(notifications)
+        .set({ read: true })
+        .where(inArray(notifications.id, targets.map((n) => n.id)));
+    }
+    return { success: true };
+  } catch {
+    return { success: false };
   }
 }

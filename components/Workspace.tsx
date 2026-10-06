@@ -473,6 +473,7 @@ export function Workspace({
             setIsCreateDocOpen(true);
           }}
           onOpenProfileModal={() => setIsProfileModalOpen(true)}
+          onSelectIssue={(key) => setSelectedIssueKey(key)}
         />
 
         {/* Secondary Filter & Metric Bar */}
@@ -500,6 +501,7 @@ export function Workspace({
               onUpdateSwimlane={handleUpdateSwimlane}
               onDeleteSwimlane={handleDeleteSwimlane}
               isViewer={isViewer}
+              currentUserId={currentUser.id}
             />
           )}
 
@@ -558,6 +560,7 @@ export function Workspace({
               issues={optimisticIssues}
               users={initialUsers}
               metrics={initialMetrics}
+              sprints={sprints}
             />
           )}
         </div>
@@ -570,6 +573,8 @@ export function Workspace({
           users={initialUsers}
           currentUser={currentUser}
           swimlanes={activeSwimlanes}
+          allIssues={optimisticIssues}
+          onNavigateIssue={(key) => setSelectedIssueKey(key)}
           isViewer={isViewer}
           onClose={() => setSelectedIssueKey(null)}
           onStatusChange={(status) => handleUpdateIssueStatus(selectedIssue.key, status)}
