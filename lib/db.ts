@@ -11,9 +11,13 @@ import * as schema from '@/db/schema';
  */
 export const getDb = cache(() => {
   const { env } = getCloudflareContext();
-  return drizzle(env.apextrack_db, { schema });
+  const d1 = (env as any).apextrack_db || (env as any).DB;
+  return drizzle(d1, { schema });
 });
 
-export const getBucket = cache(() => getCloudflareContext().env.ATTACHMENTS);
+export const getBucket = cache(() => {
+  const { env } = getCloudflareContext();
+  return (env as any).ATTACHMENTS;
+});
 
 export type Db = ReturnType<typeof getDb>;
