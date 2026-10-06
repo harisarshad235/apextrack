@@ -1,4 +1,14 @@
 import 'server-only';
+
+// Polyfill esbuild keep-names helper for Edge / Cloudflare Workers runtimes
+declare global {
+  // eslint-disable-next-line no-var
+  var __name: ((fn: any, name?: string) => any) | undefined;
+}
+if (typeof globalThis !== 'undefined') {
+  globalThis.__name = globalThis.__name || function (fn: any) { return fn; };
+}
+
 import { cookies, headers } from 'next/headers';
 import { eq } from 'drizzle-orm';
 import { getDb } from './db';

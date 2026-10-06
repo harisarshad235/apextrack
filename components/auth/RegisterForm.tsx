@@ -9,6 +9,12 @@ interface RegisterFormProps {
   onSuccess?: () => void;
 }
 
+if (typeof window !== 'undefined' && typeof window.__name === 'undefined') {
+  window.__name = function (fn: any) {
+    return fn;
+  };
+}
+
 export function RegisterForm({ onSuccess }: RegisterFormProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -17,7 +23,6 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const router = useRouter();
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,12 +39,17 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
     }
 
     startTransition(async () => {
-      const res = await registerUser({ name, email, password, department });
-      if (res.success) {
-        if (onSuccess) onSuccess();
-        router.push(res.redirect || '/awaiting-approval');
-      } else {
-        setError(res.error || 'Registration failed');
+      try {
+        const res = await registerUser({ name, email, password, department });
+        if (res?.error || !res?.success) {
+          setError(res?.error || 'Registration failed');
+        } else {
+          if (onSuccess) onSuccess();
+          window.location.href = res?.redirect || '/awaiting-approval';
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'An unexpected error occurred';
+        setError(msg);
       }
     });
   };

@@ -1,5 +1,10 @@
 'use server';
 
+// Polyfill esbuild keep-names helper for Edge / Cloudflare Workers runtimes
+if (typeof globalThis !== 'undefined') {
+  globalThis.__name = globalThis.__name || function (fn: any) { return fn; };
+}
+
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';

@@ -9,6 +9,12 @@ import { RegisterForm } from '@/components/auth/RegisterForm';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { ApexTrackLogo } from '@/components/ui/ApexTrackLogo';
 
+if (typeof window !== 'undefined' && typeof window.__name === 'undefined') {
+  window.__name = function (fn: any) {
+    return fn;
+  };
+}
+
 function LoginWrapper() {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') === 'register' ? 'register' : 'signin';
@@ -16,7 +22,6 @@ function LoginWrapper() {
   const [tab, setTab] = useState<'signin' | 'register'>(initialTab);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const router = useRouter();
 
   useEffect(() => {
     if (searchParams.get('tab') === 'register') {
@@ -27,11 +32,16 @@ function LoginWrapper() {
   const handleQuickSignIn = (targetEmail: string) => {
     setError(null);
     startTransition(async () => {
-      const res = await loginUser(targetEmail, 'ApexTrack2026!');
-      if (res.success) {
-        router.push(res.redirect || '/');
-      } else {
-        setError(res.error || 'Persona sign-in failed');
+      try {
+        const res = await loginUser(targetEmail, 'ApexTrack2026!');
+        if (res?.error || !res?.success) {
+          setError(res?.error || 'Persona sign-in failed');
+        } else {
+          window.location.href = res?.redirect || '/';
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'An unexpected error occurred';
+        setError(msg);
       }
     });
   };

@@ -9,13 +9,18 @@ interface LoginFormProps {
   onSuccess?: () => void;
 }
 
+if (typeof window !== 'undefined' && typeof window.__name === 'undefined') {
+  window.__name = function (fn: any) {
+    return fn;
+  };
+}
+
 export function LoginForm({ onSuccess }: LoginFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const router = useRouter();
 
   const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,12 +37,18 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     }
 
     startTransition(async () => {
-      const res = await loginUser(email, password);
-      if (res.success) {
-        if (onSuccess) onSuccess();
-        router.push(res.redirect || '/');
-      } else {
-        setError(res.error || 'Sign in failed');
+      try {
+        const res = await loginUser(email, password);
+        if (res?.error || !res?.success) {
+          setError(res?.error || 'Sign in failed');
+        } else {
+          if (onSuccess) onSuccess();
+          // Hard reload to flush cached layouts and register the new session cookie immediately
+          window.location.href = res?.redirect || '/';
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'An unexpected error occurred';
+        setError(msg);
       }
     });
   };
