@@ -37,20 +37,49 @@ export function UserProfileModal({
       return;
     }
 
-    // 2. Validation: file size (max 2MB)
-    const maxSize = 2 * 1024 * 1024;
+    // 2. Validation: file size (allow up to 10MB input file since we compress on client)
+    const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      setError('Image size must be less than 2MB.');
+      setError('Image file is too large (maximum 10MB).');
       return;
     }
 
-    // Read and encode to data URL
+    // Read and compress via Canvas to a high-res, lightweight 256x256 square avatar (~25KB)
     const reader = new FileReader();
     reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        setAvatarUrl(result);
-      }
+      const rawDataUrl = event.target?.result as string;
+      if (!rawDataUrl) return;
+
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const TARGET_SIZE = 256;
+          canvas.width = TARGET_SIZE;
+          canvas.height = TARGET_SIZE;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            setAvatarUrl(rawDataUrl);
+            return;
+          }
+
+          // Center crop to a perfect square
+          const minDim = Math.min(img.width, img.height);
+          const sx = (img.width - minDim) / 2;
+          const sy = (img.height - minDim) / 2;
+
+          ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, TARGET_SIZE, TARGET_SIZE);
+          const compressed = canvas.toDataURL('image/jpeg', 0.85);
+          setAvatarUrl(compressed);
+        } catch (err) {
+          console.warn('Avatar canvas compression failed, using original data URL:', err);
+          setAvatarUrl(rawDataUrl);
+        }
+      };
+      img.onerror = () => {
+        setError('Failed to process image file.');
+      };
+      img.src = rawDataUrl;
     };
     reader.readAsDataURL(file);
   };
@@ -158,7 +187,7 @@ export function UserProfileModal({
               )}
             </div>
             <p className="text-[11px] text-slate-400 mt-2">
-              PNG, JPG, or WebP up to 2MB. Initial badges are used when no photo is set.
+              PNG, JPG, WebP, or GIF (auto-optimized). Initial badges are used when no photo is set.
             </p>
           </div>
 
