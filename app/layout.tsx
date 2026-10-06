@@ -34,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `if (typeof window !== 'undefined' && typeof window.__name === 'undefined') { window.__name = function(fn, name) { return fn; }; }`,
+            __html: `var __name = function(fn, name) { return fn; }; window.__name = __name; globalThis.__name = __name;`,
           }}
         />
       </head>

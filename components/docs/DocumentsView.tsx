@@ -63,8 +63,8 @@ export function DocumentsView({
             key={cat}
             onClick={() => setDocCategory(cat)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${docCategory === cat
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 border border-slate-200 dark:border-slate-700'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 border border-slate-200 dark:border-slate-700'
               }`}
           >
             {cat}

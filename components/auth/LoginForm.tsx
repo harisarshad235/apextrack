@@ -1,9 +1,7 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 import { LogIn, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
-import { loginUser } from '@/app/actions/auth';
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -20,41 +18,43 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [loading, setLoading] = useState(false);
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+    setLoading(true);
 
-    if (!email.trim()) {
-      setError('Please enter your work email address.');
-      return;
-    }
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!password) {
-      setError('Please enter your account password.');
-      return;
-    }
+      const data = (await res.json()) as { success?: boolean; role?: string; error?: string };
 
-    startTransition(async () => {
-      try {
-        const res = await loginUser(email, password);
-        if (res?.error || !res?.success) {
-          setError(res?.error || 'Sign in failed');
-        } else {
-          if (onSuccess) onSuccess();
-          // Hard reload to flush cached layouts and register the new session cookie immediately
-          window.location.href = res?.redirect || '/';
+      if (!res.ok) {
+        if (res.status === 403 || data.error === 'PENDING_APPROVAL') {
+          window.location.href = '/awaiting-approval';
+          return;
         }
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'An unexpected error occurred';
-        setError(msg);
+        setError(data.error || 'Invalid credentials');
+        setLoading(false);
+        return;
       }
-    });
+
+      if (onSuccess) onSuccess();
+      // Successful login: hard refresh to load workspace layout with the new cookie
+      window.location.href = '/';
+    } catch (err: any) {
+      setError('Network error occurred. Please try again.');
+      setLoading(false);
+    }
   };
 
   return (
-    <form onSubmit={handleSignIn} className="space-y-4 text-xs">
+    <form onSubmit={handleSubmit} className="space-y-4 text-xs">
       {error && (
         <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -104,10 +104,10 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
 
       <button
         type="submit"
-        disabled={isPending}
+        disabled={loading}
         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl text-sm shadow-md transition active:scale-98 disabled:opacity-60 flex items-center justify-center gap-2"
       >
-        {isPending ? (
+        {loading ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin" /> Verifying Credentials...
           </>
