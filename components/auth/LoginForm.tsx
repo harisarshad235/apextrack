@@ -1,111 +1,99 @@
 'use client';
 
 import React, { useState } from 'react';
-import { LogIn, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import { loginAction } from '@/app/actions/auth';
 
-interface LoginFormProps {
-  onSuccess?: () => void;
-}
-
-export function LoginForm({ onSuccess }: LoginFormProps) {
+export default function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    e.stopPropagation();
+
+    if (!email || !password) {
+      setError('Please enter both email and password.');
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
     try {
       const res = await loginAction({ email, password });
-      if (!res.success) {
-        if (res.error === 'PENDING_APPROVAL') {
+
+      if (!res?.success) {
+        if (res?.error === 'PENDING_APPROVAL') {
           window.location.href = '/awaiting-approval';
           return;
         }
-        setError(res.error || 'Invalid credentials');
+        setError(res?.error || 'Invalid email or password');
         setLoading(false);
         return;
       }
 
-      if (onSuccess) onSuccess();
-      // Hard redirect on success to ensure layout mounts with session cookie
+      // Hard redirect to load session cookie into workspace layout
       window.location.href = '/';
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Login failed. Please try again.';
-      setError(msg);
+    } catch (err: any) {
+      console.error('Login action error:', err);
+      setError(err?.message || 'Authentication failed. Please try again.');
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+    <form onSubmit={handleSubmit} noValidate className="space-y-4">
       {error && (
-        <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          <span>{error}</span>
+        <div className="p-3 text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-md">
+          {error}
         </div>
       )}
 
       <div>
-        <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+        <label htmlFor="login-email" className="block text-xs font-medium text-zinc-400 mb-1">
           Work Email Address
         </label>
         <input
+          id="login-email"
+          name="email"
           type="email"
+          autoComplete="email"
           required
-          placeholder="alex.chen@apextrack.io"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full text-sm bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
+          placeholder="name@company.com"
+          className="w-full px-3 py-2 text-sm bg-zinc-900 border border-zinc-800 rounded-md text-white focus:outline-none focus:border-blue-500"
         />
       </div>
 
       <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <label className="font-semibold text-slate-700 dark:text-slate-300">
-            Password
-          </label>
-          <span className="text-[10px] text-slate-400">Default seed password: ApexTrack2026!</span>
-        </div>
-        <div className="relative">
-          <input
-            type={showPassword ? 'text' : 'password'}
-            required
-            placeholder="Enter security password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full text-sm bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-3 pr-10 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-          >
-            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </button>
-        </div>
+        <label htmlFor="login-password" className="block text-xs font-medium text-zinc-400 mb-1">
+          Password
+        </label>
+        <input
+          id="login-password"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full px-3 py-2 text-sm bg-zinc-900 border border-zinc-800 rounded-md text-white focus:outline-none focus:border-blue-500"
+        />
       </div>
 
       <button
+        id="login-submit-btn"
         type="submit"
         disabled={loading}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl text-sm shadow-md transition active:scale-98 disabled:opacity-60 flex items-center justify-center gap-2"
+        className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-md transition duration-150 disabled:opacity-50 cursor-pointer"
       >
-        {loading ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" /> Verifying Credentials...
-          </>
-        ) : (
-          <>
-            <LogIn className="w-4 h-4" /> Sign In to Workspace
-          </>
-        )}
+        {loading ? 'Verifying credentials...' : 'Sign In to Workspace'}
       </button>
     </form>
   );
 }
+
+export { LoginForm };
