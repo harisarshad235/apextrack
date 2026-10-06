@@ -4,6 +4,9 @@ import React from 'react';
 import { Edit3, X, Paperclip, Download } from 'lucide-react';
 import { FullDocument } from '@/lib/types';
 
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
 interface DocumentReaderModalProps {
   doc: FullDocument;
   onClose: () => void;
@@ -20,7 +23,7 @@ export function DocumentReaderModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80">
           <div className="flex items-center gap-2">
             <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-mono px-2 py-0.5 rounded font-bold">
@@ -66,9 +69,11 @@ export function DocumentReaderModal({
             )}
           </div>
 
-          {/* Render Markdown content */}
-          <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 text-sm whitespace-pre-wrap leading-relaxed font-sans">
-            {doc.content}
+          {/* Render Markdown content with react-markdown and remark-gfm */}
+          <div className="prose prose-slate dark:prose-invert max-w-none prose-headings:font-semibold prose-a:text-blue-500 text-slate-700 dark:text-slate-300 text-sm leading-relaxed">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {doc.content}
+            </ReactMarkdown>
           </div>
 
           {/* Attachments */}
