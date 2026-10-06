@@ -1,12 +1,17 @@
-/**
- * Edge-compatible Resend Email Dispatcher for ApexTrack.
- * Uses native fetch to https://api.resend.com/emails with zero Node.js SDK dependencies.
- */
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 const RESEND_API_URL = 'https://api.resend.com/emails';
-const DEFAULT_FROM = process.env.RESEND_FROM_EMAIL || 'ApexTrack <notifications@harisarshad.site>';
+const DEFAULT_FROM = 'ApexTrack <notifications@harisarshad.site>';
 const FALLBACK_FROM = 'ApexTrack <onboarding@resend.dev>';
 const ADMIN_NOTIFICATION_EMAIL = 'harisarshad235@gmail.com';
+
+function getEnvVar(key: string): string | undefined {
+  try {
+    const { env } = getCloudflareContext();
+    if ((env as any)?.[key]) return (env as any)[key];
+  } catch (e) {}
+  return process.env[key];
+}
 
 interface SendEmailParams {
   to: string | string[];
@@ -16,14 +21,18 @@ interface SendEmailParams {
 }
 
 export async function sendEmail({ to, subject, html, from }: SendEmailParams): Promise<{ success: boolean; id?: string; error?: string }> {
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = getEnvVar('RESEND_API_KEY');
+  const defaultSender = getEnvVar('RESEND_FROM_EMAIL') || DEFAULT_FROM;
 
   if (!apiKey) {
-    console.warn('[Resend] RESEND_API_KEY is not configured in environment.');
+    console.warn('\n======================================================');
+    console.warn('[Resend] RESEND_API_KEY is not configured in .dev.vars or .env.local.');
+    console.warn(`[Resend] To send real emails, set RESEND_API_KEY="re_..." in .dev.vars / .env.local`);
+    console.warn('======================================================\n');
     return { success: false, error: 'RESEND_API_KEY is not configured' };
   }
 
-  const sender = from || DEFAULT_FROM;
+  const sender = from || defaultSender;
 
   try {
     const res = await fetch(RESEND_API_URL, {
@@ -44,15 +53,16 @@ export async function sendEmail({ to, subject, html, from }: SendEmailParams): P
 
     if (!res.ok) {
       // If domain verification failed on custom domain, retry once with onboarding fallback
-      if (sender !== FALLBACK_FROM && (res.status === 403 || res.status === 400 || data?.message?.includes('domain'))) {
-        console.warn(`[Resend] Custom sender failed (${data?.message}). Retrying with onboarding fallback...`);
+      if (sender !== FALLBACK_FROM && (res.status === 403 || res.status === 400 || data?.message?.includes('domain') || data?.message?.includes('verified'))) {
+        console.warn(`[Resend] Custom domain sender failed (${data?.message}). Retrying with onboarding fallback...`);
         return sendEmail({ to, subject, html, from: FALLBACK_FROM });
       }
 
-      console.error('[Resend] Failed to send email:', data);
+      console.error('[Resend] Failed to send email via Resend API:', data);
       return { success: false, error: data?.message || `HTTP ${res.status}` };
     }
 
+    console.log('[Resend] Email sent successfully. Message ID:', data.id);
     return { success: true, id: data.id };
   } catch (err: unknown) {
     console.error('[Resend] Network error sending email:', err);
