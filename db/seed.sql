@@ -8,6 +8,7 @@ DELETE FROM swimlanes; DELETE FROM projects; DELETE FROM project_counters; DELET
 
 -- Users -------------------------------------------------------------
 INSERT INTO users (id, name, email, role, status, department, avatar_url, approved_at) VALUES
+ ('u0','Haris Arshad','harisarshad235@gmail.com','Admin','APPROVED','Executive Engineering','https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80', unixepoch('2026-09-01')*1000),
  ('u1','Alex Chen','alex.chen@apextrack.io','Admin','APPROVED','Engineering Leadership','https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80', unixepoch('2026-09-01')*1000),
  ('u2','Sarah Jenkins','s.jenkins@apextrack.io','Member','APPROVED','Frontend Engineering','https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80', unixepoch('2026-09-01')*1000),
  ('u3','Marcus Brody','marcus.b@apextrack.io','Member','APPROVED','Backend & Cloud','https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80', unixepoch('2026-09-01')*1000),

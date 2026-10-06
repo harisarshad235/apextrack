@@ -18,7 +18,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const sessionCookie = request.cookies.get('apex_session_user_id')?.value;
+  const sessionCookie =
+    request.cookies.get('apex_session')?.value ||
+    request.cookies.get('apex_session_user_id')?.value;
   const devCookie = request.cookies.get('apex_dev_user_id')?.value;
 
   // If no auth cookie exists, redirect immediately to login
