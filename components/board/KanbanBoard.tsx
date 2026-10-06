@@ -36,6 +36,15 @@ const DEFAULT_WIP_LIMITS: Record<string, number> = {
   'in review': 4,
 };
 
+const getDotColor = (name: string) => {
+  const lower = name.toLowerCase();
+  if (lower.includes('to do') || lower.includes('backlog')) return 'bg-zinc-400';
+  if (lower.includes('progress') || lower.includes('dev')) return 'bg-blue-500';
+  if (lower.includes('review') || lower.includes('qa') || lower.includes('test')) return 'bg-amber-500';
+  if (lower.includes('done') || lower.includes('closed') || lower.includes('complete')) return 'bg-emerald-500';
+  return 'bg-blue-400';
+};
+
 export function KanbanBoardView({
   issues,
   users,
@@ -52,6 +61,39 @@ export function KanbanBoardView({
   const [onlyMine, setOnlyMine] = useState(false);
   const [onlyFlagged, setOnlyFlagged] = useState(false);
   const [recentFirst, setRecentFirst] = useState(false);
+
+  // WIP limits local state with localStorage persistence
+  const currentProjectId = swimlanes[0]?.projectId || 'default';
+  const [wipLimits, setWipLimits] = useState<Record<string, number>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(`apextrack_wip_limits_${currentProjectId}`);
+        if (saved) return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse WIP limits from localStorage', e);
+      }
+    }
+    return DEFAULT_WIP_LIMITS;
+  });
+
+  const [editingWipLaneId, setEditingWipLaneId] = useState<string | null>(null);
+  const [wipInputVal, setWipInputVal] = useState<string>('');
+
+  const handleSaveWipLimit = (laneName: string) => {
+    const key = laneName.toLowerCase();
+    const parsed = parseInt(wipInputVal, 10);
+    const newLimit = isNaN(parsed) || parsed < 0 ? 0 : parsed;
+    const updated = { ...wipLimits, [key]: newLimit };
+    setWipLimits(updated);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(`apextrack_wip_limits_${currentProjectId}`, JSON.stringify(updated));
+      } catch (e) {
+        console.error('Failed to save WIP limits to localStorage', e);
+      }
+    }
+    setEditingWipLaneId(null);
+  };
 
   // Inline swimlane editing state
   const [editingLaneId, setEditingLaneId] = useState<string | null>(null);
@@ -117,7 +159,7 @@ export function KanbanBoardView({
       projectId: 'default',
       name: 'To Do',
       statusKey: 'To Do',
-      color: 'border-black/[0.06] dark:border-white/[0.08] bg-slate-100/70 dark:bg-[#0e0e11]',
+      color: 'border-black/[0.06] dark:border-white/[0.07] bg-slate-100/70 dark:bg-[#111114]',
       sortOrder: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -127,7 +169,7 @@ export function KanbanBoardView({
       projectId: 'default',
       name: 'In Progress',
       statusKey: 'In Progress',
-      color: 'border-blue-500/30 bg-blue-50/40 dark:bg-blue-950/10',
+      color: 'border-black/[0.06] dark:border-white/[0.07] bg-slate-100/70 dark:bg-[#111114]',
       sortOrder: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -137,7 +179,7 @@ export function KanbanBoardView({
       projectId: 'default',
       name: 'In Review',
       statusKey: 'In Review',
-      color: 'border-purple-500/30 bg-purple-50/40 dark:bg-purple-950/10',
+      color: 'border-black/[0.06] dark:border-white/[0.07] bg-slate-100/70 dark:bg-[#111114]',
       sortOrder: 2,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -147,7 +189,7 @@ export function KanbanBoardView({
       projectId: 'default',
       name: 'Done',
       statusKey: 'Done',
-      color: 'border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-950/10',
+      color: 'border-black/[0.06] dark:border-white/[0.07] bg-slate-100/70 dark:bg-[#111114]',
       sortOrder: 3,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -228,8 +270,8 @@ export function KanbanBoardView({
           const colIssues = sortedIssues.filter(
             (i) => i.status.toLowerCase() === lane.name.toLowerCase()
           );
-          const wipLimit = DEFAULT_WIP_LIMITS[lane.name.toLowerCase()];
-          const overWip = wipLimit !== undefined && colIssues.length > wipLimit;
+          const wipLimit = wipLimits[lane.name.toLowerCase()];
+          const overWip = wipLimit !== undefined && wipLimit > 0 && colIssues.length > wipLimit;
           const colPoints = colIssues.reduce(
             (acc, curr) => acc + (Number(curr.storyPoints) || 0),
             0
@@ -245,10 +287,7 @@ export function KanbanBoardView({
               }}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, lane.name)}
-              className={`flex flex-col w-[86vw] sm:w-[320px] md:w-80 flex-shrink-0 snap-center md:snap-align-none max-h-full rounded-2xl border p-3.5 transition-colors ${
-                lane.color ||
-                'border-black/[0.06] dark:border-white/[0.08] bg-slate-100/70 dark:bg-[#0e0e11]'
-              }`}
+              className="flex flex-col w-[86vw] sm:w-[320px] md:w-80 flex-shrink-0 snap-center md:snap-align-none max-h-full rounded-2xl border border-black/[0.06] dark:border-white/[0.07] bg-slate-100/70 dark:bg-[#111114] p-3.5 transition-colors"
             >
               {/* Column Header */}
               <div className="flex items-center justify-between pb-3 px-1 border-b border-black/[0.06] dark:border-white/[0.08]">
@@ -263,7 +302,7 @@ export function KanbanBoardView({
                         if (e.key === 'Enter') handleSaveEditLane(lane.id);
                         if (e.key === 'Escape') setEditingLaneId(null);
                       }}
-                      className="flex-1 text-xs font-bold px-2 py-1 rounded bg-white dark:bg-[#121215] border border-blue-500 text-slate-900 dark:text-white focus:outline-none"
+                      className="flex-1 text-xs font-bold px-2 py-1 rounded bg-white dark:bg-[#16161a] border border-blue-500 text-slate-900 dark:text-white focus:outline-none"
                     />
                     <button
                       onClick={() => handleSaveEditLane(lane.id)}
@@ -283,20 +322,65 @@ export function KanbanBoardView({
                 ) : (
                   <>
                     <div className="flex items-center gap-2 min-w-0 group">
-                      <span className="font-bold text-sm tracking-wide text-slate-800 dark:text-zinc-100 truncate">
+                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getDotColor(lane.name)}`} />
+                      <span className="font-semibold text-xs uppercase tracking-wider text-slate-700 dark:text-zinc-400 truncate">
                         {lane.name}
                       </span>
-                      <span
-                        className={`text-[11px] font-mono px-2 py-0.5 rounded-md font-bold flex-shrink-0 ${
-                          overWip
-                            ? 'bg-red-500 text-white animate-pulse'
-                            : 'bg-black/5 dark:bg-white/5 text-slate-600 dark:text-zinc-400'
-                        }`}
-                        title={wipLimit !== undefined ? `WIP limit: ${wipLimit}` : undefined}
-                      >
-                        {colIssues.length}
-                        {wipLimit !== undefined && `/${wipLimit}`}
-                      </span>
+
+                      {editingWipLaneId === lane.id ? (
+                        <div className="flex items-center gap-1 bg-white dark:bg-zinc-900 border border-slate-300 dark:border-zinc-700 p-1 rounded-lg text-xs shadow-md z-10">
+                          <span className="text-[10px] text-slate-500 dark:text-zinc-400 font-mono">WIP:</span>
+                          <input
+                            type="number"
+                            min={0}
+                            max={99}
+                            value={wipInputVal}
+                            onChange={(e) => setWipInputVal(e.target.value)}
+                            className="w-12 text-xs font-mono font-bold bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 border border-slate-300 dark:border-zinc-700 rounded px-1 py-0.5 focus:outline-none focus:border-blue-500 text-center"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveWipLimit(lane.name);
+                              if (e.key === 'Escape') setEditingWipLaneId(null);
+                            }}
+                          />
+                          <button
+                            onClick={() => handleSaveWipLimit(lane.name)}
+                            className="p-1 rounded bg-blue-600 hover:bg-blue-700 text-white"
+                            title="Save WIP Limit"
+                          >
+                            <Check className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => setEditingWipLaneId(null)}
+                            className="p-1 rounded bg-slate-200 dark:bg-zinc-800 hover:bg-slate-300 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-300"
+                            title="Cancel"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            if (isViewer) return;
+                            setEditingWipLaneId(lane.id);
+                            setWipInputVal(wipLimit !== undefined ? String(wipLimit) : '0');
+                          }}
+                          className={`text-[11px] font-mono px-2 py-0.5 rounded-md font-bold flex-shrink-0 flex items-center gap-1 transition ${
+                            overWip
+                              ? 'bg-red-500/20 text-red-500 dark:text-red-400 border border-red-500/40 animate-pulse'
+                              : 'bg-black/5 dark:bg-white/5 text-slate-600 dark:text-zinc-400 hover:bg-black/10 dark:hover:bg-white/10'
+                          }`}
+                          title={isViewer ? undefined : `Click to set WIP limit (Current: ${wipLimit || 0})`}
+                        >
+                          <span>
+                            {colIssues.length}
+                            {wipLimit && wipLimit > 0 ? `/${wipLimit}` : ''}
+                          </span>
+                          {!isViewer && (
+                            <Edit2 className="w-2.5 h-2.5 opacity-50 hover:opacity-100" />
+                          )}
+                        </button>
+                      )}
 
                       {!isViewer && (
                         <button
@@ -304,7 +388,7 @@ export function KanbanBoardView({
                           className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-blue-600 rounded transition"
                           title="Rename Swimlane"
                         >
-                          <Edit2 className="w-3 h-3" />
+                          <Edit3 className="w-3 h-3" />
                         </button>
                       )}
                     </div>
@@ -348,7 +432,7 @@ export function KanbanBoardView({
                       className={`rounded-xl p-3.5 transition-all duration-150 cursor-pointer group shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-none hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] ${
                         issue.isFlagged
                           ? 'bg-amber-500/10 border border-amber-500/60 hover:border-amber-500'
-                          : 'bg-white dark:bg-[#121215] border border-black/[0.06] dark:border-white/[0.08] hover:border-blue-500/40 dark:hover:border-blue-400/30'
+                          : 'bg-white dark:bg-[#16161a] border border-black/[0.06] dark:border-white/[0.07] hover:border-black/20 dark:hover:border-white/20'
                       }`}
                     >
                       {/* Top Row: Type, Key, Priority & Edit Action */}

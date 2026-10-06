@@ -11,6 +11,7 @@ import {
   Sparkles,
   Settings,
   X,
+  ChevronDown,
 } from 'lucide-react';
 import { User, Project } from '@/lib/types';
 import { UserAvatar } from '@/components/ui/UserAvatar';
@@ -138,25 +139,30 @@ export function Sidebar({
                 Manage
               </button>
             </div>
-            <select
-              value={activeProjectId}
-              onChange={(e) => {
-                if (e.target.value === '__manage__') {
-                  onOpenProjectsModal();
-                  if (onCloseMobile) onCloseMobile();
-                } else {
-                  onSelectProject(e.target.value);
-                }
-              }}
-              className="w-full bg-slate-800/80 dark:bg-zinc-900 text-xs text-slate-900 dark:text-zinc-100 rounded-xl px-2.5 py-2 border border-black/[0.06] dark:border-white/[0.08] font-medium truncate focus:outline-none focus:border-blue-500 cursor-pointer"
-            >
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  [{p.key}] {p.name}
+            <div className="relative">
+              <select
+                value={activeProjectId}
+                onChange={(e) => {
+                  if (e.target.value === '__manage__') {
+                    onOpenProjectsModal();
+                    if (onCloseMobile) onCloseMobile();
+                  } else {
+                    onSelectProject(e.target.value);
+                  }
+                }}
+                className="w-full appearance-none bg-zinc-900/90 text-zinc-100 font-medium text-xs border border-white/10 rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500/50 hover:bg-zinc-800 transition cursor-pointer"
+              >
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id} className="text-zinc-200 bg-zinc-900 font-medium py-1">
+                    [{p.key}] {p.name}
+                  </option>
+                ))}
+                <option value="__manage__" className="text-zinc-200 bg-zinc-900 font-medium py-1">
+                  ⚙️ Projects Directory...
                 </option>
-              ))}
-              <option value="__manage__">⚙️ Projects Directory...</option>
-            </select>
+              </select>
+              <ChevronDown className="w-4 h-4 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
           </div>
         )}
       </div>
@@ -313,18 +319,21 @@ export function Sidebar({
             <label className="text-[10px] uppercase font-bold text-slate-500 mb-1 flex items-center gap-1 font-mono">
               <Sparkles className="w-3 h-3 text-amber-400" /> Switch Persona {isPending && '...'}
             </label>
-            <select
-              value={currentUser.id}
-              disabled={isPending}
-              onChange={(e) => handleSelectUser(e.target.value)}
-              className="w-full bg-slate-800/80 dark:bg-zinc-900 text-slate-200 text-xs rounded-lg px-2 py-1.5 border border-black/[0.06] dark:border-white/[0.08] focus:outline-none focus:border-blue-500 cursor-pointer"
-            >
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name} ({u.role}) {u.status === 'PENDING' ? '[PENDING]' : ''}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={currentUser.id}
+                disabled={isPending}
+                onChange={(e) => handleSelectUser(e.target.value)}
+                className="w-full appearance-none bg-zinc-900/90 text-zinc-100 font-medium text-xs rounded-lg pl-2.5 pr-8 py-1.5 border border-white/10 focus:outline-none focus:ring-1 focus:ring-blue-500/50 hover:bg-zinc-800 transition cursor-pointer"
+              >
+                {users.map((u) => (
+                  <option key={u.id} value={u.id} className="text-zinc-200 bg-zinc-900 font-medium py-1">
+                    {u.name} ({u.role}) {u.status === 'PENDING' ? '[PENDING]' : ''}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
           </div>
         )}
       </div>
