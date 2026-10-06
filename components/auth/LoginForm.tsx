@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Eye, EyeOff, Loader2, LogIn } from 'lucide-react';
 import { loginAction } from '@/app/actions/auth';
 
@@ -72,9 +73,17 @@ export default function LoginForm() {
       </div>
 
       <div>
-        <label htmlFor="login-password" className="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-          Password
-        </label>
+        <div className="flex items-center justify-between mb-1.5">
+          <label htmlFor="login-password" className="block font-semibold text-slate-700 dark:text-slate-300">
+            Password
+          </label>
+          <Link
+            href="/forgot-password"
+            className="text-[11px] font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <div className="relative">
           <input
             id="login-password"

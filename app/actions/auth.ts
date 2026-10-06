@@ -5,7 +5,7 @@ if (typeof globalThis !== 'undefined') {
   globalThis.__name = globalThis.__name || function (fn: any) { return fn; };
 }
 
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
 import { getDb } from '@/lib/db';
@@ -16,7 +16,10 @@ import {
   hashPassword,
   verifyPassword,
   createSessionToken,
+  createPasswordResetToken,
+  verifyPasswordResetToken,
 } from '@/lib/auth';
+import { sendPasswordResetEmail, sendAdminNewUserAlert } from '@/lib/email';
 
 export async function loginAction(formData: { email: string; password: string }) {
   try {
@@ -200,10 +203,90 @@ export async function registerUser(data: {
       maxAge: 60 * 60 * 24 * 7,
     });
 
+    // Notify workspace admin in background (non-blocking)
+    sendAdminNewUserAlert(cleanEmail, cleanName, data.department).catch((e) => {
+      console.warn('[Alert] Could not dispatch new user alert email:', e);
+    });
+
     return { success: true, redirect: '/awaiting-approval' };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Registration failed';
     return { success: false, error: message };
+  }
+}
+
+export async function requestPasswordReset(email: string) {
+  try {
+    const cleanEmail = (email || '').toLowerCase().trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return { success: true, message: 'If an account exists with this email, a reset link has been dispatched.' };
+    }
+
+    const db = getDb();
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, cleanEmail),
+    });
+
+    if (user) {
+      const token = await createPasswordResetToken(user.id);
+      
+      const reqHeaders = await headers();
+      const host = reqHeaders.get('x-forwarded-host') || reqHeaders.get('host') || 'apextrack.harisarshad.site';
+      const protocol = reqHeaders.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
+      const resetLink = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
+
+      await sendPasswordResetEmail(cleanEmail, resetLink);
+    }
+
+    // Always return generic success to prevent email enumeration
+    return {
+      success: true,
+      message: 'If an account exists with this email, a reset link has been dispatched.',
+    };
+  } catch (err: unknown) {
+    console.error('requestPasswordReset error:', err);
+    return {
+      success: true,
+      message: 'If an account exists with this email, a reset link has been dispatched.',
+    };
+  }
+}
+
+export async function resetPassword(data: { token: string; newPassword: string }) {
+  try {
+    const { token, newPassword } = data;
+
+    if (!token) {
+      return { success: false, error: 'Invalid or missing reset token.' };
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      return { success: false, error: 'Password must be at least 6 characters long.' };
+    }
+
+    const userId = await verifyPasswordResetToken(token);
+    if (!userId) {
+      return { success: false, error: 'The password reset link is invalid or has expired. Please request a new one.' };
+    }
+
+    const db = getDb();
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+    });
+
+    if (!user) {
+      return { success: false, error: 'User account not found.' };
+    }
+
+    const newHash = await hashPassword(newPassword);
+    await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, userId));
+
+    return { success: true };
+  } catch (err: unknown) {
+    console.error('resetPassword error:', err);
+    const msg = err instanceof Error ? err.message : 'Failed to reset password.';
+    return { success: false, error: msg };
   }
 }
 

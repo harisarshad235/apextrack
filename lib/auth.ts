@@ -165,6 +165,60 @@ export async function verifySessionToken(token: string): Promise<{ userId: strin
 }
 
 /**
+ * Generate signed password reset token containing { userId, exp } valid for 15 minutes
+ */
+export async function createPasswordResetToken(userId: string): Promise<string> {
+  const exp = Date.now() + 15 * 60 * 1000; // 15 minutes
+  const payload = { userId, exp, purpose: 'pwd_reset' };
+  const data = JSON.stringify(payload);
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(SESSION_SECRET),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(data));
+  const sigHex = bytesToHex(new Uint8Array(signature));
+  const b64Data = btoa(data);
+  return `${b64Data}.${sigHex}`;
+}
+
+/**
+ * Verify and decode signed password reset token. Returns userId if valid and unexpired, else null.
+ */
+export async function verifyPasswordResetToken(token: string): Promise<string | null> {
+  if (!token) return null;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 2) return null;
+
+    const [b64Data, sigHex] = parts;
+    const data = atob(b64Data);
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(SESSION_SECRET),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+    const sigBytes = hexToBytes(sigHex);
+    const isValid = await crypto.subtle.verify('HMAC', key, sigBytes.buffer as ArrayBuffer, encoder.encode(data));
+    if (!isValid) return null;
+
+    const payload = JSON.parse(data);
+    if (!payload.userId || !payload.exp) return null;
+    if (Date.now() > payload.exp) return null;
+
+    return payload.userId;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
  * Get the currently authenticated user from D1 database.
  * Priority order:
  * 1. Session Cookie (`apex_session`)
