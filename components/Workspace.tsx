@@ -488,20 +488,22 @@ export function Workspace({
           onSelectIssue={(key) => setSelectedIssueKey(key)}
         />
 
-        {/* Secondary Filter & Metric Bar */}
-        <FilterBar
-          filterType={filterType}
-          setFilterType={setFilterType}
-          filterPriority={filterPriority}
-          setFilterPriority={setFilterPriority}
-          filterAssignee={filterAssignee}
-          setFilterAssignee={setFilterAssignee}
-          users={initialUsers}
-          metrics={initialMetrics}
-        />
+        {/* Secondary Filter & Metric Bar - Only visible on board & backlog views */}
+        {(activeTab === 'board' || activeTab === 'backlog') && (
+          <FilterBar
+            filterType={filterType}
+            setFilterType={setFilterType}
+            filterPriority={filterPriority}
+            setFilterPriority={setFilterPriority}
+            filterAssignee={filterAssignee}
+            setFilterAssignee={setFilterAssignee}
+            users={initialUsers}
+            metrics={initialMetrics}
+          />
+        )}
 
         {/* View Content */}
-        <div className="flex-1 overflow-auto p-6">
+        <div className="flex-1 overflow-auto p-3 sm:p-4 md:p-6">
           {activeTab === 'board' && (
             <KanbanBoardView
               issues={filteredIssues}

@@ -13,6 +13,8 @@ import {
   Flag,
   Zap,
   Clock,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { FullIssue, User, Swimlane } from '@/lib/types';
 import { getTypeConfig, getPriorityConfig } from '@/lib/config';
@@ -168,6 +170,43 @@ export function KanbanBoardView({
     }
   };
 
+  // Horizontal scroll tracking and slider control
+  const boardScrollRef = useRef<HTMLDivElement | null>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  const updateScrollProgress = () => {
+    const el = boardScrollRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    if (max > 5) {
+      setScrollProgress((el.scrollLeft / max) * 100);
+    } else {
+      setScrollProgress(0);
+    }
+  };
+
+  useEffect(() => {
+    const el = boardScrollRef.current;
+    if (!el) return;
+    updateScrollProgress();
+    window.addEventListener('resize', updateScrollProgress);
+    return () => window.removeEventListener('resize', updateScrollProgress);
+  }, [swimlanes.length, issues.length]);
+
+  const handleSliderChange = (val: number) => {
+    const el = boardScrollRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    el.scrollLeft = (val / 100) * max;
+    setScrollProgress(val);
+  };
+
+  const scrollByDelta = (delta: number) => {
+    const el = boardScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: delta, behavior: 'smooth' });
+  };
+
   // Safe fallback if project has zero lanes
   const activeLanes = swimlanes.length > 0 ? swimlanes : [
     {
@@ -281,7 +320,11 @@ export function KanbanBoardView({
       </div>
 
       {/* Kanban Columns Snap-Carousel Container */}
-      <div className="flex gap-4 flex-1 min-h-0 items-start overflow-x-auto pb-6 scrollbar-none snap-x snap-mandatory md:snap-none">
+      <div
+        ref={boardScrollRef}
+        onScroll={updateScrollProgress}
+        className="flex gap-4 flex-1 min-h-0 items-start overflow-x-auto pb-4 board-scrollbar snap-x snap-mandatory md:snap-none"
+      >
         {activeLanes.map((lane) => {
           const colIssues = sortedIssues.filter(
             (i) => i.status.toLowerCase() === lane.name.toLowerCase()
@@ -610,6 +653,58 @@ export function KanbanBoardView({
             )}
           </div>
         )}
+      </div>
+
+      {/* Bottom Horizontal Slider Navigation Strip (Matches Screenshot 1) */}
+      <div className="flex-shrink-0 pt-2 pb-1 border-t border-black/[0.06] dark:border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-3 select-none">
+        {/* Left: Quick Jump Lane Badges */}
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none max-w-full">
+          <span className="text-[10px] font-mono text-slate-400 dark:text-zinc-500 font-bold uppercase tracking-wider mr-1 hidden sm:inline">
+            Columns:
+          </span>
+          {activeLanes.map((lane) => (
+            <button
+              key={lane.id}
+              onClick={() => scrollToLane(lane.id)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-white dark:bg-[#121215] border border-black/[0.06] dark:border-white/[0.08] hover:border-blue-500/40 text-slate-700 dark:text-zinc-300 transition hover:bg-slate-50 dark:hover:bg-zinc-800 cursor-pointer"
+              title={`Jump to ${lane.name}`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${getDotColor(lane.name)}`} />
+              <span className="truncate max-w-[100px]">{lane.name}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Right: Interactive Horizontal Scroll Slider & Arrow Controls */}
+        <div className="flex items-center gap-2 w-full sm:w-auto sm:min-w-[260px] max-w-sm">
+          <button
+            onClick={() => scrollByDelta(-320)}
+            className="p-1 rounded-lg bg-white dark:bg-[#121215] border border-black/[0.06] dark:border-white/[0.08] hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-300 transition active:scale-95 cursor-pointer"
+            title="Scroll Left"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          <div className="relative flex-1 flex items-center">
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={scrollProgress}
+              onChange={(e) => handleSliderChange(Number(e.target.value))}
+              className="w-full h-1.5 bg-slate-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-blue-600 hover:accent-blue-500 transition"
+              title="Drag horizontal slider across columns"
+            />
+          </div>
+
+          <button
+            onClick={() => scrollByDelta(320)}
+            className="p-1 rounded-lg bg-white dark:bg-[#121215] border border-black/[0.06] dark:border-white/[0.08] hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-300 transition active:scale-95 cursor-pointer"
+            title="Scroll Right"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   );
