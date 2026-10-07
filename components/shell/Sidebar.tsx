@@ -142,6 +142,7 @@ export function Sidebar({
             <div className="relative">
               <select
                 value={activeProjectId}
+                style={{ colorScheme: 'dark' }}
                 onChange={(e) => {
                   if (e.target.value === '__manage__') {
                     onOpenProjectsModal();
