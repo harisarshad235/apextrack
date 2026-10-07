@@ -250,9 +250,15 @@ export async function requestPasswordReset(email: string) {
       const token = await createPasswordResetToken(user.id);
       
       const reqHeaders = await headers();
-      const host = reqHeaders.get('x-forwarded-host') || reqHeaders.get('host') || 'apextrack.harisarshad.site';
+      const host = reqHeaders.get('x-forwarded-host') || reqHeaders.get('host') || 'apex.harisarshad.site';
       const protocol = reqHeaders.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
+      
+      // Permanent fix: Email links must always point to the 24/7 live site (https://apex.harisarshad.site)
+      // so users and admins can click from any device (phone, mail client) without needing a local dev server.
+      let baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+      if (!baseUrl || baseUrl.includes('localhost')) {
+        baseUrl = !host.includes('localhost') ? `${protocol}://${host}` : 'https://apex.harisarshad.site';
+      }
       const resetLink = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
 
       console.log('\n======================================================');

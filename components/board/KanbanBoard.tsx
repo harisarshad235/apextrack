@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Paperclip,
   MessageSquare,
@@ -13,6 +13,8 @@ import {
   Flag,
   Zap,
   Clock,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { FullIssue, User, Swimlane } from '@/lib/types';
 import { getTypeConfig, getPriorityConfig } from '@/lib/config';
@@ -75,6 +77,22 @@ export function KanbanBoardView({
     }
     return DEFAULT_WIP_LIMITS;
   });
+
+  // Re-sync WIP limits whenever active project changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && currentProjectId) {
+      try {
+        const saved = localStorage.getItem(`apextrack_wip_limits_${currentProjectId}`);
+        if (saved) {
+          setWipLimits(JSON.parse(saved));
+          return;
+        }
+      } catch (e) {
+        console.error('Failed to parse WIP limits from localStorage', e);
+      }
+      setWipLimits(DEFAULT_WIP_LIMITS);
+    }
+  }, [currentProjectId]);
 
   const [editingWipLaneId, setEditingWipLaneId] = useState<string | null>(null);
   const [wipInputVal, setWipInputVal] = useState<string>('');
@@ -150,6 +168,43 @@ export function KanbanBoardView({
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     }
+  };
+
+  // Horizontal scroll tracking and slider control
+  const boardScrollRef = useRef<HTMLDivElement | null>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  const updateScrollProgress = () => {
+    const el = boardScrollRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    if (max > 5) {
+      setScrollProgress((el.scrollLeft / max) * 100);
+    } else {
+      setScrollProgress(0);
+    }
+  };
+
+  useEffect(() => {
+    const el = boardScrollRef.current;
+    if (!el) return;
+    updateScrollProgress();
+    window.addEventListener('resize', updateScrollProgress);
+    return () => window.removeEventListener('resize', updateScrollProgress);
+  }, [swimlanes.length, issues.length]);
+
+  const handleSliderChange = (val: number) => {
+    const el = boardScrollRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    el.scrollLeft = (val / 100) * max;
+    setScrollProgress(val);
+  };
+
+  const scrollByDelta = (delta: number) => {
+    const el = boardScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: delta, behavior: 'smooth' });
   };
 
   // Safe fallback if project has zero lanes
@@ -265,7 +320,11 @@ export function KanbanBoardView({
       </div>
 
       {/* Kanban Columns Snap-Carousel Container */}
-      <div className="flex gap-4 flex-1 min-h-0 items-start overflow-x-auto pb-6 scrollbar-none snap-x snap-mandatory md:snap-none">
+      <div
+        ref={boardScrollRef}
+        onScroll={updateScrollProgress}
+        className="flex gap-4 flex-1 min-h-0 items-start overflow-x-auto pb-4 board-scrollbar snap-x snap-mandatory md:snap-none"
+      >
         {activeLanes.map((lane) => {
           const colIssues = sortedIssues.filter(
             (i) => i.status.toLowerCase() === lane.name.toLowerCase()
@@ -287,7 +346,7 @@ export function KanbanBoardView({
               }}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, lane.name)}
-              className="flex flex-col w-[86vw] sm:w-[320px] md:w-80 flex-shrink-0 snap-center md:snap-align-none max-h-full rounded-2xl border border-black/[0.06] dark:border-white/[0.07] bg-slate-100/70 dark:bg-[#111114] p-3.5 transition-colors"
+              className="flex flex-col w-[86vw] sm:w-[320px] md:w-80 flex-shrink-0 snap-center md:snap-align-none max-h-full rounded-xl border border-black/[0.06] dark:border-white/[0.07] bg-slate-100/70 dark:bg-[#111114] p-3.5 transition-colors"
             >
               {/* Column Header */}
               <div className="flex items-center justify-between pb-3 px-1 border-b border-black/[0.06] dark:border-white/[0.08]">
@@ -327,60 +386,75 @@ export function KanbanBoardView({
                         {lane.name}
                       </span>
 
-                      {editingWipLaneId === lane.id ? (
-                        <div className="flex items-center gap-1 bg-white dark:bg-zinc-900 border border-slate-300 dark:border-zinc-700 p-1 rounded-lg text-xs shadow-md z-10">
-                          <span className="text-[10px] text-slate-500 dark:text-zinc-400 font-mono">WIP:</span>
-                          <input
-                            type="number"
-                            min={0}
-                            max={99}
-                            value={wipInputVal}
-                            onChange={(e) => setWipInputVal(e.target.value)}
-                            className="w-12 text-xs font-mono font-bold bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 border border-slate-300 dark:border-zinc-700 rounded px-1 py-0.5 focus:outline-none focus:border-blue-500 text-center"
-                            autoFocus
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleSaveWipLimit(lane.name);
-                              if (e.key === 'Escape') setEditingWipLaneId(null);
-                            }}
-                          />
-                          <button
-                            onClick={() => handleSaveWipLimit(lane.name)}
-                            className="p-1 rounded bg-blue-600 hover:bg-blue-700 text-white"
-                            title="Save WIP Limit"
-                          >
-                            <Check className="w-3 h-3" />
-                          </button>
-                          <button
-                            onClick={() => setEditingWipLaneId(null)}
-                            className="p-1 rounded bg-slate-200 dark:bg-zinc-800 hover:bg-slate-300 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-300"
-                            title="Cancel"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ) : (
+                      {/* Interactive WIP Limit Pill & Compact Popover */}
+                      <div className="relative flex items-center">
                         <button
+                          type="button"
                           onClick={() => {
                             if (isViewer) return;
-                            setEditingWipLaneId(lane.id);
-                            setWipInputVal(wipLimit !== undefined ? String(wipLimit) : '0');
+                            setEditingWipLaneId(editingWipLaneId === lane.id ? null : lane.id);
+                            setWipInputVal(wipLimit !== undefined && wipLimit > 0 ? String(wipLimit) : '');
                           }}
-                          className={`text-[11px] font-mono px-2 py-0.5 rounded-md font-bold flex-shrink-0 flex items-center gap-1 transition ${
+                          className={`text-[11px] font-mono px-2 py-0.5 rounded-md font-bold flex-shrink-0 flex items-center gap-1 transition cursor-pointer ${
                             overWip
-                              ? 'bg-red-500/20 text-red-500 dark:text-red-400 border border-red-500/40 animate-pulse'
-                              : 'bg-black/5 dark:bg-white/5 text-slate-600 dark:text-zinc-400 hover:bg-black/10 dark:hover:bg-white/10'
+                              ? 'bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse'
+                              : 'bg-black/5 dark:bg-white/5 text-slate-600 dark:text-zinc-400 hover:bg-black/10 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-zinc-200'
                           }`}
-                          title={isViewer ? undefined : `Click to set WIP limit (Current: ${wipLimit || 0})`}
+                          title={isViewer ? undefined : `Set WIP Limit (Current: ${wipLimit || 'Unlimited'})`}
                         >
                           <span>
                             {colIssues.length}
                             {wipLimit && wipLimit > 0 ? `/${wipLimit}` : ''}
                           </span>
                           {!isViewer && (
-                            <Edit2 className="w-2.5 h-2.5 opacity-50 hover:opacity-100" />
+                            <Edit2 className="w-2.5 h-2.5 opacity-40 group-hover:opacity-90 transition-opacity" />
                           )}
                         </button>
-                      )}
+
+                        {/* Floating Popover Tooltip for Setting WIP Limit */}
+                        {editingWipLaneId === lane.id && (
+                          <div className="absolute top-full left-0 mt-1.5 z-40 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700/80 rounded-xl p-2.5 shadow-xl flex flex-col gap-2 min-w-[160px] animate-in fade-in zoom-in-95 duration-100">
+                            <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider font-mono">
+                              <span>Set WIP Limit</span>
+                              <button
+                                type="button"
+                                onClick={() => setEditingWipLaneId(null)}
+                                className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 p-0.5 rounded"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="number"
+                                min={0}
+                                max={99}
+                                placeholder="0"
+                                value={wipInputVal}
+                                onChange={(e) => setWipInputVal(e.target.value)}
+                                className="w-14 text-xs font-mono font-bold bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 border border-slate-300 dark:border-zinc-700 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 text-center"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveWipLimit(lane.name);
+                                  if (e.key === 'Escape') setEditingWipLaneId(null);
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleSaveWipLimit(lane.name)}
+                                className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition"
+                                title="Save WIP Limit"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Save</span>
+                              </button>
+                            </div>
+                            <span className="text-[9px] text-slate-400 dark:text-zinc-500 font-mono">
+                              0 = unlimited
+                            </span>
+                          </div>
+                        )}
+                      </div>
 
                       {!isViewer && (
                         <button
@@ -579,6 +653,58 @@ export function KanbanBoardView({
             )}
           </div>
         )}
+      </div>
+
+      {/* Bottom Horizontal Slider Navigation Strip (Matches Screenshot 1) */}
+      <div className="flex-shrink-0 pt-2 pb-1 border-t border-black/[0.06] dark:border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-3 select-none">
+        {/* Left: Quick Jump Lane Badges */}
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none max-w-full">
+          <span className="text-[10px] font-mono text-slate-400 dark:text-zinc-500 font-bold uppercase tracking-wider mr-1 hidden sm:inline">
+            Columns:
+          </span>
+          {activeLanes.map((lane) => (
+            <button
+              key={lane.id}
+              onClick={() => scrollToLane(lane.id)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-white dark:bg-[#121215] border border-black/[0.06] dark:border-white/[0.08] hover:border-blue-500/40 text-slate-700 dark:text-zinc-300 transition hover:bg-slate-50 dark:hover:bg-zinc-800 cursor-pointer"
+              title={`Jump to ${lane.name}`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${getDotColor(lane.name)}`} />
+              <span className="truncate max-w-[100px]">{lane.name}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Right: Interactive Horizontal Scroll Slider & Arrow Controls */}
+        <div className="flex items-center gap-2 w-full sm:w-auto sm:min-w-[260px] max-w-sm">
+          <button
+            onClick={() => scrollByDelta(-320)}
+            className="p-1 rounded-lg bg-white dark:bg-[#121215] border border-black/[0.06] dark:border-white/[0.08] hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-300 transition active:scale-95 cursor-pointer"
+            title="Scroll Left"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          <div className="relative flex-1 flex items-center">
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={scrollProgress}
+              onChange={(e) => handleSliderChange(Number(e.target.value))}
+              className="w-full h-1.5 bg-slate-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-blue-600 hover:accent-blue-500 transition"
+              title="Drag horizontal slider across columns"
+            />
+          </div>
+
+          <button
+            onClick={() => scrollByDelta(320)}
+            className="p-1 rounded-lg bg-white dark:bg-[#121215] border border-black/[0.06] dark:border-white/[0.08] hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-300 transition active:scale-95 cursor-pointer"
+            title="Scroll Right"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   );

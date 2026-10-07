@@ -8,9 +8,7 @@ import {
   WorkspaceMetrics,
   User,
   Sprint,
-  IssueStatus,
   UserRole,
-  Attachment,
   Project,
   Swimlane,
 } from '@/lib/types';
@@ -120,6 +118,21 @@ export function Workspace({
       );
     }
   );
+
+  // Optimistic UI updates for sprint settings
+  const [optimisticSprints, setOptimisticSprints] = useOptimistic(
+    sprints,
+    (state, update: Sprint) => {
+      return state.map((s) => (s.id === update.id ? update : s));
+    }
+  );
+
+  const handleUpdateSprint = (updatedSprint: Sprint) => {
+    startTransition(async () => {
+      setOptimisticSprints(updatedSprint);
+      showToast(`Sprint "${updatedSprint.name}" updated successfully`);
+    });
+  };
 
   const isAdmin = currentUser.role === 'Admin';
   const isViewer = currentUser.role === 'Viewer';
@@ -488,20 +501,22 @@ export function Workspace({
           onSelectIssue={(key) => setSelectedIssueKey(key)}
         />
 
-        {/* Secondary Filter & Metric Bar */}
-        <FilterBar
-          filterType={filterType}
-          setFilterType={setFilterType}
-          filterPriority={filterPriority}
-          setFilterPriority={setFilterPriority}
-          filterAssignee={filterAssignee}
-          setFilterAssignee={setFilterAssignee}
-          users={initialUsers}
-          metrics={initialMetrics}
-        />
+        {/* Secondary Filter & Metric Bar - Only visible on board & backlog views */}
+        {(activeTab === 'board' || activeTab === 'backlog') && (
+          <FilterBar
+            filterType={filterType}
+            setFilterType={setFilterType}
+            filterPriority={filterPriority}
+            setFilterPriority={setFilterPriority}
+            filterAssignee={filterAssignee}
+            setFilterAssignee={setFilterAssignee}
+            users={initialUsers}
+            metrics={initialMetrics}
+          />
+        )}
 
         {/* View Content */}
-        <div className="flex-1 overflow-auto p-6">
+        <div className="flex-1 overflow-auto p-3 sm:p-4 md:p-6">
           {activeTab === 'board' && (
             <KanbanBoardView
               issues={filteredIssues}
@@ -521,10 +536,12 @@ export function Workspace({
             <BacklogView
               issues={filteredIssues}
               users={initialUsers}
+              sprints={optimisticSprints}
               swimlanes={activeSwimlanes}
               onSelectIssue={(key) => setSelectedIssueKey(key)}
               onStatusChange={handleUpdateIssueStatus}
               onCreateIssue={() => setIsCreateIssueOpen(true)}
+              onUpdateSprint={handleUpdateSprint}
               isViewer={isViewer}
             />
           )}
@@ -572,7 +589,7 @@ export function Workspace({
               issues={optimisticIssues}
               users={initialUsers}
               metrics={initialMetrics}
-              sprints={sprints}
+              sprints={optimisticSprints}
             />
           )}
         </div>

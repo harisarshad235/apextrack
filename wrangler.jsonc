@@ -37,6 +37,7 @@
   ],
   "vars": {
     "AUTH_MODE": "dev",
-    "PROJECT_KEY": "APEX"
+    "PROJECT_KEY": "APEX",
+    "NEXT_PUBLIC_APP_URL": "https://apex.harisarshad.site"
   }
 }

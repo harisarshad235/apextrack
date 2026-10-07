@@ -1,37 +1,83 @@
 'use client';
 
-import React from 'react';
-import { Plus } from 'lucide-react';
-import { FullIssue, User, Swimlane } from '@/lib/types';
+import React, { useState, useMemo } from 'react';
+import { Plus, Inbox } from 'lucide-react';
+import { FullIssue, User, Swimlane, Sprint } from '@/lib/types';
 import { getTypeConfig, getPriorityConfig } from '@/lib/config';
 import { UserAvatar } from '@/components/ui/UserAvatar';
+import { SprintHeader } from '@/components/backlog/SprintHeader';
+import { EditSprintModal } from '@/components/sprints/EditSprintModal';
 
 interface BacklogViewProps {
   issues: FullIssue[];
   users: User[];
+  sprints?: Sprint[];
   swimlanes?: Swimlane[];
   onSelectIssue: (id: string) => void;
   onStatusChange: (issueId: string, newStatus: string) => void;
   onCreateIssue: () => void;
+  onUpdateSprint?: (sprint: Sprint) => void;
   isViewer: boolean;
 }
 
+const DEFAULT_SPRINTS: Sprint[] = [
+  {
+    id: 's24',
+    name: 'Sprint 24',
+    state: 'active',
+    goal: 'Edge data layer + RBAC',
+    startDate: '2026-10-01',
+    endDate: '2026-10-15',
+    createdAt: new Date(),
+  },
+  {
+    id: 's25',
+    name: 'Sprint 25',
+    state: 'upcoming',
+    goal: 'Identity hardening',
+    startDate: '2026-10-16',
+    endDate: '2026-10-30',
+    createdAt: new Date(),
+  },
+];
+
 export function BacklogView({
   issues,
-  users,
+  sprints,
   swimlanes = [],
   onSelectIssue,
   onStatusChange,
   onCreateIssue,
+  onUpdateSprint,
   isViewer,
 }: BacklogViewProps) {
-  const sprintIssues = issues.filter((i) => i.sprintId);
-  const backlogIssues = issues.filter((i) => !i.sprintId);
+  const [localOverrides, setLocalOverrides] = useState<Record<string, Sprint>>({});
+  const [editingSprint, setEditingSprint] = useState<Sprint | null>(null);
+
+  const sprintList = useMemo(() => {
+    const base = sprints && sprints.length > 0 ? sprints : DEFAULT_SPRINTS;
+    return base.map((s) => localOverrides[s.id] || s);
+  }, [sprints, localOverrides]);
+
+  const handleSprintUpdated = (updatedSprint: Sprint) => {
+    setLocalOverrides((prev) => ({ ...prev, [updatedSprint.id]: updatedSprint }));
+    onUpdateSprint?.(updatedSprint);
+  };
 
   const statusOptions =
     swimlanes.length > 0
       ? swimlanes.map((s) => s.name)
       : ['To Do', 'In Progress', 'In Review', 'Done'];
+
+  const sprintIdSet = useMemo(
+    () => new Set(sprintList.map((s) => s.id)),
+    [sprintList]
+  );
+
+  const backlogIssues = useMemo(
+    () => issues.filter((i) => !i.sprintId || !sprintIdSet.has(i.sprintId)),
+    [issues, sprintIdSet]
+  );
 
   const renderIssueRow = (issue: FullIssue) => {
     const typeCfg = getTypeConfig(issue.type);
@@ -102,62 +148,82 @@ export function BacklogView({
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
-      {/* Active Sprint Section */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-        <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-          <div>
-            <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-              <span>Sprint 24 (Active)</span>
-              <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full font-mono">
-                {sprintIssues.length} issues
-              </span>
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Ends October 15, 2026 • 24 story points committed
-            </p>
-          </div>
-          <button
-            onClick={onCreateIssue}
-            disabled={isViewer}
-            className="flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md font-medium transition"
-          >
-            <Plus className="w-3.5 h-3.5" /> Add to Sprint
-          </button>
-        </div>
-        <div>
-          {sprintIssues.map(renderIssueRow)}
-          {sprintIssues.length === 0 && (
-            <div className="p-8 text-center text-xs text-slate-400">
-              No issues in the active sprint.
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Sprints Sections (Active, Upcoming, etc.) */}
+      {sprintList.map((sprint) => {
+        const sprintIssues = issues.filter((i) => i.sprintId === sprint.id);
+        const totalPoints = sprintIssues.reduce(
+          (sum, i) => sum + (i.storyPoints || 0),
+          0
+        );
 
-      {/* Backlog Section */}
+        return (
+          <div
+            key={sprint.id}
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden"
+          >
+            <SprintHeader
+              sprint={sprint}
+              issueCount={sprintIssues.length}
+              totalPoints={totalPoints}
+              onEditSprint={(s) => setEditingSprint(s)}
+              onAddIssue={onCreateIssue}
+              isViewer={isViewer}
+            />
+            <div>
+              {sprintIssues.map(renderIssueRow)}
+              {sprintIssues.length === 0 && (
+                <div className="p-8 text-center text-xs text-slate-400">
+                  No issues scheduled in this sprint.
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Product Backlog Section */}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
         <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
           <div>
             <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+              <Inbox className="w-4 h-4 text-slate-500" />
               <span>Product Backlog</span>
               <span className="text-xs bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full font-mono">
                 {backlogIssues.length} issues
               </span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Unscheduled or upcoming future sprint items
+              Unscheduled backlog items staged for future sprint planning.
             </p>
           </div>
+          <button
+            onClick={onCreateIssue}
+            disabled={isViewer}
+            className="flex items-center gap-1.5 text-xs bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-md font-medium transition"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add to Backlog
+          </button>
         </div>
         <div>
           {backlogIssues.map(renderIssueRow)}
           {backlogIssues.length === 0 && (
             <div className="p-8 text-center text-xs text-slate-400">
-              Backlog is empty! All items assigned.
+              Backlog is empty! All items are assigned to sprints.
             </div>
           )}
         </div>
       </div>
+
+      {/* Edit Sprint Modal */}
+      {editingSprint && (
+        <EditSprintModal
+          key={editingSprint.id}
+          sprint={editingSprint}
+          isOpen={Boolean(editingSprint)}
+          onClose={() => setEditingSprint(null)}
+          onSprintUpdated={handleSprintUpdated}
+        />
+      )}
     </div>
   );
 }
