@@ -284,7 +284,7 @@ export function KanbanBoardView({
       projectId: 'default',
       name: 'To Do',
       statusKey: 'To Do',
-      color: 'border-black/[0.06] dark:border-white/[0.07] bg-slate-100/70 dark:bg-[#111114]',
+      color: 'border-black/[0.06] dark:border-[#263348] bg-slate-100/70 dark:bg-[#111723]',
       sortOrder: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -294,7 +294,7 @@ export function KanbanBoardView({
       projectId: 'default',
       name: 'In Progress',
       statusKey: 'In Progress',
-      color: 'border-black/[0.06] dark:border-white/[0.07] bg-slate-100/70 dark:bg-[#111114]',
+      color: 'border-black/[0.06] dark:border-[#263348] bg-slate-100/70 dark:bg-[#111723]',
       sortOrder: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -304,7 +304,7 @@ export function KanbanBoardView({
       projectId: 'default',
       name: 'In Review',
       statusKey: 'In Review',
-      color: 'border-black/[0.06] dark:border-white/[0.07] bg-slate-100/70 dark:bg-[#111114]',
+      color: 'border-black/[0.06] dark:border-[#263348] bg-slate-100/70 dark:bg-[#111723]',
       sortOrder: 2,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -314,7 +314,7 @@ export function KanbanBoardView({
       projectId: 'default',
       name: 'Done',
       statusKey: 'Done',
-      color: 'border-black/[0.06] dark:border-white/[0.07] bg-slate-100/70 dark:bg-[#111114]',
+      color: 'border-black/[0.06] dark:border-[#263348] bg-slate-100/70 dark:bg-[#111723]',
       sortOrder: 3,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -342,10 +342,10 @@ export function KanbanBoardView({
     : visibleIssues;
 
   const pillClass = (active: boolean, tone: string) =>
-    `flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition flex-shrink-0 ${
+    `flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors duration-150 flex-shrink-0 ${
       active
         ? tone
-        : 'bg-white dark:bg-[#121215] border-black/[0.06] dark:border-white/[0.08] text-slate-600 dark:text-zinc-400 hover:border-blue-400/50 hover:text-slate-900 dark:hover:text-zinc-100'
+        : 'bg-white dark:bg-[#151c28] border-slate-200 dark:border-[#263348] text-slate-600 dark:text-slate-300 hover:border-blue-400/50 hover:text-slate-900 dark:hover:text-slate-100'
     }`;
 
   return (
@@ -387,21 +387,21 @@ export function KanbanBoardView({
 
       {loadingSprint ? (
         <div className="flex-1 flex flex-col items-center justify-center p-8 min-h-[350px]">
-          <div className="flex items-center gap-2.5 text-xs text-slate-500 dark:text-zinc-400 font-medium">
+          <div className="flex items-center gap-2.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
             <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
             <span>Loading active sprint...</span>
           </div>
         </div>
       ) : !activeSprint ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center min-h-[420px] rounded-2xl border border-dashed border-black/[0.08] dark:border-white/[0.08] bg-white/40 dark:bg-[#111114]/40 my-4">
-          <div className="max-w-md w-full p-8 rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#121215] shadow-xl flex flex-col items-center text-center">
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center min-h-[420px] rounded-2xl border border-dashed border-slate-300 dark:border-[#263348] bg-white/40 dark:bg-[#151c28]/40 my-4">
+          <div className="max-w-md w-full p-8 rounded-2xl border border-slate-200 dark:border-[#263348] bg-white dark:bg-[#151c28] shadow-xl flex flex-col items-center text-center transition-colors">
             <div className="w-14 h-14 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center mb-4 ring-8 ring-blue-500/5">
               <Zap className="w-7 h-7" />
             </div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100 mb-2">
+            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 mb-2">
               No Active Sprint
             </h3>
-            <p className="text-xs text-slate-500 dark:text-zinc-400 mb-6 leading-relaxed max-w-sm">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed max-w-sm">
               The board only displays tasks belonging to the active sprint. Start a planned sprint from your backlog to track work here.
             </p>
             <button
@@ -415,7 +415,7 @@ export function KanbanBoardView({
       ) : (
         <>
           {/* Mobile Sticky Lane Navigation Pills (< md screens) */}
-          <div className="md:hidden flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none sticky top-0 z-10 bg-[#f8fafc] dark:bg-[#09090b] py-1 border-b border-black/[0.06] dark:border-white/[0.08]">
+          <div className="md:hidden flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none sticky top-0 z-10 bg-[#f8fafc] dark:bg-[#0b0f17] py-1 border-b border-slate-200 dark:border-[#263348]">
         {activeLanes.map((lane) => {
           const count = sortedIssues.filter(
             (i) => i.status.toLowerCase() === lane.name.toLowerCase()
@@ -424,10 +424,10 @@ export function KanbanBoardView({
             <button
               key={lane.id}
               onClick={() => scrollToLane(lane.id)}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-[#121215] border border-black/[0.06] dark:border-white/[0.08] text-slate-700 dark:text-zinc-300 flex-shrink-0 active:scale-95 transition"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-[#151c28] border border-slate-200 dark:border-[#263348] text-slate-700 dark:text-slate-300 flex-shrink-0 active:scale-95 transition"
             >
               <span>{lane.name}</span>
-              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-black/5 dark:bg-white/5 text-slate-500 dark:text-zinc-400">
+              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-black/5 dark:bg-white/10 text-slate-500 dark:text-slate-400">
                 {count}
               </span>
             </button>
@@ -462,10 +462,10 @@ export function KanbanBoardView({
               }}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, lane.name)}
-              className="flex flex-col w-[86vw] sm:w-[320px] md:w-80 flex-shrink-0 snap-center md:snap-align-none max-h-full rounded-xl border border-black/[0.06] dark:border-white/[0.07] bg-slate-100/70 dark:bg-[#111114] p-3.5 transition-colors"
+              className="flex flex-col w-[86vw] sm:w-[320px] md:w-80 flex-shrink-0 snap-center md:snap-align-none max-h-full rounded-xl border border-slate-200 dark:border-[#263348] bg-slate-100/70 dark:bg-[#111723] p-3.5 transition-colors"
             >
               {/* Column Header */}
-              <div className="flex items-center justify-between pb-3 px-1 border-b border-black/[0.06] dark:border-white/[0.08]">
+              <div className="flex items-center justify-between pb-3 px-1 border-b border-slate-200 dark:border-[#263348]">
                 {isEditingThisLane ? (
                   <div className="flex items-center gap-1.5 w-full">
                     <input
@@ -477,7 +477,7 @@ export function KanbanBoardView({
                         if (e.key === 'Enter') handleSaveEditLane(lane.id);
                         if (e.key === 'Escape') setEditingLaneId(null);
                       }}
-                      className="flex-1 text-xs font-bold px-2 py-1 rounded bg-white dark:bg-[#16161a] border border-blue-500 text-slate-900 dark:text-white focus:outline-none"
+                      className="flex-1 text-xs font-bold px-2 py-1 rounded bg-white dark:bg-[#1e293b] border border-blue-500 text-slate-900 dark:text-slate-100 focus:outline-none"
                     />
                     <button
                       onClick={() => handleSaveEditLane(lane.id)}
@@ -529,13 +529,13 @@ export function KanbanBoardView({
 
                         {/* Floating Popover Tooltip for Setting WIP Limit */}
                         {editingWipLaneId === lane.id && (
-                          <div className="absolute top-full left-0 mt-1.5 z-40 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700/80 rounded-xl p-2.5 shadow-xl flex flex-col gap-2 min-w-[160px] animate-in fade-in zoom-in-95 duration-100">
-                            <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider font-mono">
+                          <div className="absolute top-full left-0 mt-1.5 z-40 bg-white dark:bg-[#151c28] border border-slate-200 dark:border-[#263348] rounded-xl p-2.5 shadow-xl flex flex-col gap-2 min-w-[160px] animate-in fade-in zoom-in-95 duration-100">
+                            <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider font-mono">
                               <span>Set WIP Limit</span>
                               <button
                                 type="button"
                                 onClick={() => setEditingWipLaneId(null)}
-                                className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 p-0.5 rounded"
+                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded"
                               >
                                 <X className="w-3 h-3" />
                               </button>
@@ -548,7 +548,7 @@ export function KanbanBoardView({
                                 placeholder="0"
                                 value={wipInputVal}
                                 onChange={(e) => setWipInputVal(e.target.value)}
-                                className="w-14 text-xs font-mono font-bold bg-slate-100 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 border border-slate-300 dark:border-zinc-700 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 text-center"
+                                className="w-14 text-xs font-mono font-bold bg-slate-100 dark:bg-[#1e293b] text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-[#263348] rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 text-center"
                                 autoFocus
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') handleSaveWipLimit(lane.name);
@@ -565,7 +565,7 @@ export function KanbanBoardView({
                                 <span>Save</span>
                               </button>
                             </div>
-                            <span className="text-[9px] text-slate-400 dark:text-zinc-500 font-mono">
+                            <span className="text-[9px] text-slate-400 dark:text-slate-500 font-mono">
                               0 = unlimited
                             </span>
                           </div>
@@ -584,7 +584,7 @@ export function KanbanBoardView({
                     </div>
 
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <span className="text-[11px] font-mono text-slate-500 dark:text-zinc-500 font-medium">
+                      <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 font-medium">
                         {colPoints} pts
                       </span>
                       {!isViewer && activeLanes.length > 1 && (
@@ -622,7 +622,7 @@ export function KanbanBoardView({
                       className={`rounded-xl p-3.5 transition-all duration-150 cursor-pointer group shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-none hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] ${
                         issue.isFlagged
                           ? 'bg-amber-500/10 border border-amber-500/60 hover:border-amber-500'
-                          : 'bg-white dark:bg-[#16161a] border border-black/[0.06] dark:border-white/[0.07] hover:border-black/20 dark:hover:border-white/20'
+                          : 'bg-white dark:bg-[#151c28] border border-slate-200 dark:border-[#263348] hover:border-blue-400/50 dark:hover:border-blue-500/50'
                       }`}
                     >
                       {/* Top Row: Type, Key, Priority & Edit Action */}
@@ -631,7 +631,7 @@ export function KanbanBoardView({
                           <span className={`p-1 rounded border ${typeCfg.color}`}>
                             <TypeIcon className="w-3.5 h-3.5" />
                           </span>
-                          <span className="font-mono text-xs font-semibold text-slate-500 dark:text-zinc-400 tracking-tight group-hover:text-blue-500 transition">
+                          <span className="font-mono text-xs font-semibold text-slate-500 dark:text-slate-400 tracking-tight group-hover:text-blue-500 transition">
                             {issue.key}
                           </span>
                           {issue.isFlagged && (
@@ -654,7 +654,7 @@ export function KanbanBoardView({
                               e.stopPropagation();
                               onSelectIssue(issue.key);
                             }}
-                            className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded transition"
+                            className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-[#1e293b] rounded transition"
                             title="Edit Task Details"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
@@ -663,7 +663,7 @@ export function KanbanBoardView({
                       </div>
 
                       {/* Title */}
-                      <h4 className="text-sm font-semibold text-slate-800 dark:text-zinc-100 line-clamp-2 leading-snug mb-2.5">
+                      <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug mb-2.5">
                         {issue.title}
                       </h4>
 
@@ -673,7 +673,7 @@ export function KanbanBoardView({
                           {issue.labels.slice(0, 3).map((lbl, idx) => (
                             <span
                               key={idx}
-                              className="text-[10px] bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 px-1.5 py-0.5 rounded"
+                              className="text-[10px] bg-slate-100 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-[#263348] px-1.5 py-0.5 rounded"
                             >
                               {lbl}
                             </span>
@@ -682,7 +682,7 @@ export function KanbanBoardView({
                       )}
 
                       {/* Footer: Attachments, Comments, Story Points, Assignee */}
-                      <div className="flex items-center justify-between pt-2 border-t border-black/[0.04] dark:border-white/[0.06] text-xs text-slate-400 dark:text-zinc-400">
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-[#263348]/60 text-xs text-slate-400 dark:text-slate-400">
                         <div className="flex items-center gap-3">
                           {issue.attachments?.length > 0 && (
                             <span className="flex items-center gap-1 text-[11px]">
@@ -712,7 +712,7 @@ export function KanbanBoardView({
                 })}
 
                 {colIssues.length === 0 && (
-                  <div className="h-28 border border-dashed border-black/[0.08] dark:border-white/[0.08] rounded-xl flex items-center justify-center text-xs text-slate-400 dark:text-zinc-500">
+                  <div className="h-28 border border-dashed border-slate-300 dark:border-[#263348] rounded-xl flex items-center justify-center text-xs text-slate-400 dark:text-slate-500">
                     Drop tasks here
                   </div>
                 )}
@@ -727,9 +727,9 @@ export function KanbanBoardView({
             {isAddingLane ? (
               <form
                 onSubmit={handleAddLaneSubmit}
-                className="p-4 rounded-2xl bg-white dark:bg-[#121215] border border-black/[0.06] dark:border-white/[0.08] shadow-md space-y-3"
+                className="p-4 rounded-2xl bg-white dark:bg-[#151c28] border border-slate-200 dark:border-[#263348] shadow-md space-y-3"
               >
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 font-mono">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
                   New Swimlane
                 </h4>
                 <input
@@ -738,7 +738,7 @@ export function KanbanBoardView({
                   placeholder="e.g. Staging, QA, Blocked"
                   value={newLaneName}
                   onChange={(e) => setNewLaneName(e.target.value)}
-                  className="w-full text-xs bg-slate-50 dark:bg-zinc-900 border border-black/[0.06] dark:border-white/[0.08] rounded-lg p-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full text-xs bg-slate-50 dark:bg-[#1e293b] border border-slate-300 dark:border-[#263348] rounded-lg p-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
                 <div className="flex items-center justify-end gap-2">
                   <button
@@ -747,7 +747,7 @@ export function KanbanBoardView({
                       setIsAddingLane(false);
                       setNewLaneName('');
                     }}
-                    className="px-3 py-1.5 text-xs text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg"
+                    className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1e293b] rounded-lg"
                   >
                     Cancel
                   </button>
@@ -762,7 +762,7 @@ export function KanbanBoardView({
             ) : (
               <button
                 onClick={() => setIsAddingLane(true)}
-                className="w-full py-4 border-2 border-dashed border-black/[0.08] hover:border-blue-500 dark:border-white/[0.08] dark:hover:border-blue-400 rounded-2xl text-xs font-semibold text-slate-500 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400 flex items-center justify-center gap-2 transition bg-slate-50/50 hover:bg-blue-50/20 dark:bg-zinc-900/30"
+                className="w-full py-4 border-2 border-dashed border-slate-300 hover:border-blue-500 dark:border-[#263348] dark:hover:border-blue-400 rounded-2xl text-xs font-semibold text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 flex items-center justify-center gap-2 transition bg-slate-50/50 hover:bg-blue-50/20 dark:bg-[#151c28]/40"
               >
                 <Plus className="w-4 h-4" /> Add Swimlane
               </button>
@@ -772,17 +772,17 @@ export function KanbanBoardView({
       </div>
 
       {/* Bottom Horizontal Slider Navigation Strip (Matches Screenshot 1) */}
-      <div className="flex-shrink-0 pt-2 pb-1 border-t border-black/[0.06] dark:border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-3 select-none">
+      <div className="flex-shrink-0 pt-2 pb-1 border-t border-slate-200 dark:border-[#263348] flex flex-col sm:flex-row items-center justify-between gap-3 select-none">
         {/* Left: Quick Jump Lane Badges */}
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none max-w-full">
-          <span className="text-[10px] font-mono text-slate-400 dark:text-zinc-500 font-bold uppercase tracking-wider mr-1 hidden sm:inline">
+          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mr-1 hidden sm:inline">
             Columns:
           </span>
           {activeLanes.map((lane) => (
             <button
               key={lane.id}
               onClick={() => scrollToLane(lane.id)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-white dark:bg-[#121215] border border-black/[0.06] dark:border-white/[0.08] hover:border-blue-500/40 text-slate-700 dark:text-zinc-300 transition hover:bg-slate-50 dark:hover:bg-zinc-800 cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-white dark:bg-[#151c28] border border-slate-200 dark:border-[#263348] hover:border-blue-500/40 text-slate-700 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-[#1e293b] cursor-pointer"
               title={`Jump to ${lane.name}`}
             >
               <span className={`w-1.5 h-1.5 rounded-full ${getDotColor(lane.name)}`} />
@@ -795,7 +795,7 @@ export function KanbanBoardView({
         <div className="flex items-center gap-2 w-full sm:w-auto sm:min-w-[260px] max-w-sm">
           <button
             onClick={() => scrollByDelta(-320)}
-            className="p-1 rounded-lg bg-white dark:bg-[#121215] border border-black/[0.06] dark:border-white/[0.08] hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-300 transition active:scale-95 cursor-pointer"
+            className="p-1 rounded-lg bg-white dark:bg-[#151c28] border border-slate-200 dark:border-[#263348] hover:bg-slate-100 dark:hover:bg-[#1e293b] text-slate-600 dark:text-slate-300 transition active:scale-95 cursor-pointer"
             title="Scroll Left"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -808,14 +808,14 @@ export function KanbanBoardView({
               max={100}
               value={scrollProgress}
               onChange={(e) => handleSliderChange(Number(e.target.value))}
-              className="w-full h-1.5 bg-slate-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-blue-600 hover:accent-blue-500 transition"
+              className="w-full h-1.5 bg-slate-200 dark:bg-[#1e293b] rounded-lg appearance-none cursor-pointer accent-blue-600 hover:accent-blue-500 transition"
               title="Drag horizontal slider across columns"
             />
           </div>
 
           <button
             onClick={() => scrollByDelta(320)}
-            className="p-1 rounded-lg bg-white dark:bg-[#121215] border border-black/[0.06] dark:border-white/[0.08] hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-300 transition active:scale-95 cursor-pointer"
+            className="p-1 rounded-lg bg-white dark:bg-[#151c28] border border-slate-200 dark:border-[#263348] hover:bg-slate-100 dark:hover:bg-[#1e293b] text-slate-600 dark:text-slate-300 transition active:scale-95 cursor-pointer"
             title="Scroll Right"
           >
             <ChevronRight className="w-4 h-4" />

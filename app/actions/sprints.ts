@@ -534,3 +534,62 @@ export async function getProjectSprintsAction(projectId?: string): Promise<Sprin
     return [];
   }
 }
+
+export interface ActiveSprintMetrics {
+  activeSprint: Sprint | null;
+  totalPoints: number;
+  completedPoints: number;
+  completionRate: number;
+}
+
+/**
+ * Fetch the active sprint and dynamic issue story points for a project.
+ */
+export async function getActiveSprintMetricsAction(projectId?: string): Promise<ActiveSprintMetrics> {
+  try {
+    const active = await getActiveSprintAction(projectId);
+    if (!active) {
+      return {
+        activeSprint: null,
+        totalPoints: 0,
+        completedPoints: 0,
+        completionRate: 0,
+      };
+    }
+
+    const db = getDb();
+    const issueRows = await db.all<{ story_points: number; status: string }>(sql`
+      SELECT story_points, status FROM issues
+      WHERE sprint_id = ${active.id}
+    `);
+
+    let totalPoints = 0;
+    let completedPoints = 0;
+
+    for (const row of issueRows) {
+      const pts = Number(row.story_points) || 0;
+      totalPoints += pts;
+      const st = (row.status || '').toLowerCase();
+      if (st === 'done' || st === 'shipped' || st === 'closed' || st === 'completed') {
+        completedPoints += pts;
+      }
+    }
+
+    const completionRate = totalPoints > 0 ? Math.round((completedPoints / totalPoints) * 100) : 0;
+
+    return {
+      activeSprint: active,
+      totalPoints,
+      completedPoints,
+      completionRate,
+    };
+  } catch (err) {
+    console.error('Failed to get active sprint metrics:', err);
+    return {
+      activeSprint: null,
+      totalPoints: 0,
+      completedPoints: 0,
+      completionRate: 0,
+    };
+  }
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useTransition } from 'react';
+import React, { useState, useEffect, useTransition } from 'react';
 import {
   Kanban,
   Layers,
@@ -17,6 +17,7 @@ import { User, Project } from '@/lib/types';
 import { UserAvatar } from '@/components/ui/UserAvatar';
 import { ApexTrackLogo } from '@/components/ui/ApexTrackLogo';
 import { ProjectSwitcher } from '@/components/layout/ProjectSwitcher';
+import { getActiveSprintMetricsAction, ActiveSprintMetrics } from '@/app/actions/sprints';
 
 interface SidebarProps {
   activeTab: string;
@@ -59,6 +60,44 @@ export function Sidebar({
 }: SidebarProps) {
   const [isPending, startTransition] = useTransition();
 
+  const [sprintMetrics, setSprintMetrics] = useState<ActiveSprintMetrics | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadMetrics() {
+      try {
+        const data = await getActiveSprintMetricsAction(activeProjectId);
+        if (isMounted) {
+          setSprintMetrics(data);
+        }
+      } catch (err) {
+        console.error('Failed to load active sprint metrics:', err);
+        if (isMounted) {
+          setSprintMetrics(null);
+        }
+      }
+    }
+
+    loadMetrics();
+
+    const handleSprintUpdate = () => {
+      loadMetrics();
+    };
+    window.addEventListener('apextrack:sprint-updated', handleSprintUpdate);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('apextrack:sprint-updated', handleSprintUpdate);
+    };
+  }, [activeProjectId]);
+
+  const activeSprint = sprintMetrics?.activeSprint || null;
+  const sprintTotalPoints = activeSprint ? (sprintMetrics?.totalPoints ?? 0) : 0;
+  const sprintCompletedPoints = activeSprint ? (sprintMetrics?.completedPoints ?? 0) : 0;
+  const sprintCompletionRate =
+    activeSprint && sprintTotalPoints > 0
+      ? Math.round((sprintCompletedPoints / sprintTotalPoints) * 100)
+      : 0;
+
   const pendingCount = users.filter((u) => u.status === 'PENDING').length;
   const isAdmin = currentUser.role === 'Admin';
   const showDevSwitcher = process.env.NODE_ENV !== 'production';
@@ -76,7 +115,7 @@ export function Sidebar({
 
   return (
     <aside
-      className={`bg-[#0e0e11] dark:bg-[#09090b] text-slate-300 flex flex-col transition-all duration-200 ease-in-out border-r border-black/[0.06] dark:border-white/[0.08] ${
+      className={`bg-[#0f172a] dark:bg-[#111723] text-slate-300 flex flex-col transition-all duration-200 ease-in-out border-r border-slate-200 dark:border-[#263348] ${
         /* Mobile off-canvas classes */
         mobileOpen
           ? 'fixed inset-y-0 left-0 z-50 w-72 translate-x-0 shadow-2xl md:shadow-none'
@@ -156,23 +195,47 @@ export function Sidebar({
 
       {/* Active Sprint Progress Badge */}
       {(sidebarOpen || mobileOpen) && (
-        <div className="p-3 mx-3 my-3 rounded-xl bg-slate-800/40 dark:bg-zinc-900/60 border border-black/[0.06] dark:border-white/[0.08] text-xs">
-          <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span>Sprint Status</span>
-            <span className="text-emerald-400 font-medium">Sprint 24 Active</span>
-          </div>
-          <div className="w-full bg-slate-700/60 dark:bg-zinc-800/80 rounded-full h-1.5 overflow-hidden">
-            <div
-              className="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
-              style={{ width: `${completionRate}%` }}
-            />
-          </div>
-          <div className="flex justify-between text-[11px] text-slate-400 mt-1.5 font-mono">
-            <span>
-              {completedPoints}/{totalPoints} pts
+        <div className="p-3 mx-3 my-3 rounded-xl bg-slate-800/40 dark:bg-[#151c28] border border-black/[0.06] dark:border-[#263348] text-xs transition-colors">
+          <div className="flex items-center justify-between text-slate-400 mb-1.5">
+            <span className="font-medium text-[11px] uppercase tracking-wider text-slate-400">Sprint Status</span>
+            <span
+              className={`font-semibold text-xs ${
+                activeSprint
+                  ? 'text-emerald-400'
+                  : 'text-slate-400'
+              }`}
+            >
+              {activeSprint ? `${activeSprint.name} Active` : 'No Active Sprint'}
             </span>
-            <span>{completionRate}% complete</span>
           </div>
+
+          {activeSprint ? (
+            <>
+              <div className="w-full bg-slate-700/60 dark:bg-slate-800/80 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
+                  style={{ width: `${sprintCompletionRate}%` }}
+                />
+              </div>
+              <div className="flex justify-between items-center text-[11px] text-slate-400 mt-1.5 font-mono">
+                <span>
+                  {sprintCompletedPoints}/{sprintTotalPoints} pts
+                </span>
+                <span>{sprintCompletionRate}% complete</span>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1 font-sans">
+              <span className="text-[11px] text-slate-500 font-mono">0/0 pts</span>
+              <button
+                type="button"
+                onClick={() => handleNavClick('backlog')}
+                className="text-blue-400 hover:text-blue-300 font-medium hover:underline cursor-pointer transition text-[11px]"
+              >
+                Plan Sprint in Backlog
+              </button>
+            </div>
+          )}
         </div>
       )}
 
