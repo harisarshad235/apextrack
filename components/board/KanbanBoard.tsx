@@ -15,15 +15,18 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
+  Flame,
 } from 'lucide-react';
-import { FullIssue, User, Swimlane } from '@/lib/types';
+import { FullIssue, User, Swimlane, Sprint } from '@/lib/types';
 import { getTypeConfig, getPriorityConfig } from '@/lib/config';
 import { UserAvatar } from '@/components/ui/UserAvatar';
+import { getActiveSprintAction } from '@/app/actions/sprints';
 
 interface KanbanBoardProps {
   issues: FullIssue[];
   users: User[];
   swimlanes: Swimlane[];
+  sprints?: Sprint[];
   onSelectIssue: (id: string) => void;
   onStatusChange: (issueId: string, newStatus: string) => void;
   onCreateSwimlane: (name: string, color?: string) => void;
@@ -31,6 +34,7 @@ interface KanbanBoardProps {
   onDeleteSwimlane: (swimlaneId: string) => void;
   isViewer: boolean;
   currentUserId?: string;
+  onNavigateToBacklog?: () => void;
 }
 
 const DEFAULT_WIP_LIMITS: Record<string, number> = {
@@ -51,6 +55,7 @@ export function KanbanBoardView({
   issues,
   users,
   swimlanes,
+  sprints,
   onSelectIssue,
   onStatusChange,
   onCreateSwimlane,
@@ -58,14 +63,79 @@ export function KanbanBoardView({
   onDeleteSwimlane,
   isViewer,
   currentUserId,
+  onNavigateToBacklog,
 }: KanbanBoardProps) {
   const [draggedIssueId, setDraggedIssueId] = useState<string | null>(null);
   const [onlyMine, setOnlyMine] = useState(false);
   const [onlyFlagged, setOnlyFlagged] = useState(false);
   const [recentFirst, setRecentFirst] = useState(false);
 
+  // Active sprint state & resolution
+  const [activeSprint, setActiveSprint] = useState<Sprint | null>(() => {
+    return (
+      sprints?.find((s) => ((s as any).status || s.state || '').toUpperCase() === 'ACTIVE') || null
+    );
+  });
+  const [loadingSprint, setLoadingSprint] = useState<boolean>(true);
+
   // WIP limits local state with localStorage persistence
   const currentProjectId = swimlanes[0]?.projectId || 'default';
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadSprint() {
+      if (sprints && sprints.length > 0) {
+        const found = sprints.find(
+          (s) => ((s as any).status || s.state || '').toUpperCase() === 'ACTIVE'
+        );
+        if (isMounted) {
+          setActiveSprint(found || null);
+          setLoadingSprint(false);
+        }
+        return;
+      }
+      try {
+        setLoadingSprint(true);
+        const res = await getActiveSprintAction(
+          currentProjectId !== 'default' ? currentProjectId : undefined
+        );
+        if (isMounted) {
+          setActiveSprint(res || null);
+        }
+      } catch (err) {
+        console.error('Failed to load active sprint:', err);
+        if (isMounted) setActiveSprint(null);
+      } finally {
+        if (isMounted) setLoadingSprint(false);
+      }
+    }
+
+    loadSprint();
+
+    const handleSprintUpdate = () => {
+      loadSprint();
+    };
+    window.addEventListener('apextrack:sprint-updated', handleSprintUpdate);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('apextrack:sprint-updated', handleSprintUpdate);
+    };
+  }, [currentProjectId, sprints]);
+
+  const handleGoToBacklog = () => {
+    if (onNavigateToBacklog) {
+      onNavigateToBacklog();
+      return;
+    }
+    const buttons = Array.from(document.querySelectorAll('button'));
+    const backlogBtn = buttons.find((b) =>
+      b.textContent?.toLowerCase().includes('backlog')
+    );
+    if (backlogBtn) {
+      backlogBtn.click();
+    }
+  };
+
   const [wipLimits, setWipLimits] = useState<Record<string, number>>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -258,7 +328,13 @@ export function KanbanBoardView({
       new Date(i.updatedAt).getTime()
     );
 
-  const visibleIssues = issues
+  const activeSprintIssues = issues.filter(
+    (i) =>
+      activeSprint &&
+      (i.sprintId === activeSprint.id || (i as any).sprint_id === activeSprint.id)
+  );
+
+  const visibleIssues = activeSprintIssues
     .filter((i) => !onlyMine || (!!currentUserId && i.assigneeId === currentUserId))
     .filter((i) => !onlyFlagged || i.isFlagged === true);
   const sortedIssues = recentFirst
@@ -277,6 +353,17 @@ export function KanbanBoardView({
       {/* Quick Filter Bar (Single Horizontal Scrolling Row) */}
       <div className="flex items-center justify-between gap-3 flex-shrink-0">
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none whitespace-nowrap w-full">
+          {activeSprint && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-semibold flex-shrink-0">
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+              <span>{activeSprint.name}</span>
+              {activeSprint.goal && (
+                <span className="text-[11px] opacity-75 hidden sm:inline max-w-[200px] truncate font-normal">
+                  — {activeSprint.goal}
+                </span>
+              )}
+            </div>
+          )}
           <button
             onClick={() => setOnlyMine((v) => !v)}
             className={pillClass(onlyMine, 'bg-blue-600 border-blue-600 text-white')}
@@ -298,8 +385,37 @@ export function KanbanBoardView({
         </div>
       </div>
 
-      {/* Mobile Sticky Lane Navigation Pills (< md screens) */}
-      <div className="md:hidden flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none sticky top-0 z-10 bg-[#f8fafc] dark:bg-[#09090b] py-1 border-b border-black/[0.06] dark:border-white/[0.08]">
+      {loadingSprint ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-8 min-h-[350px]">
+          <div className="flex items-center gap-2.5 text-xs text-slate-500 dark:text-zinc-400 font-medium">
+            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <span>Loading active sprint...</span>
+          </div>
+        </div>
+      ) : !activeSprint ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center min-h-[420px] rounded-2xl border border-dashed border-black/[0.08] dark:border-white/[0.08] bg-white/40 dark:bg-[#111114]/40 my-4">
+          <div className="max-w-md w-full p-8 rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#121215] shadow-xl flex flex-col items-center text-center">
+            <div className="w-14 h-14 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center mb-4 ring-8 ring-blue-500/5">
+              <Zap className="w-7 h-7" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-zinc-100 mb-2">
+              No Active Sprint
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mb-6 leading-relaxed max-w-sm">
+              The board only displays tasks belonging to the active sprint. Start a planned sprint from your backlog to track work here.
+            </p>
+            <button
+              onClick={handleGoToBacklog}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md hover:shadow-lg transition active:scale-95 cursor-pointer"
+            >
+              No active sprint. Visit the Backlog to start your next sprint.
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Mobile Sticky Lane Navigation Pills (< md screens) */}
+          <div className="md:hidden flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none sticky top-0 z-10 bg-[#f8fafc] dark:bg-[#09090b] py-1 border-b border-black/[0.06] dark:border-white/[0.08]">
         {activeLanes.map((lane) => {
           const count = sortedIssues.filter(
             (i) => i.status.toLowerCase() === lane.name.toLowerCase()
@@ -706,6 +822,8 @@ export function KanbanBoardView({
           </button>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }
