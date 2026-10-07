@@ -645,11 +645,256 @@ export function DocumentReaderModal({
     URL.revokeObjectURL(url);
   };
 
+  const formatInlineMarkdown = (text: string) => {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/`([^`]+)`/g, '<code style="background-color: #f1f5f9; color: #b91c1c; padding: 2px 4px; font-family: Consolas, monospace; font-size: 9pt; border: 1px solid #e2e8f0; border-radius: 3px;">$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: #2563eb; text-decoration: underline;">$1</a>');
+  };
+
+  const convertMarkdownToCleanHtml = (markdown: string) => {
+    const lines = markdown.split('\n');
+    const html: string[] = [];
+    let inCodeBlock = false;
+    let codeContent: string[] = [];
+    let inTable = false;
+    let tableRows: string[][] = [];
+    let inList: 'ul' | 'ol' | null = null;
+
+    const flushList = () => {
+      if (inList) {
+        html.push(`</${inList}>`);
+        inList = null;
+      }
+    };
+
+    const flushTable = () => {
+      if (inTable && tableRows.length > 0) {
+        html.push('<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 1px solid #cbd5e1; margin: 14pt 0; font-size: 10pt;">');
+        const headerRow = tableRows[0];
+        html.push('<thead><tr style="background-color: #f1f5f9; color: #0f172a;">');
+        headerRow.forEach((cell) => {
+          html.push(`<th style="border: 1px solid #cbd5e1; padding: 8pt 10pt; font-weight: bold; text-align: left;">${formatInlineMarkdown(cell)}</th>`);
+        });
+        html.push('</tr></thead><tbody>');
+        for (let i = 1; i < tableRows.length; i++) {
+          const row = tableRows[i];
+          const bg = i % 2 === 0 ? 'background-color: #f8fafc;' : 'background-color: #ffffff;';
+          html.push(`<tr style="${bg}">`);
+          row.forEach((cell) => {
+            html.push(`<td style="border: 1px solid #cbd5e1; padding: 7pt 10pt; color: #334155;">${formatInlineMarkdown(cell)}</td>`);
+          });
+          html.push('</tr>');
+        }
+        html.push('</tbody></table>');
+        tableRows = [];
+        inTable = false;
+      }
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const rawLine = lines[i];
+      const trimmed = rawLine.trim();
+
+      // Multi-line Code blocks
+      if (trimmed.startsWith('```')) {
+        if (inCodeBlock) {
+          html.push(`<pre style="background-color: #f8fafc; border: 1px solid #e2e8f0; color: #0f172a; padding: 10pt 12pt; font-family: Consolas, 'Courier New', monospace; font-size: 9.5pt; margin: 12pt 0; white-space: pre-wrap; line-height: 1.4; border-radius: 6px;"><code>${codeContent.join('\n').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`);
+          codeContent = [];
+          inCodeBlock = false;
+        } else {
+          flushList();
+          flushTable();
+          inCodeBlock = true;
+          codeContent = [];
+        }
+        continue;
+      }
+
+      if (inCodeBlock) {
+        codeContent.push(rawLine);
+        continue;
+      }
+
+      // Ignore HTML comments
+      if (trimmed.startsWith('<!--') && trimmed.endsWith('-->')) {
+        continue;
+      }
+
+      // Markdown Tables
+      if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+        flushList();
+        if (/^\|[\s\-:|]+\|$/.test(trimmed)) {
+          continue;
+        }
+        const cells = trimmed
+          .slice(1, -1)
+          .split('|')
+          .map((c) => c.trim());
+        inTable = true;
+        tableRows.push(cells);
+        continue;
+      } else if (inTable) {
+        flushTable();
+      }
+
+      // Headings
+      if (trimmed.startsWith('# ')) {
+        flushList();
+        html.push(`<h1 style="font-size: 20pt; font-weight: bold; color: #0f172a; margin-top: 18pt; margin-bottom: 8pt; font-family: Calibri, Arial, sans-serif;">${formatInlineMarkdown(trimmed.slice(2))}</h1>`);
+        continue;
+      }
+      if (trimmed.startsWith('## ')) {
+        flushList();
+        html.push(`<h2 style="font-size: 14pt; font-weight: bold; color: #1e3a8a; border-bottom: 1.5pt solid #cbd5e1; padding-bottom: 4pt; margin-top: 16pt; margin-bottom: 8pt; font-family: Calibri, Arial, sans-serif;">${formatInlineMarkdown(trimmed.slice(3))}</h2>`);
+        continue;
+      }
+      if (trimmed.startsWith('### ')) {
+        flushList();
+        html.push(`<h3 style="font-size: 12pt; font-weight: bold; color: #334155; margin-top: 12pt; margin-bottom: 4pt; font-family: Calibri, Arial, sans-serif;">${formatInlineMarkdown(trimmed.slice(4))}</h3>`);
+        continue;
+      }
+      if (trimmed.startsWith('#### ')) {
+        flushList();
+        html.push(`<h4 style="font-size: 11pt; font-weight: bold; color: #475569; margin-top: 10pt; margin-bottom: 4pt; font-family: Calibri, Arial, sans-serif;">${formatInlineMarkdown(trimmed.slice(5))}</h4>`);
+        continue;
+      }
+
+      // Horizontal Rules
+      if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
+        flushList();
+        html.push('<hr style="border: none; border-top: 1px solid #e2e8f0; margin: 16pt 0;" />');
+        continue;
+      }
+
+      // Callouts / Blockquotes
+      if (trimmed.startsWith('>')) {
+        flushList();
+        const quoteText = trimmed.replace(/^>\s*/, '');
+        if (quoteText.startsWith('[!NOTE]') || quoteText.startsWith('[!INFO]')) {
+          const noteText = quoteText.replace(/^\[!(NOTE|INFO)\]\s*/i, '');
+          html.push(`<div style="border-left: 4pt solid #3b82f6; background-color: #eff6ff; padding: 10pt 14pt; margin: 12pt 0; color: #1e3a8a; font-size: 10.5pt; border-radius: 0 6px 6px 0;"><strong>NOTE:</strong> ${formatInlineMarkdown(noteText)}</div>`);
+        } else if (quoteText.startsWith('[!WARNING]') || quoteText.startsWith('[!CAUTION]')) {
+          const warnText = quoteText.replace(/^\[!(WARNING|CAUTION)\]\s*/i, '');
+          html.push(`<div style="border-left: 4pt solid #f59e0b; background-color: #fffbeb; padding: 10pt 14pt; margin: 12pt 0; color: #92400e; font-size: 10.5pt; border-radius: 0 6px 6px 0;"><strong>WARNING:</strong> ${formatInlineMarkdown(warnText)}</div>`);
+        } else if (quoteText.startsWith('[!TIP]')) {
+          const tipText = quoteText.replace(/^\[!TIP\]\s*/i, '');
+          html.push(`<div style="border-left: 4pt solid #10b981; background-color: #f0fdf4; padding: 10pt 14pt; margin: 12pt 0; color: #065f46; font-size: 10.5pt; border-radius: 0 6px 6px 0;"><strong>PRO TIP:</strong> ${formatInlineMarkdown(tipText)}</div>`);
+        } else {
+          html.push(`<blockquote style="border-left: 3pt solid #94a3b8; background-color: #f8fafc; padding: 8pt 12pt; margin: 10pt 0; color: #475569; font-style: italic; font-size: 10.5pt;">${formatInlineMarkdown(quoteText)}</blockquote>`);
+        }
+        continue;
+      }
+
+      // Lists
+      const olMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
+      if (olMatch) {
+        if (inList !== 'ol') {
+          flushList();
+          html.push('<ol style="margin: 8pt 0 8pt 20pt; padding-left: 8pt; color: #334155; line-height: 1.6;">');
+          inList = 'ol';
+        }
+        html.push(`<li style="margin-bottom: 4pt;">${formatInlineMarkdown(olMatch[2])}</li>`);
+        continue;
+      }
+
+      const ulMatch = trimmed.match(/^[-*+]\s+(.+)$/);
+      if (ulMatch) {
+        if (inList !== 'ul') {
+          flushList();
+          html.push('<ul style="margin: 8pt 0 8pt 20pt; padding-left: 8pt; color: #334155; line-height: 1.6;">');
+          inList = 'ul';
+        }
+        html.push(`<li style="margin-bottom: 4pt;">${formatInlineMarkdown(ulMatch[1])}</li>`);
+        continue;
+      }
+
+      if (trimmed === '') {
+        flushList();
+        continue;
+      }
+
+      flushList();
+      html.push(`<p style="margin-top: 0; margin-bottom: 8pt; color: #334155; line-height: 1.6; font-size: 11pt;">${formatInlineMarkdown(trimmed)}</p>`);
+    }
+
+    flushList();
+    flushTable();
+    return html.join('\n');
+  };
+
   const handleDownloadWord = () => {
     setIsExportOpen(false);
-    const innerHTMLContent = contentRef.current ? contentRef.current.innerHTML : '';
-    const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>${doc.title}</title><style>body{font-family:Arial,sans-serif;line-height:1.6;padding:24px;color:#1e293b;} h1{font-size:24px;color:#0f172a;} h2{font-size:18px;border-bottom:1px solid #cbd5e1;padding-bottom:6px;margin-top:20px;} table{border-collapse:collapse;width:100%;margin:16px 0;} th,td{border:1px solid #cbd5e1;padding:8px;text-align:left;} th{background-color:#f1f5f9;font-weight:bold;} blockquote{border-left:4px solid #3b82f6;padding-left:12px;color:#475569;margin:16px 0;background-color:#f8fafc;} pre{background:#0f172a;color:#f8fafc;padding:12px;border-radius:6px;font-family:monospace;}</style></head><body>`;
-    const blob = new Blob(['\ufeff' + header + innerHTMLContent + "</body></html>"], {
+    const cleanBodyHtml = convertMarkdownToCleanHtml(doc.content);
+    const metaCard = `
+      <div style="background-color: #f8fafc; border: 1pt solid #cbd5e1; padding: 12pt 16pt; margin-bottom: 20pt; border-radius: 6px; font-family: Calibri, Arial, sans-serif;">
+        <table style="width: 100%; border: none; border-collapse: collapse; margin: 0; font-size: 10pt;">
+          <tr>
+            <td style="border: none; padding: 3pt 0; font-weight: bold; color: #1e3a8a; width: 120px;">Document Title:</td>
+            <td style="border: none; padding: 3pt 0; color: #0f172a; font-weight: bold;">${doc.title}</td>
+          </tr>
+          <tr>
+            <td style="border: none; padding: 3pt 0; font-weight: bold; color: #64748b;">Category:</td>
+            <td style="border: none; padding: 3pt 0; color: #334155;">${doc.category}</td>
+          </tr>
+          <tr>
+            <td style="border: none; padding: 3pt 0; font-weight: bold; color: #64748b;">Author:</td>
+            <td style="border: none; padding: 3pt 0; color: #334155;">${author?.name || 'System'}</td>
+          </tr>
+          <tr>
+            <td style="border: none; padding: 3pt 0; font-weight: bold; color: #64748b;">Last Updated:</td>
+            <td style="border: none; padding: 3pt 0; color: #334155;">${formattedDate}</td>
+          </tr>
+        </table>
+      </div>
+    `;
+
+    const wordDocument = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+          <meta charset='utf-8'>
+          <title>${doc.title}</title>
+          <!--[if gte mso 9]>
+          <xml>
+            <w:WordDocument>
+              <w:View>Print</w:View>
+              <w:Zoom>100</w:Zoom>
+              <w:DoNotOptimizeForBrowser/>
+            </w:WordDocument>
+          </xml>
+          <![endif]-->
+          <style>
+            @page Section1 {
+              size: 8.5in 11.0in;
+              margin: 1.0in 1.0in 1.0in 1.0in;
+              mso-header-margin: 0.5in;
+              mso-footer-margin: 0.5in;
+              mso-paper-source: 0;
+            }
+            div.Section1 { page: Section1; }
+            body {
+              font-family: Calibri, 'Segoe UI', Arial, sans-serif;
+              font-size: 11pt;
+              line-height: 1.5;
+              color: #1e293b;
+              padding: 20px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="Section1">
+            ${metaCard}
+            ${cleanBodyHtml}
+          </div>
+        </body>
+      </html>
+    `;
+
+    const blob = new Blob(['\ufeff' + wordDocument], {
       type: 'application/msword;charset=utf-8;',
     });
     const url = URL.createObjectURL(blob);
@@ -667,7 +912,7 @@ export function DocumentReaderModal({
 
   const handlePrintPDF = () => {
     setIsExportOpen(false);
-    const innerHTMLContent = contentRef.current ? contentRef.current.innerHTML : '';
+    const cleanBodyHtml = convertMarkdownToCleanHtml(doc.content);
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       alert('Pop-up window blocked. Please allow pop-ups to print/export as PDF.');
@@ -681,25 +926,37 @@ export function DocumentReaderModal({
           <title>${doc.title}</title>
           <meta charset="utf-8" />
           <style>
-            body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #0f172a; line-height: 1.6; }
-            h1 { font-size: 2.25rem; font-weight: 800; margin-bottom: 0.75rem; color: #0f172a; }
-            h2 { font-size: 1.5rem; font-weight: 700; margin-top: 2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; color: #1e293b; }
-            h3 { font-size: 1.25rem; font-weight: 700; margin-top: 1.5rem; color: #334155; }
-            table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 14px; }
-            th, td { border: 1px solid #cbd5e1; padding: 10px 12px; text-align: left; }
-            th { background-color: #f1f5f9; font-weight: 700; color: #0f172a; }
-            tr:nth-child(even) { background-color: #f8fafc; }
-            pre { background-color: #0f172a; color: #f8fafc; padding: 16px; border-radius: 8px; font-family: monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; margin: 1.5rem 0; }
-            blockquote { border-left: 4px solid #3b82f6; padding: 12px 16px; background-color: #eff6ff; border-radius: 0 8px 8px 0; margin: 1.5rem 0; color: #1e40af; }
-            .no-print { display: none !important; }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+              padding: 40px;
+              color: #0f172a;
+              line-height: 1.6;
+              background-color: #ffffff;
+            }
+            .meta-card {
+              background-color: #f8fafc;
+              border: 1px solid #e2e8f0;
+              padding: 16px 20px;
+              border-radius: 8px;
+              margin-bottom: 24px;
+            }
             @media print {
               body { padding: 0; }
+              .no-print { display: none !important; }
             }
           </style>
         </head>
         <body>
-          <div style="max-width: 800px; margin: 0 auto;">
-            ${innerHTMLContent}
+          <div style="max-width: 850px; margin: 0 auto;">
+            <div class="meta-card">
+              <h1 style="margin: 0 0 8px 0; font-size: 24px; color: #0f172a;">${doc.title}</h1>
+              <div style="font-size: 13px; color: #64748b;">
+                <strong>Category:</strong> ${doc.category} &nbsp;|&nbsp; 
+                <strong>Author:</strong> ${author?.name || 'System'} &nbsp;|&nbsp; 
+                <strong>Updated:</strong> ${formattedDate}
+              </div>
+            </div>
+            ${cleanBodyHtml}
           </div>
         </body>
       </html>
