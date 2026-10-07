@@ -16,6 +16,7 @@ import {
 import { User, Project } from '@/lib/types';
 import { UserAvatar } from '@/components/ui/UserAvatar';
 import { ApexTrackLogo } from '@/components/ui/ApexTrackLogo';
+import { ProjectSwitcher } from '@/components/layout/ProjectSwitcher';
 
 interface SidebarProps {
   activeTab: string;
@@ -139,31 +140,16 @@ export function Sidebar({
                 Manage
               </button>
             </div>
-            <div className="relative">
-              <select
-                value={activeProjectId}
-                style={{ colorScheme: 'dark' }}
-                onChange={(e) => {
-                  if (e.target.value === '__manage__') {
-                    onOpenProjectsModal();
-                    if (onCloseMobile) onCloseMobile();
-                  } else {
-                    onSelectProject(e.target.value);
-                  }
-                }}
-                className="w-full appearance-none bg-zinc-900/90 text-zinc-100 font-medium text-xs border border-white/10 rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500/50 hover:bg-zinc-800 transition cursor-pointer"
-              >
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id} className="text-zinc-200 bg-zinc-900 font-medium py-1">
-                    [{p.key}] {p.name}
-                  </option>
-                ))}
-                <option value="__manage__" className="text-zinc-200 bg-zinc-900 font-medium py-1">
-                  ⚙️ Projects Directory...
-                </option>
-              </select>
-              <ChevronDown className="w-4 h-4 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
+            <ProjectSwitcher
+              activeProjectId={activeProjectId}
+              onSelectProject={onSelectProject}
+              onOpenProjectsModal={() => {
+                onOpenProjectsModal();
+                if (onCloseMobile) onCloseMobile();
+              }}
+              initialProjects={projects}
+              currentUser={currentUser}
+            />
           </div>
         )}
       </div>

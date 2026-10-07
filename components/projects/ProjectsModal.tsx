@@ -1,6 +1,5 @@
 'use client';
-
-import React, { useState, useTransition } from 'react';
+import React, { useState, useEffect, useTransition } from 'react';
 import {
   FolderKanban,
   Plus,
@@ -12,14 +11,17 @@ import {
   ArrowRight,
   Shield,
   Layers,
+  Users,
 } from 'lucide-react';
 import { Project, User } from '@/lib/types';
-import { createProject, updateProject, deleteProject } from '@/app/actions/projects';
+import { createProject, updateProject, deleteProject, getUserProjectsAction } from '@/app/actions/projects';
+import { ProjectMembersPanel } from '@/components/projects/ProjectMembersPanel';
 
 interface ProjectsModalProps {
   projects: Project[];
   activeProjectId: string;
   users: User[];
+  currentUser?: User;
   isViewer: boolean;
   onSelectProject: (projectId: string) => void;
   onClose: () => void;
@@ -27,16 +29,28 @@ interface ProjectsModalProps {
 }
 
 export function ProjectsModal({
-  projects,
+  projects: initialProjects,
   activeProjectId,
   users,
+  currentUser,
   isViewer,
   onSelectProject,
   onClose,
   onShowToast,
 }: ProjectsModalProps) {
-  const [view, setView] = useState<'list' | 'create' | 'edit'>('list');
+  const [view, setView] = useState<'list' | 'create' | 'edit' | 'members'>('list');
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [selectedProjectForMembers, setSelectedProjectForMembers] = useState<Project | null>(null);
+  const [projectsList, setProjectsList] = useState<Project[]>(initialProjects);
+
+  // Load dynamically accessible projects
+  useEffect(() => {
+    getUserProjectsAction().then((accessible) => {
+      if (accessible && accessible.length > 0) {
+        setProjectsList(accessible);
+      }
+    }).catch(console.error);
+  }, []);
 
   // Form fields
   const [key, setKey] = useState('');
@@ -115,7 +129,7 @@ export function ProjectsModal({
 
   const handleArchive = (proj: Project) => {
     if (isViewer) return;
-    if (projects.length <= 1) {
+    if (projectsList.length <= 1) {
       onShowToast('Cannot archive the only project in the workspace.', 'error');
       return;
     }
@@ -125,7 +139,7 @@ export function ProjectsModal({
       if (res.success) {
         onShowToast(res.message || 'Project archived');
         if (activeProjectId === proj.id) {
-          const fallback = projects.find((p) => p.id !== proj.id);
+          const fallback = projectsList.find((p) => p.id !== proj.id);
           if (fallback) onSelectProject(fallback.id);
         }
       } else {
@@ -166,7 +180,7 @@ export function ProjectsModal({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  All Projects ({projects.length})
+                  Projects ({projectsList.length})
                 </span>
                 {!isViewer && (
                   <button
@@ -179,7 +193,7 @@ export function ProjectsModal({
               </div>
 
               <div className="grid grid-cols-1 gap-3">
-                {projects.map((proj) => {
+                {projectsList.map((proj) => {
                   const isActive = proj.id === activeProjectId;
                   const lead = users.find((u) => u.id === proj.leadId);
 
@@ -218,6 +232,18 @@ export function ProjectsModal({
                       </div>
 
                       <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => {
+                            setSelectedProjectForMembers(proj);
+                            setView('members');
+                          }}
+                          className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition"
+                          title="View and Manage Project Members"
+                        >
+                          <Users className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Members</span>
+                        </button>
+
                         {!isActive ? (
                           <button
                             onClick={() => {
@@ -257,6 +283,37 @@ export function ProjectsModal({
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {view === 'members' && selectedProjectForMembers && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>Project Members:</span>
+                    <span className="font-mono text-blue-500">[{selectedProjectForMembers.key}]</span>
+                    <span>{selectedProjectForMembers.name}</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Assign workspace users or managers to grant access to this project.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setView('list')}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition"
+                >
+                  ← Back to Projects
+                </button>
+              </div>
+
+              <ProjectMembersPanel
+                projectId={selectedProjectForMembers.id}
+                currentUser={currentUser || users[0]}
+                allUsers={users}
+                onShowToast={onShowToast}
+              />
             </div>
           )}
 
