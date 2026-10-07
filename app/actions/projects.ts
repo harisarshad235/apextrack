@@ -88,7 +88,12 @@ export async function assignUserToProject({
     await ensureProjectRbacTables(db);
 
     const memberId = `pm-${projectId}-${targetUserId}`;
-    const cleanRole = projectRole === 'PROJECT_MANAGER' ? 'PROJECT_MANAGER' : (projectRole || 'MEMBER');
+    const cleanRole =
+      projectRole === 'PROJECT_MANAGER'
+        ? 'PROJECT_MANAGER'
+        : projectRole === 'VIEWER'
+        ? 'VIEWER'
+        : (projectRole || 'MEMBER');
 
     // Upsert into project_members
     await db.run(sql`
@@ -102,6 +107,59 @@ export async function assignUserToProject({
     return { success: true, message: 'User assigned to project successfully.' };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to assign user to project';
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Update a member's project role directly.
+ * Guard: caller must be a Workspace Admin, CTO, or Project Manager on projectId.
+ */
+export async function updateProjectMemberRoleAction({
+  projectId,
+  targetUserId,
+  newRole,
+}: {
+  projectId: string;
+  targetUserId: string;
+  newRole: 'PROJECT_MANAGER' | 'MEMBER' | 'VIEWER' | string;
+}) {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return { success: false, error: 'Unauthenticated: Please log in.' };
+    }
+
+    // Guard: caller must be a Workspace Admin, CTO, or Project Manager on projectId
+    const isAuthorized = await verifyProjectAccess(currentUser.id, projectId, 'PROJECT_MANAGER');
+    if (!isAuthorized) {
+      return {
+        success: false,
+        error: 'Unauthorized: Requires Admin, CTO, or Project Manager role on this project.',
+      };
+    }
+
+    const db = getDb();
+    await ensureProjectRbacTables(db);
+
+    const validRole =
+      newRole === 'PROJECT_MANAGER'
+        ? 'PROJECT_MANAGER'
+        : newRole === 'VIEWER'
+        ? 'VIEWER'
+        : 'MEMBER';
+
+    await db.run(sql`
+      UPDATE project_members
+      SET project_role = ${validRole}
+      WHERE project_id = ${projectId} AND user_id = ${targetUserId}
+    `);
+
+    revalidatePath(`/projects/${projectId}`);
+    revalidatePath('/');
+    return { success: true, message: `Member role updated to ${validRole}.` };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to update member role';
     return { success: false, error: message };
   }
 }

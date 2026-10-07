@@ -11,6 +11,9 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
+  Info,
+  ChevronDown,
+  Eye,
 } from 'lucide-react';
 import { User } from '@/lib/types';
 import { UserAvatar } from '@/components/ui/UserAvatar';
@@ -18,6 +21,7 @@ import {
   getProjectMembersAction,
   assignUserToProject,
   removeUserFromProject,
+  updateProjectMemberRoleAction,
   canManageProjectMembersAction,
 } from '@/app/actions/projects';
 
@@ -50,8 +54,9 @@ export function ProjectMembersPanel({
   const [loading, setLoading] = useState(true);
   const [canManage, setCanManage] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState('');
-  const [selectedRole, setSelectedRole] = useState<'MEMBER' | 'PROJECT_MANAGER'>('MEMBER');
+  const [selectedRole, setSelectedRole] = useState<'MEMBER' | 'PROJECT_MANAGER' | 'VIEWER'>('MEMBER');
   const [actionError, setActionError] = useState<string | null>(null);
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const loadData = async () => {
@@ -123,6 +128,39 @@ export function ProjectMembersPanel({
     });
   };
 
+  const handleRoleChange = async (targetUserId: string, newRole: string) => {
+    if (!canManage || updatingUserId === targetUserId) return;
+
+    const previousMembers = [...members];
+    // Optimistic UI update
+    setMembers((prev) =>
+      prev.map((m) => (m.userId === targetUserId ? { ...m, projectRole: newRole } : m))
+    );
+    setUpdatingUserId(targetUserId);
+
+    try {
+      const res = await updateProjectMemberRoleAction({
+        projectId,
+        targetUserId,
+        newRole,
+      });
+
+      if (res.success) {
+        onShowToast?.(res.message || 'Project role updated successfully', 'success');
+      } else {
+        setActionError(res.error || 'Failed to update member role');
+        onShowToast?.(res.error || 'Failed to update member role', 'error');
+        // Revert on failure
+        setMembers(previousMembers);
+      }
+    } catch {
+      onShowToast?.('Failed to update member role', 'error');
+      setMembers(previousMembers);
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header & Access Indicator */}
@@ -152,6 +190,19 @@ export function ProjectMembersPanel({
         )}
       </div>
 
+      {/* Super Admin & CTO Visibility Clarification Banner */}
+      <div className="p-3.5 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/40 text-xs text-blue-900 dark:text-blue-300 flex items-start gap-2.5">
+        <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+        <div className="space-y-0.5">
+          <p className="font-semibold text-blue-950 dark:text-blue-200">
+            Workspace vs. Project Roles Clarification
+          </p>
+          <p className="text-[11px] text-blue-800/90 dark:text-blue-300/90 leading-relaxed">
+            <strong>Workspace Super Admins</strong> and <strong>CTOs</strong> possess global bypass access across all workspace projects by default and do not require manual assignment. Explicit assignment is only needed when designating specific project-level responsibilities (such as Project Manager).
+          </p>
+        </div>
+      </div>
+
       {actionError && (
         <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -179,22 +230,30 @@ export function ProjectMembersPanel({
                 className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40"
               >
                 <option value="">Select a workspace user...</option>
-                {availableUsers.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name} ({u.email}) - {u.role}
-                  </option>
-                ))}
+                {availableUsers.map((u) => {
+                  const isGlobalBypass =
+                    u.role === 'Admin' ||
+                    (u as any).designation?.toUpperCase() === 'CTO' ||
+                    u.department?.toUpperCase() === 'CTO';
+                  return (
+                    <option key={u.id} value={u.id}>
+                      {u.name} ({u.email}) - {u.role}
+                      {isGlobalBypass ? ' (Global Access: Admin/CTO)' : ''}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
             <div>
               <select
                 value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value as 'MEMBER' | 'PROJECT_MANAGER')}
+                onChange={(e) => setSelectedRole(e.target.value as 'MEMBER' | 'PROJECT_MANAGER' | 'VIEWER')}
                 className="w-full text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/40"
               >
                 <option value="MEMBER">Member</option>
                 <option value="PROJECT_MANAGER">Project Manager</option>
+                <option value="VIEWER">Viewer</option>
               </select>
             </div>
           </div>
@@ -243,6 +302,20 @@ export function ProjectMembersPanel({
           {members.map((member) => {
             const isSelf = member.userId === currentUser.id;
             const isManager = member.projectRole === 'PROJECT_MANAGER';
+            const isViewerRole = member.projectRole === 'VIEWER';
+            const isUpdating = updatingUserId === member.userId;
+
+            const isWorkspaceAdmin = member.userRole === 'Admin' || member.userRole === 'ADMIN';
+            const isCTO =
+              member.department?.toUpperCase() === 'CTO' ||
+              (member as any).designation?.toUpperCase() === 'CTO';
+
+            // Role styling classes
+            const roleColorClasses = isManager
+              ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/80'
+              : isViewerRole
+              ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+              : 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/80';
 
             return (
               <div
@@ -259,13 +332,29 @@ export function ProjectMembersPanel({
                     size="sm"
                   />
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
                         {member.userName}
                       </span>
                       {isSelf && (
                         <span className="text-[10px] bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 px-1.5 py-0.2 rounded font-semibold">
                           You
+                        </span>
+                      )}
+                      {isWorkspaceAdmin && (
+                        <span
+                          className="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-1.5 py-0.2 rounded font-semibold"
+                          title="Workspace Admin: Global bypass access"
+                        >
+                          Workspace Admin
+                        </span>
+                      )}
+                      {isCTO && (
+                        <span
+                          className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-1.5 py-0.2 rounded font-semibold"
+                          title="CTO: Global bypass access"
+                        >
+                          CTO
                         </span>
                       )}
                     </div>
@@ -275,29 +364,80 @@ export function ProjectMembersPanel({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <span
-                    className={`text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 ${
-                      isManager
-                        ? 'bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-300/40'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
-                    }`}
-                  >
-                    {isManager ? (
-                      <>
-                        <ShieldCheck className="w-3 h-3 text-purple-600 dark:text-purple-400" />
-                        <span>Project Manager</span>
-                      </>
-                    ) : (
-                      <span>Member</span>
-                    )}
-                  </span>
+                <div className="flex items-center gap-2.5 flex-shrink-0">
+                  {/* Inline Interactive Role Dropdown */}
+                  {isUpdating ? (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-500">
+                      <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
+                      <span className="text-[11px] font-medium">Updating...</span>
+                    </div>
+                  ) : canManage ? (
+                    <div
+                      className={`relative flex items-center rounded-xl border px-2.5 py-1 text-xs font-semibold transition shadow-2xs ${roleColorClasses}`}
+                    >
+                      <span className="mr-1.5 flex items-center pointer-events-none">
+                        {isManager ? (
+                          <ShieldCheck className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                        ) : isViewerRole ? (
+                          <Eye className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                        ) : (
+                          <Shield className="w-3.5 h-3.5 text-blue-500" />
+                        )}
+                      </span>
+                      <select
+                        value={member.projectRole}
+                        onChange={(e) => handleRoleChange(member.userId, e.target.value)}
+                        disabled={!canManage || isUpdating}
+                        className="bg-transparent font-semibold text-xs focus:outline-none cursor-pointer pr-4 appearance-none"
+                        aria-label={`Project role for ${member.userName}`}
+                      >
+                        <option
+                          value="PROJECT_MANAGER"
+                          className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium"
+                        >
+                          Project Manager
+                        </option>
+                        <option
+                          value="MEMBER"
+                          className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium"
+                        >
+                          Member
+                        </option>
+                        <option
+                          value="VIEWER"
+                          className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium"
+                        >
+                          Viewer
+                        </option>
+                      </select>
+                      <ChevronDown className="w-3 h-3 ml-1 pointer-events-none opacity-60 absolute right-2" />
+                    </div>
+                  ) : (
+                    <div
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs font-semibold ${roleColorClasses}`}
+                    >
+                      {isManager ? (
+                        <ShieldCheck className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                      ) : isViewerRole ? (
+                        <Eye className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                      ) : (
+                        <Shield className="w-3.5 h-3.5 text-blue-500" />
+                      )}
+                      <span>
+                        {isManager
+                          ? 'Project Manager'
+                          : isViewerRole
+                          ? 'Viewer'
+                          : 'Member'}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Conditionally show Remove Member control ONLY if authorized */}
                   {canManage && (
                     <button
                       onClick={() => handleRemoveMember(member.userId, member.userName)}
-                      disabled={isPending}
+                      disabled={isPending || isUpdating}
                       className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition disabled:opacity-40 cursor-pointer"
                       title={`Remove ${member.userName} from project`}
                     >
