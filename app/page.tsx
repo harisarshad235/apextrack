@@ -1,8 +1,6 @@
 import { connection } from 'next/server';
-import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
-import { getWorkspaceData } from '@/lib/queries';
-import { Workspace } from '@/components/Workspace';
+import { LandingPage } from '@/components/landing/LandingPage';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,28 +9,5 @@ export default async function HomePage() {
 
   const currentUser = await getCurrentUser();
 
-  // Gatekeeper Redirects
-  if (!currentUser) {
-    redirect('/login');
-  }
-
-  if (currentUser.status === 'PENDING') {
-    redirect('/awaiting-approval');
-  }
-
-  const { users, issues, docs, sprints, projects, swimlanes, metrics } =
-    await getWorkspaceData();
-
-  return (
-    <Workspace
-      currentUser={currentUser}
-      users={users}
-      issues={issues}
-      docs={docs}
-      sprints={sprints}
-      projects={projects}
-      swimlanes={swimlanes}
-      metrics={metrics}
-    />
-  );
+  return <LandingPage currentUser={currentUser} />;
 }

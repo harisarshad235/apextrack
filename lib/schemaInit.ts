@@ -23,6 +23,8 @@ export async function ensureEnterpriseSchema(dbInstance?: ReturnType<typeof getD
     sql`ALTER TABLE issue_links ADD COLUMN created_at INTEGER DEFAULT (unixepoch() * 1000)`,
     sql`ALTER TABLE notifications ADD COLUMN title TEXT`,
     sql`ALTER TABLE notifications ADD COLUMN link_url TEXT`,
+    sql`ALTER TABLE users ADD COLUMN auth_provider TEXT DEFAULT 'CREDENTIALS'`,
+    sql`ALTER TABLE users ADD COLUMN provider_id TEXT`,
   ];
 
   for (const alterSql of columnsToAdd) {
@@ -147,6 +149,7 @@ export async function ensureEnterpriseSchema(dbInstance?: ReturnType<typeof getD
     sql`CREATE INDEX IF NOT EXISTS idx_transition_rules_project ON workflow_transition_rules(project_id)`,
     sql`CREATE INDEX IF NOT EXISTS idx_git_links_issue ON issue_git_links(issue_id)`,
     sql`CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, read)`,
+    sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_provider ON users(auth_provider, provider_id)`,
   ];
 
   for (const idxSql of indexes) {

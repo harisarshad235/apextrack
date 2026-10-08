@@ -60,6 +60,8 @@ export const users = sqliteTable(
     passwordHash: text('password_hash'),
     role: text('role', { enum: USER_ROLES }).notNull().default('Viewer'),
     status: text('status', { enum: USER_STATUSES }).notNull().default('PENDING'),
+    authProvider: text('auth_provider').default('CREDENTIALS'),
+    providerId: text('provider_id'),
     department: text('department'),
     avatarUrl: text('avatar_url'),
     approvedById: text('approved_by_id'),
@@ -67,7 +69,11 @@ export const users = sqliteTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex('users_email_uq').on(t.email), index('users_status_idx').on(t.status)],
+  (t) => [
+    uniqueIndex('users_email_uq').on(t.email),
+    index('users_status_idx').on(t.status),
+    uniqueIndex('idx_users_provider').on(t.authProvider, t.providerId),
+  ],
 );
 
 /* ------------------------------------------------------------------ */

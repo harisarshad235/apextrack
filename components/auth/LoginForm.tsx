@@ -38,7 +38,7 @@ export default function LoginForm() {
       }
 
       // Hard redirect to load session cookie into workspace layout
-      window.location.href = '/';
+      window.location.href = '/dashboard';
     } catch (err: unknown) {
       console.error('Login action error:', err);
       const msg = err instanceof Error ? err.message : 'Authentication failed. Please try again.';
