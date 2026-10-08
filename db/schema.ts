@@ -376,12 +376,15 @@ export const notifications = sqliteTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     authorId: text('author_id').references(() => users.id, { onDelete: 'set null' }),
     issueId: text('issue_id').references(() => issues.key, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    title: text('title'),
     message: text('message').notNull(),
+    linkUrl: text('link_url'),
     read: integer('read', { mode: 'boolean' }).notNull().default(false),
     createdAt: text('created_at').notNull(),
   },
   (t) => [index('notifications_user_idx').on(t.userId, t.read)],
 );
+
 
 /* ------------------------------------------------------------------ */
 /* Knowledge base                                                      */
@@ -523,6 +526,13 @@ export const attachmentsRelations = relations(attachments, ({ one }) => ({
   document: one(documents, { fields: [attachments.documentId], references: [documents.id] }),
   uploader: one(users, { fields: [attachments.uploadedById], references: [users.id] }),
 }));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, { fields: [notifications.userId], references: [users.id] }),
+  author: one(users, { fields: [notifications.authorId], references: [users.id] }),
+  issue: one(issues, { fields: [notifications.issueId], references: [issues.key] }),
+}));
+
 
 export type User = typeof users.$inferSelect;
 export type Project = typeof projects.$inferSelect;

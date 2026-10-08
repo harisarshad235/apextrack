@@ -254,10 +254,10 @@ export function IssueDetailDrawer({
               );
               return (
                 <span
-                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 mx-0.5 rounded-md bg-blue-500/20 text-blue-300 border border-blue-500/40 font-semibold text-xs transition hover:bg-blue-500/30 cursor-default"
+                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-medium text-xs transition cursor-default"
                   title={matchedUser ? `${matchedUser.name} (${matchedUser.email})` : `@${handle}`}
                 >
-                  <span className="text-blue-400 font-bold">@</span>
+                  <span className="font-bold">@</span>
                   <span>{matchedUser ? matchedUser.name : handle}</span>
                 </span>
               );

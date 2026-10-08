@@ -21,6 +21,8 @@ export async function ensureEnterpriseSchema(dbInstance?: ReturnType<typeof getD
     sql`ALTER TABLE issues ADD COLUMN remaining_estimate_hours REAL`,
     sql`ALTER TABLE issue_links ADD COLUMN link_type TEXT NOT NULL DEFAULT 'RELATES_TO'`,
     sql`ALTER TABLE issue_links ADD COLUMN created_at INTEGER DEFAULT (unixepoch() * 1000)`,
+    sql`ALTER TABLE notifications ADD COLUMN title TEXT`,
+    sql`ALTER TABLE notifications ADD COLUMN link_url TEXT`,
   ];
 
   for (const alterSql of columnsToAdd) {
@@ -115,6 +117,24 @@ export async function ensureEnterpriseSchema(dbInstance?: ReturnType<typeof getD
     // Ignore
   }
 
+  try {
+    await db.run(sql`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id TEXT PRIMARY KEY NOT NULL,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        author_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+        issue_id TEXT REFERENCES issues(key) ON DELETE CASCADE,
+        title TEXT,
+        message TEXT NOT NULL,
+        link_url TEXT,
+        read INTEGER DEFAULT 0 NOT NULL,
+        created_at TEXT NOT NULL
+      )
+    `);
+  } catch {
+    // Ignore
+  }
+
   // 3. Performance Indexes
   const indexes = [
     sql`CREATE INDEX IF NOT EXISTS idx_issues_parent ON issues(parent_issue_id)`,
@@ -126,6 +146,7 @@ export async function ensureEnterpriseSchema(dbInstance?: ReturnType<typeof getD
     sql`CREATE INDEX IF NOT EXISTS idx_workflow_project ON project_workflow_statuses(project_id)`,
     sql`CREATE INDEX IF NOT EXISTS idx_transition_rules_project ON workflow_transition_rules(project_id)`,
     sql`CREATE INDEX IF NOT EXISTS idx_git_links_issue ON issue_git_links(issue_id)`,
+    sql`CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, read)`,
   ];
 
   for (const idxSql of indexes) {

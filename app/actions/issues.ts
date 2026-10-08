@@ -413,57 +413,8 @@ export async function deleteIssue(issueKey: string) {
 }
 
 export async function addComment(issueKey: string, body: string) {
-  try {
-    const currentUser = await requireRole(['Admin', 'Member']);
-    if (!body.trim()) return { success: false, error: 'Comment body cannot be empty' };
-
-    const db = getDb();
-    const commentId = `c-${Date.now()}`;
-
-    await db.insert(comments).values({
-      id: commentId,
-      issueKey,
-      authorId: currentUser.id,
-      body: body.trim(),
-    });
-
-    // @mention parsing -> notifications
-    const tokens = Array.from(body.matchAll(/@([\w.-]+)/g)).map((m) => m[1].toLowerCase().replace(/[.-]+$/, ''));
-    if (tokens.length > 0) {
-      const allUsers = await db.select().from(users);
-      const mentioned = new Map<string, string>();
-      for (const u of allUsers) {
-        if (u.id === currentUser.id) continue;
-        const full = u.name.toLowerCase().replace(/\s+/g, '');
-        const dotted = u.name.toLowerCase().replace(/\s+/g, '.');
-        const first = u.name.toLowerCase().split(/\s+/)[0];
-        const emailLocal = u.email.toLowerCase().split('@')[0];
-        if (tokens.some((t) => t === full || t === dotted || t === first || t === emailLocal)) {
-          mentioned.set(u.id, u.name);
-        }
-      }
-      if (mentioned.size > 0) {
-        const now = new Date().toISOString();
-        await db.insert(notifications).values(
-          Array.from(mentioned.keys()).map((userId) => ({
-            id: `n-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-            userId,
-            authorId: currentUser.id,
-            issueId: issueKey,
-            message: `${currentUser.name} mentioned you in ${issueKey}: "${body.trim().slice(0, 100)}"`,
-            read: false,
-            createdAt: now,
-          }))
-        );
-      }
-    }
-
-    revalidatePath('/');
-    return { success: true, message: 'Comment saved' };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Failed to add comment';
-    return { success: false, error: message };
-  }
+  const { addCommentAction } = await import('@/app/actions/comments');
+  return addCommentAction(issueKey, body);
 }
 
 /* ---------------------------- Flags ---------------------------- */

@@ -115,6 +115,36 @@ export function Workspace({
     return () => clearInterval(interval);
   }, [router]);
 
+  // Synchronize issue detail drawer with URL param (?issue=APEX-XXX)
+  useEffect(() => {
+    const syncIssueFromUrl = () => {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const issueParam = params.get('issue');
+        if (issueParam && issueParam !== selectedIssueKey) {
+          setSelectedIssueKey(issueParam);
+        }
+      }
+    };
+
+    syncIssueFromUrl();
+    window.addEventListener('popstate', syncIssueFromUrl);
+    return () => window.removeEventListener('popstate', syncIssueFromUrl);
+  }, [selectedIssueKey]);
+
+  const handleSelectIssue = (key: string | null) => {
+    setSelectedIssueKey(key);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (key) {
+        url.searchParams.set('issue', key);
+      } else {
+        url.searchParams.delete('issue');
+      }
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
+
   // Optimistic UI updates for issues drag-and-drop
   const [optimisticIssues, setOptimisticIssues] = useOptimistic(
     initialIssues,
@@ -538,7 +568,7 @@ export function Workspace({
             setIsCreateDocOpen(true);
           }}
           onOpenProfileModal={() => setIsProfileModalOpen(true)}
-          onSelectIssue={(key) => setSelectedIssueKey(key)}
+          onSelectIssue={(key) => handleSelectIssue(key)}
         />
 
         {/* Secondary Compound Filter Bar - Only visible on board & backlog views */}
@@ -560,7 +590,7 @@ export function Workspace({
               issues={filteredIssues}
               users={initialUsers}
               swimlanes={activeSwimlanes}
-              onSelectIssue={(key) => setSelectedIssueKey(key)}
+              onSelectIssue={(key) => handleSelectIssue(key)}
               onStatusChange={handleUpdateIssueStatus}
               onCreateSwimlane={handleCreateSwimlane}
               onUpdateSwimlane={handleUpdateSwimlane}
@@ -576,7 +606,7 @@ export function Workspace({
               users={initialUsers}
               sprints={optimisticSprints}
               swimlanes={activeSwimlanes}
-              onSelectIssue={(key) => setSelectedIssueKey(key)}
+              onSelectIssue={(key) => handleSelectIssue(key)}
               onStatusChange={handleUpdateIssueStatus}
               onCreateIssue={() => setIsCreateIssueOpen(true)}
               onUpdateSprint={handleUpdateSprint}
@@ -642,9 +672,9 @@ export function Workspace({
           swimlanes={activeSwimlanes}
           allIssues={optimisticIssues}
           sprints={optimisticSprints}
-          onNavigateIssue={(key) => setSelectedIssueKey(key)}
+          onNavigateIssue={(key) => handleSelectIssue(key)}
           isViewer={isViewer}
-          onClose={() => setSelectedIssueKey(null)}
+          onClose={() => handleSelectIssue(null)}
           onStatusChange={(status) => handleUpdateIssueStatus(selectedIssue.key, status)}
           onDelete={() => handleDeleteIssue(selectedIssue.key)}
           onUpdateIssue={handleUpdateIssue}

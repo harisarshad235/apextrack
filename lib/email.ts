@@ -235,3 +235,189 @@ https://apex.harisarshad.site`;
 
   return sendEmail({ to: ADMIN_NOTIFICATION_EMAIL, subject, html, text });
 }
+
+/**
+ * Sends an email notification when a team member is mentioned in an issue comment.
+ */
+export async function sendMentionNotificationEmail({
+  to,
+  recipientName,
+  actorName,
+  issueKey,
+  issueTitle,
+  commentSnippet,
+  issueUrl,
+}: {
+  to: string;
+  recipientName: string;
+  actorName: string;
+  issueKey: string;
+  issueTitle: string;
+  commentSnippet: string;
+  issueUrl: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const subject = `[ApexTrack] ${actorName} mentioned you on ${issueKey}`;
+
+  const text = `ApexTrack Notification
+
+Hello ${recipientName || 'there'},
+
+${actorName} tagged you in a comment on ${issueKey}: ${issueTitle}
+
+"${commentSnippet}"
+
+Open Issue in ApexTrack:
+${issueUrl}
+
+---
+You received this email because you were mentioned on ApexTrack.
+ApexTrack Agile & Issue Tracking Platform`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>${subject}</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0b0f19;
+      color: #e2e8f0;
+      margin: 0;
+      padding: 32px 16px;
+    }
+    .container {
+      max-width: 540px;
+      margin: 0 auto;
+      background-color: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 14px;
+      padding: 32px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      border-bottom: 1px solid #1f2937;
+      padding-bottom: 16px;
+    }
+    .brand-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.3px;
+    }
+    .brand-badge {
+      font-size: 11px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: #3b82f6;
+      background-color: rgba(59, 130, 246, 0.12);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #f8fafc;
+      margin: 0 0 14px;
+    }
+    .body-lead {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #94a3b8;
+      margin: 0 0 18px;
+    }
+    .body-lead strong {
+      color: #f1f5f9;
+    }
+    .quote-box {
+      background-color: #0d1322;
+      border-left: 3px solid #3b82f6;
+      border-radius: 6px;
+      padding: 16px 18px;
+      margin: 18px 0 24px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #cbd5e1;
+      font-style: italic;
+      word-break: break-word;
+    }
+    .btn-container {
+      margin: 24px 0;
+      text-align: left;
+    }
+    .btn {
+      display: inline-block;
+      background-color: #2563eb;
+      color: #ffffff !important;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      padding: 11px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+    }
+    .fallback {
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.5;
+      word-break: break-all;
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid #1e293b;
+    }
+    .fallback a {
+      color: #3b82f6;
+      text-decoration: underline;
+    }
+    .footer {
+      margin-top: 26px;
+      padding-top: 16px;
+      border-top: 1px solid #1e293b;
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="brand">
+      <div class="brand-title">ApexTrack Notification</div>
+      <span class="brand-badge">${issueKey}</span>
+    </div>
+
+    <p class="body-lead">
+      <strong>${actorName}</strong> tagged you in a comment on <strong>${issueKey}: ${issueTitle}</strong>
+    </p>
+
+    <div class="quote-box">
+      "${commentSnippet}"
+    </div>
+
+    <div class="btn-container">
+      <a href="${issueUrl}" class="btn" target="_blank" rel="noopener noreferrer">Open Issue in ApexTrack</a>
+    </div>
+
+    <div class="fallback">
+      Direct link: <a href="${issueUrl}" target="_blank" rel="noopener noreferrer">${issueUrl}</a>
+    </div>
+
+    <div class="footer">
+      Project &amp; Workspace Reference: ${issueKey}<br>
+      You received this email because you were mentioned on ApexTrack.
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  return sendEmail({ to, subject, html, text });
+}
+
