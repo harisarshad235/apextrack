@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Plus, X, Layers, Clock, Hash, Palette, AlertCircle } from 'lucide-react';
-import { User, IssueType, IssuePriority, Project, Swimlane, FullIssue } from '@/lib/types';
+import { User, IssueType, IssuePriority, Project, Swimlane, FullIssue, Sprint } from '@/lib/types';
 import { createIssue } from '@/app/actions/issues';
 
 interface CreateIssueModalProps {
@@ -12,6 +12,7 @@ interface CreateIssueModalProps {
   activeProjectId?: string;
   swimlanes?: Swimlane[];
   issues?: FullIssue[];
+  sprints?: Sprint[];
   onClose: () => void;
   onCreate: (newIssueData: Parameters<typeof createIssue>[0]) => void;
 }
@@ -34,6 +35,7 @@ export function CreateIssueModal({
   activeProjectId,
   swimlanes = [],
   issues = [],
+  sprints = [],
   onClose,
   onCreate,
 }: CreateIssueModalProps) {
@@ -48,10 +50,35 @@ export function CreateIssueModal({
   const [remainingEstimateHours, setRemainingEstimateHours] = useState<number | ''>('');
   const [parentIssueId, setParentIssueId] = useState<string>('');
   const [epicColor, setEpicColor] = useState<string>('#3B82F6');
-  const [sprintId, setSprintId] = useState<string>('s24');
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Filter sprints for selected project or active project
+  const availableSprints = React.useMemo(() => {
+    return (sprints || []).filter(
+      (s) => !projectId || !(s as any).projectId || (s as any).projectId === projectId
+    );
+  }, [sprints, projectId]);
+
+  // Find active sprint to pre-select, or upcoming, or Backlog
+  const defaultSprint = React.useMemo(() => {
+    const active = availableSprints.find(
+      (s) => ((s as any).status || s.state || '').toUpperCase() === 'ACTIVE'
+    );
+    if (active) return active.id;
+    const upcoming = availableSprints.find(
+      (s) => ((s as any).status || s.state || '').toUpperCase() !== 'CLOSED'
+    );
+    return upcoming ? upcoming.id : 'Backlog';
+  }, [availableSprints]);
+
+  const [sprintId, setSprintId] = useState<string>(defaultSprint);
+
+  React.useEffect(() => {
+    setSprintId(defaultSprint);
+  }, [defaultSprint]);
+
   const [labels, setLabels] = useState('Feature, Frontend');
   const [description, setDescription] = useState('');
-  const [validationError, setValidationError] = useState<string | null>(null);
 
   // Available epics for Stories/Tasks/Bugs
   const epics = issues.filter(
@@ -317,8 +344,20 @@ export function CreateIssueModal({
                 onChange={(e) => setSprintId(e.target.value)}
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2 focus:outline-none focus:border-blue-500 text-slate-900 dark:text-white"
               >
-                <option value="s24">Sprint 24 (Active)</option>
-                <option value="s25">Sprint 25 (Upcoming)</option>
+                {availableSprints.map((s) => {
+                  const stateStr = ((s as any).status || s.state || '').toUpperCase();
+                  const stateLabel =
+                    stateStr === 'ACTIVE'
+                      ? 'Active'
+                      : stateStr === 'CLOSED'
+                      ? 'Closed'
+                      : 'Upcoming';
+                  return (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({stateLabel})
+                    </option>
+                  );
+                })}
                 <option value="Backlog">Product Backlog</option>
               </select>
             </div>

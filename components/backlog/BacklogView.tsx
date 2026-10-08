@@ -40,27 +40,6 @@ interface BacklogViewProps {
   isViewer: boolean;
 }
 
-const DEFAULT_SPRINTS: Sprint[] = [
-  {
-    id: 's24',
-    name: 'Sprint 24',
-    state: 'active',
-    goal: 'Edge data layer + RBAC',
-    startDate: '2026-10-01',
-    endDate: '2026-10-15',
-    createdAt: new Date(),
-  },
-  {
-    id: 's25',
-    name: 'Sprint 25',
-    state: 'upcoming',
-    goal: 'Identity hardening',
-    startDate: '2026-10-16',
-    endDate: '2026-10-30',
-    createdAt: new Date(),
-  },
-];
-
 function formatDateDisplay(dateStr?: string | null | number | Date): string {
   if (!dateStr) return '';
   if (typeof dateStr === 'number') {
@@ -83,7 +62,7 @@ function formatDateDisplay(dateStr?: string | null | number | Date): string {
 
 export function BacklogView({
   issues: initialIssues,
-  sprints,
+  sprints = [],
   swimlanes = [],
   onSelectIssue,
   onStatusChange,
@@ -92,9 +71,7 @@ export function BacklogView({
   isViewer,
 }: BacklogViewProps) {
   const [localIssues, setLocalIssues] = useState<FullIssue[]>(initialIssues);
-  const [localSprints, setLocalSprints] = useState<Sprint[]>(
-    sprints && sprints.length > 0 ? sprints : DEFAULT_SPRINTS
-  );
+  const [localSprints, setLocalSprints] = useState<Sprint[]>(sprints || []);
 
   // Sync if parent props change
   React.useEffect(() => {
@@ -102,7 +79,7 @@ export function BacklogView({
   }, [initialIssues]);
 
   React.useEffect(() => {
-    if (sprints && sprints.length > 0) {
+    if (sprints) {
       setLocalSprints(sprints);
     }
   }, [sprints]);

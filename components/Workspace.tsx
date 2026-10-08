@@ -641,6 +641,7 @@ export function Workspace({
           currentUser={currentUser}
           swimlanes={activeSwimlanes}
           allIssues={optimisticIssues}
+          sprints={optimisticSprints}
           onNavigateIssue={(key) => setSelectedIssueKey(key)}
           isViewer={isViewer}
           onClose={() => setSelectedIssueKey(null)}
@@ -662,6 +663,7 @@ export function Workspace({
           activeProjectId={activeProjectId}
           swimlanes={activeSwimlanes}
           issues={optimisticIssues}
+          sprints={optimisticSprints}
           onClose={() => setIsCreateIssueOpen(false)}
           onCreate={handleCreateIssue}
         />

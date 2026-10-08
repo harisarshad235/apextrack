@@ -39,6 +39,7 @@ import {
   EnterpriseLinkType,
   IssueGitLink,
   IssueAuditLog,
+  Sprint,
 } from '@/lib/types';
 import { getTypeConfig, getPriorityConfig } from '@/lib/config';
 import { UserAvatar } from '@/components/ui/UserAvatar';
@@ -71,6 +72,7 @@ interface IssueDetailDrawerProps {
   currentUser: User;
   swimlanes?: Swimlane[];
   allIssues?: FullIssue[];
+  sprints?: Sprint[];
   onNavigateIssue?: (issueKey: string) => void;
   isViewer: boolean;
   onClose: () => void;
@@ -100,6 +102,7 @@ export function IssueDetailDrawer({
   currentUser,
   swimlanes = [],
   allIssues = [],
+  sprints = [],
   onNavigateIssue,
   isViewer,
   onClose,
@@ -341,6 +344,13 @@ export function IssueDetailDrawer({
     }
     return null;
   }, [issue.parent, issue.parentIssueId, allIssues]);
+
+  // Dynamic Sprints for this issue's project
+  const availableSprints = useMemo(() => {
+    return (sprints || []).filter(
+      (s) => !issue.projectId || !(s as any).projectId || (s as any).projectId === issue.projectId
+    );
+  }, [sprints, issue.projectId]);
 
   // Blockers analysis
   const unresolvedBlockers = useMemo(() => {
@@ -1472,6 +1482,37 @@ export function IssueDetailDrawer({
                     {p}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            {/* Sprint Assignment */}
+            <div className="bg-[#111723] rounded-xl border border-[#263348] p-3.5 space-y-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Sprint</span>
+              <select
+                value={issue.sprintId || 'Backlog'}
+                onChange={(e) =>
+                  onUpdateIssue({
+                    sprintId: e.target.value === 'Backlog' ? null : e.target.value,
+                  })
+                }
+                disabled={isViewer}
+                className="w-full bg-[#0c121e] border border-[#263348] rounded-lg p-2 text-xs text-white focus:outline-none"
+              >
+                {availableSprints.map((s) => {
+                  const stateStr = ((s as any).status || s.state || '').toUpperCase();
+                  const stateLabel =
+                    stateStr === 'ACTIVE'
+                      ? 'Active'
+                      : stateStr === 'CLOSED'
+                      ? 'Closed'
+                      : 'Upcoming';
+                  return (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({stateLabel})
+                    </option>
+                  );
+                })}
+                <option value="Backlog">Product Backlog (Unassigned)</option>
               </select>
             </div>
 
