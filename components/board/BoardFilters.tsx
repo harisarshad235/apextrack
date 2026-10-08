@@ -125,6 +125,31 @@ export function BoardFilters({
 }: BoardFiltersProps) {
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
   const [priorityDropdownOpen, setPriorityDropdownOpen] = useState(false);
+  const typeDropdownRef = React.useRef<HTMLDivElement>(null);
+  const priorityDropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (typeDropdownRef.current && !typeDropdownRef.current.contains(event.target as Node)) {
+        setTypeDropdownOpen(false);
+      }
+      if (priorityDropdownRef.current && !priorityDropdownRef.current.contains(event.target as Node)) {
+        setPriorityDropdownOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setTypeDropdownOpen(false);
+        setPriorityDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   const epics = allIssues.filter(
     (i) => (i.issueType || i.type || '').toUpperCase() === 'EPIC'
@@ -158,6 +183,8 @@ export function BoardFilters({
     (filters.isJqlMode && Boolean(filters.jqlQuery.trim()));
 
   const handleReset = () => {
+    setTypeDropdownOpen(false);
+    setPriorityDropdownOpen(false);
     onChangeFilters({
       selectedTypes: [],
       selectedPriorities: [],
@@ -178,7 +205,11 @@ export function BoardFilters({
 
         {/* JQL-lite Mode Toggle */}
         <button
-          onClick={() => onChangeFilters({ ...filters, isJqlMode: !filters.isJqlMode })}
+          onClick={() => {
+            setTypeDropdownOpen(false);
+            setPriorityDropdownOpen(false);
+            onChangeFilters({ ...filters, isJqlMode: !filters.isJqlMode });
+          }}
           className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-mono text-xs font-semibold transition flex-shrink-0 ${
             filters.isJqlMode
               ? 'bg-blue-600 text-white border-blue-500 shadow-sm'
@@ -230,32 +261,54 @@ export function BoardFilters({
             </button>
 
             {/* Type Multi-select Dropdown */}
-            <div className="relative">
+            <div ref={typeDropdownRef} className="relative">
               <button
-                onClick={() => setTypeDropdownOpen(!typeDropdownOpen)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold ${
-                  filters.selectedTypes.length > 0
-                    ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
+                type="button"
+                onClick={() => {
+                  setPriorityDropdownOpen(false);
+                  setTypeDropdownOpen(!typeDropdownOpen);
+                }}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition ${
+                  filters.selectedTypes.length > 0 || typeDropdownOpen
+                    ? 'bg-blue-500/15 text-blue-400 border-blue-500/40 ring-1 ring-blue-500/20'
                     : 'bg-[#151c28] text-slate-300 border-[#263348] hover:border-slate-600'
                 }`}
               >
                 <span>
                   Type {filters.selectedTypes.length > 0 ? `(${filters.selectedTypes.length})` : ''}
                 </span>
-                <ChevronDown className="w-3 h-3 text-slate-400" />
+                <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${typeDropdownOpen ? 'rotate-180 text-blue-400' : ''}`} />
               </button>
 
               {typeDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1 z-30 w-40 bg-[#151c28] border border-[#263348] rounded-xl p-2 shadow-xl space-y-1">
+                <div className="absolute top-full left-0 mt-1.5 z-50 min-w-[170px] bg-[#111723] border border-[#263348] rounded-xl p-2 shadow-2xl space-y-0.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-[#263348]/60 flex items-center justify-between mb-1">
+                    <span>Issue Types</span>
+                    {filters.selectedTypes.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onChangeFilters({ ...filters, selectedTypes: [] });
+                        }}
+                        className="text-[10px] text-blue-400 hover:underline lowercase"
+                      >
+                        clear
+                      </button>
+                    )}
+                  </div>
                   {allTypes.map((t) => (
-                    <label key={t} className="flex items-center gap-2 p-1.5 hover:bg-slate-800 rounded cursor-pointer text-slate-300">
+                    <label
+                      key={t}
+                      className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800/80 rounded-lg cursor-pointer text-slate-200 transition select-none"
+                    >
                       <input
                         type="checkbox"
                         checked={filters.selectedTypes.includes(t)}
                         onChange={() => toggleType(t)}
-                        className="rounded border-slate-700 bg-slate-900 text-blue-600"
+                        className="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                       />
-                      <span>{t}</span>
+                      <span className="whitespace-nowrap font-medium text-xs">{t}</span>
                     </label>
                   ))}
                 </div>
@@ -263,32 +316,54 @@ export function BoardFilters({
             </div>
 
             {/* Priority Multi-select Dropdown */}
-            <div className="relative">
+            <div ref={priorityDropdownRef} className="relative">
               <button
-                onClick={() => setPriorityDropdownOpen(!priorityDropdownOpen)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold ${
-                  filters.selectedPriorities.length > 0
-                    ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
+                type="button"
+                onClick={() => {
+                  setTypeDropdownOpen(false);
+                  setPriorityDropdownOpen(!priorityDropdownOpen);
+                }}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition ${
+                  filters.selectedPriorities.length > 0 || priorityDropdownOpen
+                    ? 'bg-blue-500/15 text-blue-400 border-blue-500/40 ring-1 ring-blue-500/20'
                     : 'bg-[#151c28] text-slate-300 border-[#263348] hover:border-slate-600'
                 }`}
               >
                 <span>
                   Priority {filters.selectedPriorities.length > 0 ? `(${filters.selectedPriorities.length})` : ''}
                 </span>
-                <ChevronDown className="w-3 h-3 text-slate-400" />
+                <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${priorityDropdownOpen ? 'rotate-180 text-blue-400' : ''}`} />
               </button>
 
               {priorityDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1 z-30 w-40 bg-[#151c28] border border-[#263348] rounded-xl p-2 shadow-xl space-y-1">
+                <div className="absolute top-full left-0 mt-1.5 z-50 min-w-[170px] bg-[#111723] border border-[#263348] rounded-xl p-2 shadow-2xl space-y-0.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-[#263348]/60 flex items-center justify-between mb-1">
+                    <span>Priority Levels</span>
+                    {filters.selectedPriorities.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onChangeFilters({ ...filters, selectedPriorities: [] });
+                        }}
+                        className="text-[10px] text-blue-400 hover:underline lowercase"
+                      >
+                        clear
+                      </button>
+                    )}
+                  </div>
                   {allPriorities.map((p) => (
-                    <label key={p} className="flex items-center gap-2 p-1.5 hover:bg-slate-800 rounded cursor-pointer text-slate-300">
+                    <label
+                      key={p}
+                      className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800/80 rounded-lg cursor-pointer text-slate-200 transition select-none"
+                    >
                       <input
                         type="checkbox"
                         checked={filters.selectedPriorities.includes(p)}
                         onChange={() => togglePriority(p)}
-                        className="rounded border-slate-700 bg-slate-900 text-blue-600"
+                        className="w-3.5 h-3.5 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                       />
-                      <span>{p}</span>
+                      <span className="whitespace-nowrap font-medium text-xs">{p}</span>
                     </label>
                   ))}
                 </div>

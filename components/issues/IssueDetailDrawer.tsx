@@ -24,6 +24,7 @@ import {
   Eye,
   CornerDownRight,
   ShieldAlert,
+  AtSign,
 } from 'lucide-react';
 import {
   FullIssue,
@@ -110,6 +111,166 @@ export function IssueDetailDrawer({
 }: IssueDetailDrawerProps) {
   const [activeTab, setActiveTab] = useState<'comments' | 'history' | 'worklog'>('comments');
   const [commentText, setCommentText] = useState('');
+  const [showMentionList, setShowMentionList] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionStartIndex, setMentionStartIndex] = useState<number>(-1);
+  const [selectedMentionIdx, setSelectedMentionIdx] = useState(0);
+  const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const mentionDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close mention list on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        mentionDropdownRef.current &&
+        !mentionDropdownRef.current.contains(event.target as Node) &&
+        commentTextareaRef.current &&
+        !commentTextareaRef.current.contains(event.target as Node)
+      ) {
+        setShowMentionList(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredMentionUsers = useMemo(() => {
+    const q = mentionQuery.toLowerCase();
+    return users
+      .filter((u) => {
+        if (!q) return true;
+        const nameMatch = u.name.toLowerCase().includes(q);
+        const emailMatch = u.email.toLowerCase().includes(q);
+        const handle = (u.email ? u.email.split('@')[0] : u.name.replace(/\s+/g, '')).toLowerCase();
+        return nameMatch || emailMatch || handle.includes(q);
+      })
+      .slice(0, 8);
+  }, [users, mentionQuery]);
+
+  const detectedMentions = useMemo(() => {
+    const matches = Array.from(commentText.matchAll(/@([a-zA-Z0-9_.-]+)/g)).map((m) => m[1]);
+    return Array.from(new Set(matches));
+  }, [commentText]);
+
+  const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    const cursorPos = e.target.selectionStart;
+    setCommentText(val);
+
+    const textBeforeCursor = val.slice(0, cursorPos);
+    const atMatch = textBeforeCursor.match(/@([a-zA-Z0-9_.-]*)$/);
+
+    if (atMatch) {
+      setShowMentionList(true);
+      setMentionQuery(atMatch[1]);
+      setMentionStartIndex(cursorPos - atMatch[0].length);
+      setSelectedMentionIdx(0);
+    } else {
+      setShowMentionList(false);
+    }
+  };
+
+  const handleSelectUserMention = (user: User) => {
+    const handle = user.email ? user.email.split('@')[0] : user.name.replace(/\s+/g, '');
+    const before = commentText.slice(0, mentionStartIndex);
+    const textAfterMention = commentText.slice(mentionStartIndex);
+    const after = textAfterMention.replace(/^@[a-zA-Z0-9_.-]*/, '');
+    const newText = `${before}@${handle} ${after}`;
+
+    setCommentText(newText);
+    setShowMentionList(false);
+
+    setTimeout(() => {
+      if (commentTextareaRef.current) {
+        commentTextareaRef.current.focus();
+        const newPos = before.length + handle.length + 2;
+        commentTextareaRef.current.setSelectionRange(newPos, newPos);
+      }
+    }, 10);
+  };
+
+  const handleCommentKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!showMentionList || filteredMentionUsers.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedMentionIdx((prev) => (prev + 1) % filteredMentionUsers.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedMentionIdx((prev) => (prev - 1 + filteredMentionUsers.length) % filteredMentionUsers.length);
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      const targetUser = filteredMentionUsers[selectedMentionIdx];
+      if (targetUser) {
+        handleSelectUserMention(targetUser);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setShowMentionList(false);
+    }
+  };
+
+  const triggerMention = () => {
+    if (commentTextareaRef.current) {
+      commentTextareaRef.current.focus();
+      const pos = commentTextareaRef.current.selectionStart || commentText.length;
+      const before = commentText.slice(0, pos);
+      const after = commentText.slice(pos);
+      const prefix = before.endsWith(' ') || before.length === 0 ? '' : ' ';
+      const newText = `${before}${prefix}@${after}`;
+      setCommentText(newText);
+      setMentionStartIndex((before + prefix).length);
+      setMentionQuery('');
+      setShowMentionList(true);
+      setSelectedMentionIdx(0);
+      setTimeout(() => {
+        if (commentTextareaRef.current) {
+          const nextPos = (before + prefix).length + 1;
+          commentTextareaRef.current.setSelectionRange(nextPos, nextPos);
+        }
+      }, 10);
+    }
+  };
+
+  const renderCommentBody = (body: string) => {
+    // Turn @handle into [@handle](#mention:handle) for ReactMarkdown
+    const formatted = body.replace(/@([a-zA-Z0-9_.-]+)/g, '[@$1](#mention:$1)');
+
+    return (
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          a: ({ href, children, ...props }) => {
+            if (href?.startsWith('#mention:')) {
+              const handle = href.replace('#mention:', '');
+              const matchedUser = users.find(
+                (u) =>
+                  u.email?.split('@')[0]?.toLowerCase() === handle.toLowerCase() ||
+                  u.name?.toLowerCase().replace(/\s+/g, '') === handle.toLowerCase() ||
+                  u.name?.toLowerCase().split(' ')[0] === handle.toLowerCase()
+              );
+              return (
+                <span
+                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 mx-0.5 rounded-md bg-blue-500/20 text-blue-300 border border-blue-500/40 font-semibold text-xs transition hover:bg-blue-500/30 cursor-default"
+                  title={matchedUser ? `${matchedUser.name} (${matchedUser.email})` : `@${handle}`}
+                >
+                  <span className="text-blue-400 font-bold">@</span>
+                  <span>{matchedUser ? matchedUser.name : handle}</span>
+                </span>
+              );
+            }
+            return (
+              <a href={href} className="text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer" {...props}>
+                {children}
+              </a>
+            );
+          },
+        }}
+      >
+        {formatted}
+      </ReactMarkdown>
+    );
+  };
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState(issue.title);
   const [descInput, setDescInput] = useState(issue.description || '');
@@ -938,23 +1099,110 @@ export function IssueDetailDrawer({
                   {/* Add comment box */}
                   {!isViewer && (
                     <div className="space-y-2">
-                      <textarea
-                        value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                        placeholder="Add a comment... (Supports Markdown and @mentions)"
-                        rows={3}
-                        className="w-full bg-[#090d16] border border-[#263348] rounded-lg p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                      />
-                      <div className="flex justify-end">
+                      <div className="relative">
+                        <textarea
+                          ref={commentTextareaRef}
+                          value={commentText}
+                          onChange={handleCommentChange}
+                          onKeyDown={handleCommentKeyDown}
+                          placeholder="Add a comment... (Type @ to tag a user, Markdown supported)"
+                          rows={3}
+                          className="w-full bg-[#090d16] border border-[#263348] rounded-lg p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 leading-relaxed font-sans"
+                        />
+
+                        {/* User Mention Autocomplete Popup */}
+                        {showMentionList && filteredMentionUsers.length > 0 && (
+                          <div
+                            ref={mentionDropdownRef}
+                            className="absolute left-2 bottom-full mb-1.5 z-50 w-72 max-h-56 overflow-y-auto bg-[#151c28] border border-[#263348] rounded-xl shadow-2xl p-1.5 space-y-0.5 animate-in fade-in slide-in-from-bottom-1 duration-150"
+                          >
+                            <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-[#263348]/60 flex items-center justify-between mb-1">
+                              <span className="flex items-center gap-1 text-blue-400">
+                                <AtSign className="w-3 h-3" /> Mention User
+                              </span>
+                              <span className="text-[9px] font-normal text-slate-500">↑↓ navigate • ↵ tag</span>
+                            </div>
+                            {filteredMentionUsers.map((u, idx) => {
+                              const handle = u.email ? u.email.split('@')[0] : u.name.replace(/\s+/g, '');
+                              const isSelected = idx === selectedMentionIdx;
+                              return (
+                                <button
+                                  key={u.id}
+                                  type="button"
+                                  onClick={() => handleSelectUserMention(u)}
+                                  onMouseEnter={() => setSelectedMentionIdx(idx)}
+                                  className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-left text-xs transition cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-blue-600 text-white'
+                                      : 'hover:bg-slate-800 text-slate-200'
+                                  }`}
+                                >
+                                  <UserAvatar user={u} size="xs" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-semibold truncate leading-tight">{u.name}</p>
+                                    <p className={`text-[10px] truncate ${isSelected ? 'text-blue-100' : 'text-slate-400'}`}>
+                                      @{handle}
+                                    </p>
+                                  </div>
+                                  <span
+                                    className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+                                      isSelected ? 'bg-blue-700 text-white' : 'bg-slate-800 text-slate-400'
+                                    }`}
+                                  >
+                                    {u.role}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={triggerMention}
+                            className="flex items-center gap-1 px-2 py-1 rounded bg-[#151c28] hover:bg-slate-800 border border-[#263348] text-xs text-blue-400 hover:text-blue-300 font-medium transition cursor-pointer"
+                            title="Tag a team member"
+                          >
+                            <AtSign className="w-3 h-3" /> Tag User
+                          </button>
+
+                          {detectedMentions.length > 0 && (
+                            <div className="flex items-center gap-1.5 text-[11px] text-slate-400 flex-wrap">
+                              <span className="text-slate-500">Mentioning:</span>
+                              {detectedMentions.map((handle) => {
+                                const u = users.find(
+                                  (x) =>
+                                    x.email?.split('@')[0]?.toLowerCase() === handle.toLowerCase() ||
+                                    x.name?.toLowerCase().replace(/\s+/g, '') === handle.toLowerCase() ||
+                                    x.name?.toLowerCase().split(' ')[0] === handle.toLowerCase()
+                                );
+                                return (
+                                  <span
+                                    key={handle}
+                                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[11px] font-semibold"
+                                  >
+                                    <span className="text-blue-400 font-bold">@</span>
+                                    <span>{u ? u.name : handle}</span>
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
                         <button
                           onClick={() => {
                             if (!commentText.trim()) return;
                             onAddComment(commentText.trim());
                             setCommentText('');
+                            setShowMentionList(false);
                             showToast('Comment posted');
                           }}
                           disabled={!commentText.trim()}
-                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition"
+                          className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition shadow-sm cursor-pointer"
                         >
                           Post Comment
                         </button>
@@ -978,7 +1226,7 @@ export function IssueDetailDrawer({
                             </span>
                           </div>
                           <div className="prose prose-invert prose-xs text-slate-300">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{c.body}</ReactMarkdown>
+                            {renderCommentBody(c.body)}
                           </div>
                         </div>
                       ))
