@@ -66,6 +66,7 @@ export function KanbanBoardView({
   onNavigateToBacklog,
 }: KanbanBoardProps) {
   const [draggedIssueId, setDraggedIssueId] = useState<string | null>(null);
+  const [dropErrorToast, setDropErrorToast] = useState<string | null>(null);
   const [onlyMine, setOnlyMine] = useState(false);
   const [onlyFlagged, setOnlyFlagged] = useState(false);
   const [recentFirst, setRecentFirst] = useState(false);
@@ -208,6 +209,30 @@ export function KanbanBoardView({
     e.preventDefault();
     const issueId = e.dataTransfer.getData('text/plain') || draggedIssueId;
     if (issueId) {
+      const draggedIssue = issues.find((i) => i.key === issueId);
+      if (draggedIssue) {
+        const isTargetDone = columnStatus.toLowerCase() === 'done';
+        if (isTargetDone) {
+          const openSubtasks = (draggedIssue.subtasks || []).filter((s) => !s.completed);
+          if (openSubtasks.length > 0) {
+            setDropErrorToast('Cannot move to Done: all subtasks must be resolved first.');
+            setTimeout(() => setDropErrorToast(null), 4000);
+            setDraggedIssueId(null);
+            return;
+          }
+          const unresolvedBlockers = (draggedIssue.blockedByIssues || []).filter(
+            (b) => b.status.toLowerCase() !== 'done'
+          );
+          if (unresolvedBlockers.length > 0) {
+            setDropErrorToast(
+              `Cannot move to Done: issue is blocked by open ticket(s): ${unresolvedBlockers.map((b) => b.key).join(', ')}`
+            );
+            setTimeout(() => setDropErrorToast(null), 4000);
+            setDraggedIssueId(null);
+            return;
+          }
+        }
+      }
       onStatusChange(issueId, columnStatus);
     }
     setDraggedIssueId(null);
@@ -350,6 +375,17 @@ export function KanbanBoardView({
 
   return (
     <div className="flex flex-col h-full space-y-3">
+      {dropErrorToast && (
+        <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/50 text-rose-200 text-xs font-semibold flex items-center justify-between shadow-lg animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+            <span>{dropErrorToast}</span>
+          </div>
+          <button onClick={() => setDropErrorToast(null)} className="text-slate-400 hover:text-white p-0.5">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
       {/* Quick Filter Bar (Single Horizontal Scrolling Row) */}
       <div className="flex items-center justify-between gap-3 flex-shrink-0">
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none whitespace-nowrap w-full">
@@ -627,7 +663,7 @@ export function KanbanBoardView({
                     >
                       {/* Top Row: Type, Key, Priority & Edit Action */}
                       <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className={`p-1 rounded border ${typeCfg.color}`}>
                             <TypeIcon className="w-3.5 h-3.5" />
                           </span>
@@ -640,6 +676,14 @@ export function KanbanBoardView({
                               title="Flagged impediment"
                             >
                               <Flag className="w-3 h-3" />
+                            </span>
+                          )}
+                          {issue.blockedByIssues && issue.blockedByIssues.some((b) => b.status.toLowerCase() !== 'done') && (
+                            <span
+                              className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                              title="Blocked by unresolved dependencies"
+                            >
+                              Blocked
                             </span>
                           )}
                         </div>
@@ -661,6 +705,22 @@ export function KanbanBoardView({
                           </button>
                         </div>
                       </div>
+
+                      {/* Parent Epic Tag */}
+                      {issue.parent && (
+                        <div className="mb-1.5">
+                          <span
+                            className="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold tracking-tight"
+                            style={{
+                              backgroundColor: `${issue.parent.epicColor || '#3B82F6'}15`,
+                              color: issue.parent.epicColor || '#3B82F6',
+                              border: `1px solid ${issue.parent.epicColor || '#3B82F6'}30`,
+                            }}
+                          >
+                            {issue.parent.key}
+                          </span>
+                        </div>
+                      )}
 
                       {/* Title */}
                       <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug mb-2.5">

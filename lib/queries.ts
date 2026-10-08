@@ -14,7 +14,11 @@ import {
   swimlanes,
   subtasks,
   issueLinks,
+  issueAuditLogs,
+  issueGitLinks,
+  issueComments,
 } from '@/db/schema';
+import { ensureEnterpriseSchema } from './schemaInit';
 import { FullIssue, FullDocument, WorkspaceMetrics, User, Sprint, Project, Swimlane } from './types';
 import { desc, asc } from 'drizzle-orm';
 
@@ -28,6 +32,7 @@ export async function getWorkspaceData(): Promise<{
   metrics: WorkspaceMetrics;
 }> {
   const db = getDb();
+  await ensureEnterpriseSchema(db);
 
   // 1. Fetch Users
   const userList = await db.select().from(users);
@@ -68,7 +73,28 @@ export async function getWorkspaceData(): Promise<{
 
   // Fetch related records for issues
   const rawComments = await db.select().from(comments).orderBy(desc(comments.createdAt));
+  let rawIssueComments: (typeof issueComments.$inferSelect)[] = [];
+  try {
+    rawIssueComments = await db.select().from(issueComments).orderBy(desc(issueComments.createdAt));
+  } catch {
+    // Ignore if not yet populated
+  }
+
   const rawHistory = await db.select().from(issueHistory).orderBy(desc(issueHistory.createdAt));
+  let rawAuditLogs: (typeof issueAuditLogs.$inferSelect)[] = [];
+  try {
+    rawAuditLogs = await db.select().from(issueAuditLogs).orderBy(desc(issueAuditLogs.createdAt));
+  } catch {
+    // Ignore
+  }
+
+  let rawGitLinks: (typeof issueGitLinks.$inferSelect)[] = [];
+  try {
+    rawGitLinks = await db.select().from(issueGitLinks).orderBy(desc(issueGitLinks.createdAt));
+  } catch {
+    // Ignore
+  }
+
   const rawAttachments = await db.select().from(attachments);
   const rawLabels = await db.select().from(labels);
   const rawIssueLabels = await db.select().from(issueLabels);
@@ -79,10 +105,21 @@ export async function getWorkspaceData(): Promise<{
   rawSubtasks.forEach((s) => {
     subtasksByIssue.set(s.issueId, [...(subtasksByIssue.get(s.issueId) || []), s]);
   });
+
   const linksByIssue = new Map<string, (typeof issueLinks.$inferSelect)[]>();
   rawLinks.forEach((l) => {
     linksByIssue.set(l.sourceIssueId, [...(linksByIssue.get(l.sourceIssueId) || []), l]);
     linksByIssue.set(l.targetIssueId, [...(linksByIssue.get(l.targetIssueId) || []), l]);
+  });
+
+  const auditLogsByIssue = new Map<string, (typeof issueAuditLogs.$inferSelect)[]>();
+  rawAuditLogs.forEach((a) => {
+    auditLogsByIssue.set(a.issueId, [...(auditLogsByIssue.get(a.issueId) || []), a]);
+  });
+
+  const gitLinksByIssue = new Map<string, (typeof issueGitLinks.$inferSelect)[]>();
+  rawGitLinks.forEach((g) => {
+    gitLinksByIssue.set(g.issueId, [...(gitLinksByIssue.get(g.issueId) || []), g]);
   });
 
   // Map labels
@@ -106,6 +143,13 @@ export async function getWorkspaceData(): Promise<{
     commentsByIssue.set(c.issueKey, [...existing, { ...c, author }]);
   });
 
+  const customCommentsByIssue = new Map<string, (typeof issueComments.$inferSelect & { author?: User | null })[]>();
+  rawIssueComments.forEach((c) => {
+    const author = c.authorId ? userMap.get(c.authorId) : null;
+    const existing = customCommentsByIssue.get(c.issueId) || [];
+    customCommentsByIssue.set(c.issueId, [...existing, { ...c, author }]);
+  });
+
   // Map history by issue
   const historyByIssue = new Map<string, (typeof issueHistory.$inferSelect)[]>();
   rawHistory.forEach((h) => {
@@ -127,14 +171,20 @@ export async function getWorkspaceData(): Promise<{
     }
   });
 
-  // Build Full Issues
+  // Initial pass to build full issues map
   const defaultProject = projectList[0] || null;
-  const fullIssues: FullIssue[] = rawIssues.map((issue) => {
-    return {
+  const issuesMap = new Map<string, FullIssue>();
+
+  const baseIssues: FullIssue[] = rawIssues.map((issue) => {
+    const full: FullIssue = {
       ...issue,
+      issueType: issue.issueType || (issue.type?.toUpperCase() as any) || 'TASK',
       labels: issueLabelsMap.get(issue.key) || [],
       comments: commentsByIssue.get(issue.key) || [],
+      customComments: customCommentsByIssue.get(issue.key) || [],
       history: historyByIssue.get(issue.key) || [],
+      auditLogs: auditLogsByIssue.get(issue.key) || [],
+      gitLinks: gitLinksByIssue.get(issue.key) || [],
       attachments: issueAttachmentsMap.get(issue.key) || [],
       subtasks: subtasksByIssue.get(issue.key) || [],
       links: linksByIssue.get(issue.key) || [],
@@ -142,6 +192,47 @@ export async function getWorkspaceData(): Promise<{
       reporter: issue.reporterId ? userMap.get(issue.reporterId) : null,
       sprint: issue.sprintId ? sprintMap.get(issue.sprintId) : null,
       project: issue.projectId ? projectMap.get(issue.projectId) : defaultProject,
+    };
+    issuesMap.set(issue.key, full);
+    return full;
+  });
+
+  // Second pass: resolve parent/children and blocked-by relationships
+  const fullIssues: FullIssue[] = baseIssues.map((issue) => {
+    const parent = issue.parentIssueId ? issuesMap.get(issue.parentIssueId) || null : null;
+    const children = baseIssues.filter((i) => i.parentIssueId === issue.key);
+
+    // Blocker relationships
+    const blockedByKeys = (issue.links || [])
+      .filter((l) => {
+        const type = (l.linkType || (l as any).relationType || '').toUpperCase();
+        return (type === 'IS_BLOCKED_BY' && l.sourceIssueId === issue.key) ||
+               (type === 'BLOCKS' && l.targetIssueId === issue.key);
+      })
+      .map((l) => (l.sourceIssueId === issue.key ? l.targetIssueId : l.sourceIssueId));
+
+    const blockingKeys = (issue.links || [])
+      .filter((l) => {
+        const type = (l.linkType || (l as any).relationType || '').toUpperCase();
+        return (type === 'BLOCKS' && l.sourceIssueId === issue.key) ||
+               (type === 'IS_BLOCKED_BY' && l.targetIssueId === issue.key);
+      })
+      .map((l) => (l.sourceIssueId === issue.key ? l.targetIssueId : l.sourceIssueId));
+
+    const blockedByIssues = blockedByKeys
+      .map((k) => issuesMap.get(k))
+      .filter((i): i is FullIssue => Boolean(i));
+
+    const blockingIssues = blockingKeys
+      .map((k) => issuesMap.get(k))
+      .filter((i): i is FullIssue => Boolean(i));
+
+    return {
+      ...issue,
+      parent,
+      children,
+      blockedByIssues,
+      blockingIssues,
     };
   });
 

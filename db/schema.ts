@@ -3,6 +3,7 @@ import {
   sqliteTable,
   text,
   integer,
+  real,
   primaryKey,
   index,
   uniqueIndex,
@@ -14,7 +15,23 @@ import {
 /* ------------------------------------------------------------------ */
 export const USER_ROLES = ['Admin', 'Member', 'Viewer'] as const;
 export const USER_STATUSES = ['PENDING', 'APPROVED', 'SUSPENDED'] as const;
-export const ISSUE_TYPES = ['Story', 'Bug', 'Task', 'Epic'] as const;
+export const ISSUE_TYPES = [
+  'Story', 'Bug', 'Task', 'Epic', 'Subtask',
+  'STORY', 'BUG', 'TASK', 'EPIC', 'SUBTASK'
+] as const;
+export const JIRA_ISSUE_TYPES = ['EPIC', 'STORY', 'TASK', 'BUG', 'SUBTASK'] as const;
+export type JiraIssueType = (typeof JIRA_ISSUE_TYPES)[number];
+
+export const WORKFLOW_CATEGORIES = ['TODO', 'IN_PROGRESS', 'DONE'] as const;
+export type WorkflowCategory = (typeof WORKFLOW_CATEGORIES)[number];
+
+export const ENTERPRISE_LINK_TYPES = ['BLOCKS', 'IS_BLOCKED_BY', 'RELATES_TO', 'DUPLICATES'] as const;
+export type EnterpriseLinkType = (typeof ENTERPRISE_LINK_TYPES)[number];
+
+export const GIT_LINK_PROVIDERS = ['GITHUB', 'GITLAB', 'BITBUCKET'] as const;
+export const GIT_REF_TYPES = ['BRANCH', 'PULL_REQUEST', 'COMMIT'] as const;
+export const GIT_STATUSES = ['OPEN', 'MERGED', 'CLOSED'] as const;
+
 export const ISSUE_PRIORITIES = ['Critical', 'High', 'Medium', 'Low', 'Lowest'] as const;
 export const ISSUE_STATUSES = ['To Do', 'In Progress', 'In Review', 'Done'] as const;
 export const SPRINT_STATES = ['active', 'upcoming', 'closed'] as const;
@@ -128,15 +145,20 @@ export const issues = sqliteTable(
   {
     key: text('key').primaryKey(), // e.g. APEX-101
     projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    parentIssueId: text('parent_issue_id').references((): any => issues.key, { onDelete: 'set null' }),
     title: text('title').notNull(),
     description: text('description').notNull().default(''),
     type: text('type', { enum: ISSUE_TYPES }).notNull().default('Task'),
+    issueType: text('issue_type').notNull().default('TASK'),
+    epicColor: text('epic_color').default('#3B82F6'),
     priority: text('priority', { enum: ISSUE_PRIORITIES }).notNull().default('Medium'),
     status: text('status').notNull().default('To Do'),
     assigneeId: text('assignee_id').references(() => users.id, { onDelete: 'set null' }),
     reporterId: text('reporter_id').references(() => users.id, { onDelete: 'set null' }),
     sprintId: text('sprint_id').references(() => sprints.id, { onDelete: 'set null' }), // null = backlog
-    storyPoints: integer('story_points').notNull().default(0),
+    storyPoints: integer('story_points').default(0),
+    originalEstimateHours: real('original_estimate_hours'),
+    remainingEstimateHours: real('remaining_estimate_hours'),
     dueDate: text('due_date'),
     rank: integer('rank').notNull().default(0),
     isFlagged: integer('is_flagged', { mode: 'boolean' }).notNull().default(false),
@@ -148,7 +170,7 @@ export const issues = sqliteTable(
     index('issues_status_idx').on(t.status),
     index('issues_assignee_idx').on(t.assigneeId),
     index('issues_sprint_idx').on(t.sprintId),
-    check('issues_points_ck', sql`${t.storyPoints} >= 0 AND ${t.storyPoints} <= 100`),
+    index('idx_issues_parent').on(t.parentIssueId),
   ],
 );
 
@@ -210,7 +232,7 @@ export const issueHistory = sqliteTable(
 /* Subtasks, Issue Links & Notifications                               */
 /* NOTE: issues' primary key is `key` (e.g. APEX-101), so FKs target it.*/
 /* ------------------------------------------------------------------ */
-export const LINK_TYPES = ['blocks', 'is_blocked_by', 'relates_to'] as const;
+export const LINK_TYPES = ['blocks', 'is_blocked_by', 'relates_to', 'duplicates', 'BLOCKS', 'IS_BLOCKED_BY', 'RELATES_TO', 'DUPLICATES'] as const;
 export type LinkType = (typeof LINK_TYPES)[number];
 
 export const subtasks = sqliteTable(
@@ -237,9 +259,112 @@ export const issueLinks = sqliteTable(
     targetIssueId: text('target_issue_id')
       .notNull()
       .references(() => issues.key, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    linkType: text('link_type').notNull().default('RELATES_TO'),
     relationType: text('relation_type', { enum: LINK_TYPES }).notNull().default('relates_to'),
+    createdAt: createdAt(),
   },
-  (t) => [index('issue_links_source_idx').on(t.sourceIssueId), index('issue_links_target_idx').on(t.targetIssueId)],
+  (t) => [
+    index('idx_issue_links_source').on(t.sourceIssueId),
+    index('idx_issue_links_target').on(t.targetIssueId),
+    uniqueIndex('idx_issue_links_source_target_type_uq').on(t.sourceIssueId, t.targetIssueId, t.linkType),
+    check('issue_links_no_self_ref_ck', sql`${t.sourceIssueId} != ${t.targetIssueId}`),
+  ],
+);
+
+/* ------------------------------------------------------------------ */
+/* Activity Stream, Comments, and Audit Trail (Enterprise)            */
+/* ------------------------------------------------------------------ */
+export const issueComments = sqliteTable(
+  'issue_comments',
+  {
+    id: text('id').primaryKey(),
+    issueId: text('issue_id')
+      .notNull()
+      .references(() => issues.key, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    authorId: text('author_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    body: text('body').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('idx_comments_issue').on(t.issueId)],
+);
+
+export const issueAuditLogs = sqliteTable(
+  'issue_audit_logs',
+  {
+    id: text('id').primaryKey(),
+    issueId: text('issue_id')
+      .notNull()
+      .references(() => issues.key, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    actorId: text('actor_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    fieldChanged: text('field_changed').notNull(),
+    oldValue: text('old_value'),
+    newValue: text('new_value'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('idx_audit_issue').on(t.issueId)],
+);
+
+/* ------------------------------------------------------------------ */
+/* Configurable Custom Workflows & Board Columns                      */
+/* ------------------------------------------------------------------ */
+export const projectWorkflowStatuses = sqliteTable(
+  'project_workflow_statuses',
+  {
+    id: text('id').primaryKey(),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    category: text('category', { enum: WORKFLOW_CATEGORIES }).notNull().default('TODO'),
+    position: integer('position').notNull().default(0),
+    wipLimit: integer('wip_limit').notNull().default(0),
+    isInitial: integer('is_initial', { mode: 'boolean' }).notNull().default(false),
+    isFinal: integer('is_final', { mode: 'boolean' }).notNull().default(false),
+    createdAt: createdAt(),
+  },
+  (t) => [index('idx_workflow_project').on(t.projectId)],
+);
+
+export const workflowTransitionRules = sqliteTable(
+  'workflow_transition_rules',
+  {
+    id: text('id').primaryKey(),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    fromStatusId: text('from_status_id'),
+    toStatusId: text('to_status_id').notNull(),
+    requireAssignee: integer('require_assignee', { mode: 'boolean' }).notNull().default(false),
+    requireAllSubtasksComplete: integer('require_all_subtasks_complete', { mode: 'boolean' }).notNull().default(false),
+    requireResolutionComment: integer('require_resolution_comment', { mode: 'boolean' }).notNull().default(false),
+  },
+  (t) => [index('idx_transition_rules_project').on(t.projectId)],
+);
+
+/* ------------------------------------------------------------------ */
+/* Git / Development Linking                                          */
+/* ------------------------------------------------------------------ */
+export const issueGitLinks = sqliteTable(
+  'issue_git_links',
+  {
+    id: text('id').primaryKey(),
+    issueId: text('issue_id')
+      .notNull()
+      .references(() => issues.key, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    provider: text('provider').notNull().default('GITHUB'),
+    repoFullName: text('repo_full_name').notNull(),
+    refType: text('ref_type').notNull(), // 'BRANCH', 'PULL_REQUEST', 'COMMIT'
+    refName: text('ref_name').notNull(),
+    url: text('url').notNull(),
+    status: text('status').default('OPEN'), // 'OPEN', 'MERGED', 'CLOSED'
+    createdAt: createdAt(),
+  },
+  (t) => [index('idx_git_links_issue').on(t.issueId)],
 );
 
 export const notifications = sqliteTable(
@@ -330,14 +455,41 @@ export const sprintsRelations = relations(sprints, ({ many }) => ({ issues: many
 
 export const issuesRelations = relations(issues, ({ one, many }) => ({
   project: one(projects, { fields: [issues.projectId], references: [projects.id] }),
+  parent: one(issues, { fields: [issues.parentIssueId], references: [issues.key], relationName: 'parentChildren' }),
+  children: many(issues, { relationName: 'parentChildren' }),
   assignee: one(users, { fields: [issues.assigneeId], references: [users.id], relationName: 'assignee' }),
   reporter: one(users, { fields: [issues.reporterId], references: [users.id], relationName: 'reporter' }),
   sprint: one(sprints, { fields: [issues.sprintId], references: [sprints.id] }),
   labels: many(issueLabels),
   comments: many(comments),
+  customComments: many(issueComments),
   history: many(issueHistory),
+  auditLogs: many(issueAuditLogs),
   attachments: many(attachments),
   subtasks: many(subtasks),
+  gitLinks: many(issueGitLinks),
+}));
+
+export const issueCommentsRelations = relations(issueComments, ({ one }) => ({
+  issue: one(issues, { fields: [issueComments.issueId], references: [issues.key] }),
+  author: one(users, { fields: [issueComments.authorId], references: [users.id] }),
+}));
+
+export const issueAuditLogsRelations = relations(issueAuditLogs, ({ one }) => ({
+  issue: one(issues, { fields: [issueAuditLogs.issueId], references: [issues.key] }),
+  actor: one(users, { fields: [issueAuditLogs.actorId], references: [users.id] }),
+}));
+
+export const projectWorkflowStatusesRelations = relations(projectWorkflowStatuses, ({ one }) => ({
+  project: one(projects, { fields: [projectWorkflowStatuses.projectId], references: [projects.id] }),
+}));
+
+export const workflowTransitionRulesRelations = relations(workflowTransitionRules, ({ one }) => ({
+  project: one(projects, { fields: [workflowTransitionRules.projectId], references: [projects.id] }),
+}));
+
+export const issueGitLinksRelations = relations(issueGitLinks, ({ one }) => ({
+  issue: one(issues, { fields: [issueGitLinks.issueId], references: [issues.key] }),
 }));
 
 export const subtasksRelations = relations(subtasks, ({ one }) => ({
@@ -387,3 +539,13 @@ export type Sprint = typeof sprints.$inferSelect;
 export type Subtask = typeof subtasks.$inferSelect;
 export type IssueLink = typeof issueLinks.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
+export type IssueComment = typeof issueComments.$inferSelect;
+export type NewIssueComment = typeof issueComments.$inferInsert;
+export type IssueAuditLog = typeof issueAuditLogs.$inferSelect;
+export type NewIssueAuditLog = typeof issueAuditLogs.$inferInsert;
+export type ProjectWorkflowStatus = typeof projectWorkflowStatuses.$inferSelect;
+export type NewProjectWorkflowStatus = typeof projectWorkflowStatuses.$inferInsert;
+export type WorkflowTransitionRule = typeof workflowTransitionRules.$inferSelect;
+export type NewWorkflowTransitionRule = typeof workflowTransitionRules.$inferInsert;
+export type IssueGitLink = typeof issueGitLinks.$inferSelect;
+export type NewIssueGitLink = typeof issueGitLinks.$inferInsert;

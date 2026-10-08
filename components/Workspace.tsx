@@ -14,7 +14,7 @@ import {
 } from '@/lib/types';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { Header } from '@/components/shell/Header';
-import { FilterBar } from '@/components/shell/FilterBar';
+import { BoardFilters, BoardFiltersState, evaluateJqlLite } from '@/components/board/BoardFilters';
 import { KanbanBoardView } from '@/components/board/KanbanBoard';
 import { BacklogView } from '@/components/backlog/BacklogView';
 import { DocumentsView } from '@/components/docs/DocumentsView';
@@ -83,9 +83,15 @@ export function Workspace({
     initialProjects[0]?.id || 'proj-apex'
   );
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [filterType, setFilterType] = useState<string>('ALL');
-  const [filterPriority, setFilterPriority] = useState<string>('ALL');
-  const [filterAssignee, setFilterAssignee] = useState<string>('ALL');
+  const [boardFilters, setBoardFilters] = useState<BoardFiltersState>({
+    selectedTypes: [],
+    selectedPriorities: [],
+    selectedAssignee: 'ALL',
+    selectedEpic: 'ALL',
+    onlyMine: false,
+    jqlQuery: '',
+    isJqlMode: false,
+  });
 
   // Modals & Drawers
   const [selectedIssueKey, setSelectedIssueKey] = useState<string | null>(null);
@@ -148,25 +154,59 @@ export function Workspace({
     return initialSwimlanes.filter((s) => s.projectId === activeProjectId);
   }, [initialSwimlanes, activeProjectId]);
 
-  // Filtered Issues scoped to active project
+  // Filtered Issues scoped to active project with compound filters + JQL-lite
   const filteredIssues = useMemo(() => {
     return optimisticIssues.filter((issue) => {
       const matchesProject = !issue.projectId || issue.projectId === activeProjectId;
-      const matchesSearch =
-        issue.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        issue.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        issue.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        issue.labels?.some((l) => l.toLowerCase().includes(searchQuery.toLowerCase()));
+      if (!matchesProject) return false;
 
-      const matchesType = filterType === 'ALL' || issue.type === filterType;
-      const matchesPriority =
-        filterPriority === 'ALL' || issue.priority === filterPriority;
-      const matchesAssignee =
-        filterAssignee === 'ALL' || issue.assigneeId === filterAssignee;
+      // Header search query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const inText =
+          issue.key.toLowerCase().includes(q) ||
+          issue.title.toLowerCase().includes(q) ||
+          issue.description?.toLowerCase().includes(q) ||
+          issue.labels?.some((l) => l.toLowerCase().includes(q));
+        if (!inText) return false;
+      }
 
-      return matchesProject && matchesSearch && matchesType && matchesPriority && matchesAssignee;
+      // JQL-lite mode
+      if (boardFilters.isJqlMode) {
+        return evaluateJqlLite(issue, currentUser.id, boardFilters.jqlQuery);
+      }
+
+      // Compound filter evaluation
+      if (boardFilters.selectedTypes.length > 0) {
+        const issueT = (issue.issueType || issue.type || '').toLowerCase();
+        const matchesType = boardFilters.selectedTypes.some(
+          (t) => t.toLowerCase() === issueT
+        );
+        if (!matchesType) return false;
+      }
+
+      if (boardFilters.selectedPriorities.length > 0) {
+        const issueP = issue.priority.toLowerCase();
+        const matchesPri = boardFilters.selectedPriorities.some(
+          (p) => p.toLowerCase() === issueP
+        );
+        if (!matchesPri) return false;
+      }
+
+      if (boardFilters.onlyMine) {
+        if (issue.assigneeId !== currentUser.id) return false;
+      } else if (boardFilters.selectedAssignee !== 'ALL') {
+        if (issue.assigneeId !== boardFilters.selectedAssignee) return false;
+      }
+
+      if (boardFilters.selectedEpic !== 'ALL') {
+        const parentId = issue.parentIssueId || issue.parent?.key;
+        if (parentId !== boardFilters.selectedEpic) return false;
+      }
+
+      return true;
     });
-  }, [optimisticIssues, activeProjectId, searchQuery, filterType, filterPriority, filterAssignee]);
+  }, [optimisticIssues, activeProjectId, searchQuery, boardFilters, currentUser.id]);
 
   const selectedIssue = useMemo(() => {
     return optimisticIssues.find((i) => i.key === selectedIssueKey) || null;
@@ -501,17 +541,15 @@ export function Workspace({
           onSelectIssue={(key) => setSelectedIssueKey(key)}
         />
 
-        {/* Secondary Filter & Metric Bar - Only visible on board & backlog views */}
+        {/* Secondary Compound Filter Bar - Only visible on board & backlog views */}
         {(activeTab === 'board' || activeTab === 'backlog') && (
-          <FilterBar
-            filterType={filterType}
-            setFilterType={setFilterType}
-            filterPriority={filterPriority}
-            setFilterPriority={setFilterPriority}
-            filterAssignee={filterAssignee}
-            setFilterAssignee={setFilterAssignee}
+          <BoardFilters
+            filters={boardFilters}
+            onChangeFilters={setBoardFilters}
             users={initialUsers}
+            allIssues={optimisticIssues}
             metrics={initialMetrics}
+            currentUserId={currentUser.id}
           />
         )}
 
@@ -623,6 +661,7 @@ export function Workspace({
           projects={initialProjects}
           activeProjectId={activeProjectId}
           swimlanes={activeSwimlanes}
+          issues={optimisticIssues}
           onClose={() => setIsCreateIssueOpen(false)}
           onCreate={handleCreateIssue}
         />

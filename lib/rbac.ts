@@ -2,6 +2,7 @@ import 'server-only';
 import { sql, eq } from 'drizzle-orm';
 import { getDb } from './db';
 import { users } from '@/db/schema';
+import { ensureEnterpriseSchema } from './schemaInit';
 
 let tablesInitialized = false;
 
@@ -12,6 +13,7 @@ let tablesInitialized = false;
 export async function ensureProjectRbacTables(dbInstance?: ReturnType<typeof getDb>) {
   if (tablesInitialized) return;
   const db = dbInstance || getDb();
+  await ensureEnterpriseSchema(db);
 
   try {
     await db.run(sql`

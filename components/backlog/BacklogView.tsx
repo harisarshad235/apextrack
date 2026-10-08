@@ -273,6 +273,23 @@ export function BacklogView({
           <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400 w-24 flex-shrink-0">
             {issue.key}
           </span>
+          {issue.parent && (
+            <span
+              className="text-[10px] font-semibold px-1.5 py-0.5 rounded border flex-shrink-0 truncate max-w-[120px]"
+              style={{
+                backgroundColor: `${issue.parent.epicColor || '#3B82F6'}15`,
+                borderColor: `${issue.parent.epicColor || '#3B82F6'}40`,
+                color: issue.parent.epicColor || '#3B82F6',
+              }}
+            >
+              {issue.parent.title || issue.parent.key}
+            </span>
+          )}
+          {issue.blockedByIssues && issue.blockedByIssues.some((b) => b.status.toLowerCase() !== 'done') && (
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/10 text-red-500 border border-red-500/20 flex-shrink-0">
+              Blocked
+            </span>
+          )}
           <span className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate flex-1">
             {issue.title}
           </span>

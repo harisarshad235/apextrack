@@ -29,6 +29,13 @@
       "when": 1791317634800,
       "tag": "0003_bizarre_scalphunter",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1791400000000,
+      "tag": "0004_jira_enterprise_upgrade",
+      "breakpoints": true
     }
   ]
 }

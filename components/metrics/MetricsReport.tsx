@@ -1,6 +1,31 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ReferenceLine,
+} from 'recharts';
+import {
+  BarChart3,
+  TrendingDown,
+  Layers,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Sparkles,
+  ArrowUpRight,
+} from 'lucide-react';
 import { FullIssue, User, WorkspaceMetrics, Sprint } from '@/lib/types';
 
 interface MetricsReportViewProps {
@@ -12,249 +37,435 @@ interface MetricsReportViewProps {
 
 const DAY_MS = 86400000;
 
-function BurndownChart({ issues, sprints }: { issues: FullIssue[]; sprints: Sprint[] }) {
-  const sprint = sprints.find((s) => s.state === 'active') || sprints.find((s) => s.state === 'upcoming');
-
-  const data = useMemo(() => {
-    if (!sprint?.startDate || !sprint?.endDate) return null;
-    const start = new Date(sprint.startDate).getTime();
-    const end = new Date(sprint.endDate).getTime();
-    if (isNaN(start) || isNaN(end) || end <= start) return null;
-
-    const sprintIssues = issues.filter((i) => i.sprintId === sprint.id);
-    const committed = sprintIssues.reduce((a, i) => a + (Number(i.storyPoints) || 0), 0);
-
-    // Completion time: latest history entry moving the issue to Done (fallback: updatedAt)
-    const doneAt = sprintIssues
-      .filter((i) => i.status === 'Done')
-      .map((i) => {
-        const h = i.history
-          .filter((x) => x.field === 'status' && x.toValue === 'Done')
-          .map((x) => new Date(x.createdAt).getTime());
-        return {
-          pts: Number(i.storyPoints) || 0,
-          at: h.length ? Math.max(...h) : new Date(i.updatedAt).getTime(),
-        };
-      });
-
-    const days = Math.max(1, Math.round((end - start) / DAY_MS));
-    const today = Date.now();
-    const ideal: number[] = [];
-    const actual: (number | null)[] = [];
-    for (let d = 0; d <= days; d++) {
-      ideal.push(committed - (committed * d) / days);
-      const dayEnd = start + (d + 1) * DAY_MS - 1;
-      if (start + d * DAY_MS > today) {
-        actual.push(null);
-      } else {
-        const burned = doneAt.filter((x) => x.at <= dayEnd).reduce((a, x) => a + x.pts, 0);
-        actual.push(Math.max(0, committed - burned));
-      }
-    }
-    return { committed, days, ideal, actual, name: sprint.name };
-  }, [issues, sprint]);
-
-  const W = 640;
-  const H = 240;
-  const pad = { l: 40, r: 16, t: 16, b: 28 };
-
-  if (!data) {
-    return (
-      <p className="text-xs text-slate-400 italic">
-        No sprint with start and end dates available to plot a burndown.
-      </p>
-    );
-  }
-
-  const maxY = Math.max(data.committed, 1);
-  const x = (d: number) => pad.l + (d / data.days) * (W - pad.l - pad.r);
-  const y = (v: number) => pad.t + (1 - v / maxY) * (H - pad.t - pad.b);
-  const idealPath = data.ideal.map((v, d) => `${d === 0 ? 'M' : 'L'}${x(d)},${y(v)}`).join(' ');
-  const actualPoints = data.actual
-    .map((v, d) => (v === null ? null : { d, v }))
-    .filter((p): p is { d: number; v: number } => p !== null);
-  const actualPath = actualPoints.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(p.d)},${y(p.v)}`).join(' ');
-  const ticks = [0, 0.25, 0.5, 0.75, 1];
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-2 text-xs">
-        <span className="font-semibold text-slate-600 dark:text-slate-300">{data.name}</span>
-        <div className="flex items-center gap-4 text-slate-500">
-          <span className="flex items-center gap-1.5">
-            <span className="w-4 border-t-2 border-dashed border-slate-400" /> Ideal Burn
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-4 border-t-2 border-blue-600" /> Actual Burn
-          </span>
-        </div>
-      </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" role="img" aria-label="Sprint burndown chart">
-        {ticks.map((t) => (
-          <g key={t}>
-            <line
-              x1={pad.l}
-              x2={W - pad.r}
-              y1={y(maxY * t)}
-              y2={y(maxY * t)}
-              className="stroke-slate-200 dark:stroke-slate-700"
-              strokeWidth={1}
-            />
-            <text x={pad.l - 6} y={y(maxY * t) + 3} textAnchor="end" className="fill-slate-400" fontSize={10}>
-              {Math.round(maxY * t)}
-            </text>
-          </g>
-        ))}
-        {[0, Math.floor(data.days / 2), data.days].map((d) => (
-          <text key={d} x={x(d)} y={H - 8} textAnchor="middle" className="fill-slate-400" fontSize={10}>
-            Day {d}
-          </text>
-        ))}
-        <path d={idealPath} fill="none" className="stroke-slate-400" strokeWidth={2} strokeDasharray="6 4" />
-        {actualPath && (
-          <path d={actualPath} fill="none" className="stroke-blue-600" strokeWidth={2.5} strokeLinejoin="round" />
-        )}
-        {actualPoints.map((p) => (
-          <circle key={p.d} cx={x(p.d)} cy={y(p.v)} r={3} className="fill-blue-600" />
-        ))}
-      </svg>
-    </div>
-  );
-}
-
 export function MetricsReportView({
   issues,
   users,
   metrics,
   sprints = [],
 }: MetricsReportViewProps) {
-  // Workload distribution per member
-  const workloadByMember = useMemo(() => {
-    return users.map((user) => {
-      const assigned = issues.filter((i) => i.assigneeId === user.id);
-      const points = assigned.reduce(
-        (acc, curr) => acc + (Number(curr.storyPoints) || 0),
-        0
-      );
+  const [activeReportTab, setActiveReportTab] = useState<'burndown' | 'velocity' | 'cfd'>('burndown');
+
+  // Active / selected sprint for burndown
+  const activeOrLatestSprint = useMemo(() => {
+    return (
+      sprints.find((s) => s.state === 'active') ||
+      sprints.find((s) => s.state === 'upcoming') ||
+      sprints[0] ||
+      null
+    );
+  }, [sprints]);
+
+  const [selectedSprintId, setSelectedSprintId] = useState<string>(
+    activeOrLatestSprint?.id || ''
+  );
+
+  const selectedSprint = useMemo(() => {
+    return sprints.find((s) => s.id === selectedSprintId) || activeOrLatestSprint;
+  }, [sprints, selectedSprintId, activeOrLatestSprint]);
+
+  // Burndown Data Calculation
+  const burndownData = useMemo(() => {
+    if (!selectedSprint?.startDate || !selectedSprint?.endDate) return [];
+    const start = new Date(selectedSprint.startDate).getTime();
+    const end = new Date(selectedSprint.endDate).getTime();
+    if (isNaN(start) || isNaN(end) || end <= start) return [];
+
+    const sprintIssues = issues.filter((i) => i.sprintId === selectedSprint.id);
+    const totalCommitted = sprintIssues.reduce(
+      (acc, i) => acc + (Number(i.storyPoints) || 0),
+      0
+    );
+
+    const doneItems = sprintIssues
+      .filter((i) => i.status.toLowerCase() === 'done')
+      .map((i) => {
+        const historyDone = (i.history || [])
+          .filter((h) => h.field === 'status' && h.toValue?.toLowerCase() === 'done')
+          .map((h) => new Date(h.createdAt).getTime());
+        return {
+          pts: Number(i.storyPoints) || 0,
+          at: historyDone.length ? Math.max(...historyDone) : new Date(i.updatedAt).getTime(),
+        };
+      });
+
+    const totalDays = Math.max(1, Math.round((end - start) / DAY_MS));
+    const today = Date.now();
+    const result = [];
+
+    for (let d = 0; d <= totalDays; d++) {
+      const dayEnd = start + d * DAY_MS;
+      const dateStr = new Date(dayEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const ideal = Math.max(0, Math.round((totalCommitted - (totalCommitted * d) / totalDays) * 10) / 10);
+
+      if (dayEnd > today + DAY_MS) {
+        result.push({
+          day: `Day ${d}`,
+          date: dateStr,
+          ideal,
+          actual: null,
+        });
+      } else {
+        const burnedSoFar = doneItems
+          .filter((item) => item.at <= dayEnd + DAY_MS - 1)
+          .reduce((sum, item) => sum + item.pts, 0);
+
+        const actual = Math.max(0, totalCommitted - burnedSoFar);
+        result.push({
+          day: `Day ${d}`,
+          date: dateStr,
+          ideal,
+          actual,
+        });
+      }
+    }
+
+    return result;
+  }, [issues, selectedSprint]);
+
+  // Velocity Report Data (Committed vs Completed story points across historical sprints)
+  const velocityData = useMemo(() => {
+    return sprints.map((s) => {
+      const sIssues = issues.filter((i) => i.sprintId === s.id);
+      const committed = sIssues.reduce((sum, i) => sum + (Number(i.storyPoints) || 0), 0);
+      const completed = sIssues
+        .filter((i) => i.status.toLowerCase() === 'done')
+        .reduce((sum, i) => sum + (Number(i.storyPoints) || 0), 0);
+
       return {
-        ...user,
-        issueCount: assigned.length,
-        points,
+        name: s.name,
+        committed,
+        completed,
+        state: s.state,
       };
     });
-  }, [issues, users]);
+  }, [sprints, issues]);
+
+  const rollingVelocity = useMemo(() => {
+    if (velocityData.length === 0) return 0;
+    const completedList = velocityData.map((v) => v.completed);
+    return Math.round(completedList.reduce((a, b) => a + b, 0) / completedList.length);
+  }, [velocityData]);
+
+  // Cumulative Flow Diagram (CFD) Data
+  const cfdData = useMemo(() => {
+    const days = 14;
+    const now = Date.now();
+    const result = [];
+
+    for (let d = days - 1; d >= 0; d--) {
+      const dayEndMs = now - d * DAY_MS;
+      const dateStr = new Date(dayEndMs).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+      const existingIssues = issues.filter(
+        (i) => new Date(i.createdAt).getTime() <= dayEndMs
+      );
+
+      let todo = 0;
+      let inProgress = 0;
+      let done = 0;
+
+      for (const item of existingIssues) {
+        const lower = item.status.toLowerCase();
+        if (lower === 'done' || lower === 'closed') {
+          if (new Date(item.updatedAt).getTime() <= dayEndMs) {
+            done++;
+          } else {
+            inProgress++;
+          }
+        } else if (lower.includes('progress') || lower.includes('review') || lower.includes('dev')) {
+          inProgress++;
+        } else {
+          todo++;
+        }
+      }
+
+      result.push({
+        date: dateStr,
+        'To Do': todo,
+        'In Progress': inProgress,
+        'Done': done,
+      });
+    }
+
+    return result;
+  }, [issues]);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      {/* Metric Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-            Completion Rate
-          </span>
-          <div className="text-3xl font-bold text-slate-900 dark:text-white mt-1">
-            {metrics.completionRate}%
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-[#111723] border border-[#263348]">
+        <div>
+          <div className="flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-blue-400" />
+            <h2 className="text-lg font-bold text-white tracking-tight">Agile Analytics & Velocity Reports</h2>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            {metrics.completed} of {metrics.total} tickets resolved
+          <p className="text-xs text-slate-400 mt-1">
+            Enterprise burndown burn-rate, historical velocity variance, and cumulative flow trends.
           </p>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-            Velocity Points
-          </span>
-          <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-            {metrics.completedPoints}{' '}
-            <span className="text-sm font-normal text-slate-400">
-              / {metrics.totalPoints} pts
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#090d16] border border-[#263348]">
+          <button
+            onClick={() => setActiveReportTab('burndown')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+              activeReportTab === 'burndown'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <TrendingDown className="w-3.5 h-3.5" />
+            <span>Burndown</span>
+          </button>
+
+          <button
+            onClick={() => setActiveReportTab('velocity')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+              activeReportTab === 'velocity'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>Velocity</span>
+          </button>
+
+          <button
+            onClick={() => setActiveReportTab('cfd')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+              activeReportTab === 'cfd'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Cumulative Flow</span>
+          </button>
+        </div>
+      </div>
+
+      {/* KPI Cards Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-4 rounded-xl bg-[#111723] border border-[#263348]">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Points</span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-2xl font-bold font-mono text-white">{metrics.totalPoints}</span>
+            <span className="text-xs text-slate-400 font-mono">100% committed</span>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-xl bg-[#111723] border border-[#263348]">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Points Burned</span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-2xl font-bold font-mono text-emerald-400">{metrics.completedPoints}</span>
+            <span className="text-xs text-emerald-400 font-semibold">{metrics.completionRate}% rate</span>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-xl bg-[#111723] border border-[#263348]">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Team Velocity Average</span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-2xl font-bold font-mono text-blue-400">{rollingVelocity} pts</span>
+            <span className="text-xs text-blue-400 flex items-center gap-0.5">
+              <ArrowUpRight className="w-3 h-3" /> rolling 7
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-1">Sprint commitment target</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-            Active In Flight
-          </span>
-          <div className="text-3xl font-bold text-amber-500 mt-1">
-            {metrics.inProgress}
+        <div className="p-4 rounded-xl bg-[#111723] border border-[#263348]">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Active Work items</span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-2xl font-bold font-mono text-amber-400">{metrics.inProgress}</span>
+            <span className="text-xs text-rose-400">{metrics.openBugs} open bugs</span>
           </div>
-          <p className="text-xs text-slate-500 mt-1">Currently in progress across team</p>
-        </div>
-
-        <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-            Open Defect Count
-          </span>
-          <div className="text-3xl font-bold text-red-600 dark:text-red-400 mt-1">
-            {metrics.openBugs}
-          </div>
-          <p className="text-xs text-slate-500 mt-1">Unresolved bug reports</p>
         </div>
       </div>
 
-      {/* Sprint Burndown */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
-        <h3 className="font-bold text-base text-slate-900 dark:text-white mb-4">
-          Sprint Burndown (Story Points Remaining)
-        </h3>
-        <BurndownChart issues={issues} sprints={sprints} />
-      </div>
-
-      {/* Workload Distribution Table */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
-        <h3 className="font-bold text-base text-slate-900 dark:text-white mb-4">
-          Engineer Workload & Story Point Allocation
-        </h3>
-        <div className="space-y-4">
-          {workloadByMember.map((member) => {
-            const maxEstimate = 20;
-            const percentage = Math.min(
-              100,
-              Math.round((member.points / maxEstimate) * 100)
-            );
-
-            return (
-              <div key={member.id} className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <img
-                      src={
-                        member.avatarUrl ||
-                        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80'
-                      }
-                      alt={member.name}
-                      className="w-5 h-5 rounded-full object-cover"
-                    />
-                    <span className="font-medium text-slate-800 dark:text-slate-200">
-                      {member.name}
-                    </span>
-                    <span className="text-slate-400">
-                      ({member.department || 'Engineering'})
-                    </span>
-                  </div>
-                  <div className="font-mono text-slate-600 dark:text-slate-300">
-                    <span className="font-bold">{member.points} pts</span> •{' '}
-                    {member.issueCount} issues
-                  </div>
-                </div>
-                <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
-                  <div
-                    className={`h-2 rounded-full transition-all duration-500 ${
-                      percentage > 85
-                        ? 'bg-red-500'
-                        : percentage > 50
-                        ? 'bg-blue-600'
-                        : 'bg-emerald-500'
-                    }`}
-                    style={{ width: `${percentage}%` }}
-                  />
-                </div>
+      {/* Main Chart Card */}
+      <div className="p-5 rounded-2xl bg-[#111723] border border-[#263348]">
+        {/* TAB 1: Burndown Chart */}
+        {activeReportTab === 'burndown' && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                  Sprint Burndown Chart
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Ideal Burn Rate (dashed) vs. Actual Burn (solid blue) across active sprint days.
+                </p>
               </div>
-            );
-          })}
-        </div>
+
+              {/* Sprint selector */}
+              {sprints.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                  <select
+                    value={selectedSprintId}
+                    onChange={(e) => setSelectedSprintId(e.target.value)}
+                    className="bg-[#090d16] border border-[#263348] rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none"
+                  >
+                    {sprints.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.state})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {burndownData.length === 0 ? (
+              <div className="h-72 flex items-center justify-center border border-dashed border-[#263348] rounded-xl text-slate-500 text-xs">
+                No active sprint with start and end dates available to plot a burndown.
+              </div>
+            ) : (
+              <div className="h-80 w-full pt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={burndownData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 11 }} />
+                    <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#0b0f17',
+                        borderColor: '#263348',
+                        borderRadius: '0.75rem',
+                        fontSize: '12px',
+                        color: '#f8fafc',
+                      }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                    <Line
+                      type="monotone"
+                      dataKey="ideal"
+                      name="Ideal Burn (pts)"
+                      stroke="#94a3b8"
+                      strokeDasharray="5 5"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="actual"
+                      name="Actual Remaining (pts)"
+                      stroke="#3b82f6"
+                      strokeWidth={3}
+                      dot={{ r: 4, fill: '#3b82f6' }}
+                      connectNulls={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 2: Velocity Bar Chart */}
+        {activeReportTab === 'velocity' && (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                Sprint Velocity Chart
+              </h3>
+              <p className="text-xs text-slate-400">
+                Story Points Committed vs. Completed per sprint, with rolling velocity reference line.
+              </p>
+            </div>
+
+            {velocityData.length === 0 ? (
+              <div className="h-72 flex items-center justify-center border border-dashed border-[#263348] rounded-xl text-slate-500 text-xs">
+                No sprint history available to calculate velocity.
+              </div>
+            ) : (
+              <div className="h-80 w-full pt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={velocityData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <XAxis dataKey="name" stroke="#64748b" tick={{ fontSize: 11 }} />
+                    <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#0b0f17',
+                        borderColor: '#263348',
+                        borderRadius: '0.75rem',
+                        fontSize: '12px',
+                        color: '#f8fafc',
+                      }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                    <ReferenceLine
+                      y={rollingVelocity}
+                      stroke="#eab308"
+                      strokeDasharray="4 4"
+                      label={{ value: `Avg (${rollingVelocity} pts)`, fill: '#eab308', fontSize: 11 }}
+                    />
+                    <Bar dataKey="committed" name="Committed Points" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="completed" name="Completed Points" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 3: Cumulative Flow Diagram (CFD) */}
+        {activeReportTab === 'cfd' && (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                Cumulative Flow Diagram (CFD)
+              </h3>
+              <p className="text-xs text-slate-400">
+                Work-in-progress distribution across workflow categories over the past 14 days.
+              </p>
+            </div>
+
+            <div className="h-80 w-full pt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={cfdData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 11 }} />
+                  <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#0b0f17',
+                      borderColor: '#263348',
+                      borderRadius: '0.75rem',
+                      fontSize: '12px',
+                      color: '#f8fafc',
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                  <Area
+                    type="monotone"
+                    dataKey="Done"
+                    stackId="1"
+                    stroke="#10b981"
+                    fill="#10b981"
+                    fillOpacity={0.4}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="In Progress"
+                    stackId="1"
+                    stroke="#3b82f6"
+                    fill="#3b82f6"
+                    fillOpacity={0.5}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="To Do"
+                    stackId="1"
+                    stroke="#64748b"
+                    fill="#64748b"
+                    fillOpacity={0.3}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
