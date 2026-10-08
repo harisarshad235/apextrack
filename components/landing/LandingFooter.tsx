@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { ShieldCheck, Cloud, Lock, Sparkles, Heart } from 'lucide-react';
-import { ApexTrackLogo } from '@/components/ui/ApexTrackLogo';
+import { ApexLogo } from '@/components/brand/ApexLogo';
 
 export function LandingFooter() {
   return (
@@ -12,9 +12,8 @@ export function LandingFooter() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           {/* Brand Column */}
           <div className="col-span-2 space-y-4">
-            <Link href="/" className="flex items-center gap-2.5">
-              <ApexTrackLogo size={28} />
-              <span className="font-bold text-base text-slate-900 dark:text-white">ApexTrack</span>
+            <Link href="/" className="inline-flex items-center gap-2 group hover:opacity-90 transition">
+              <ApexLogo size={26} showWordmark={true} />
             </Link>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm leading-relaxed">
               The high-performance Agile Project Management &amp; Knowledge Base platform built for modern engineering teams. Powered by Cloudflare D1 Edge SQLite.

@@ -8,14 +8,67 @@ import { ensureEnterpriseSchema } from '@/lib/schemaInit';
 import { createSessionToken } from '@/lib/auth';
 
 /**
- * Reads an environment variable either from Cloudflare Workers context or Node process.env
+ * Reads an environment variable from Cloudflare context, Node process.env,
+ * or directly parses local env files if running in dev and process.env wasn't reloaded yet.
  */
+function readEnvFromFile(key: string): string | undefined {
+  try {
+    if (typeof process === 'undefined' || !process.cwd) return undefined;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs = require('fs');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const path = require('path');
+    const envFiles = ['.env.local', '.env', '.dev.vars'];
+    for (const file of envFiles) {
+      const fullPath = path.resolve(process.cwd(), file);
+      if (fs.existsSync(fullPath)) {
+        const content = fs.readFileSync(fullPath, 'utf8');
+        const lines = content.split('\n');
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith('#')) continue;
+          const eqIdx = trimmed.indexOf('=');
+          if (eqIdx !== -1) {
+            const k = trimmed.substring(0, eqIdx).trim();
+            if (k === key) {
+              let v = trimmed.substring(eqIdx + 1).trim();
+              if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+                v = v.slice(1, -1);
+              }
+              return v;
+            }
+          }
+        }
+      }
+    }
+  } catch {}
+  return undefined;
+}
+
 export function getOAuthEnv(key: string): string | undefined {
   try {
     const { env } = getCloudflareContext();
-    if ((env as any)?.[key]) return (env as any)[key];
+    if ((env as any)?.[key]) {
+      const val = String((env as any)[key]).trim();
+      return val.replace(/^["']|["']$/g, '');
+    }
   } catch {}
-  return process.env[key];
+
+  const envVal = process.env[key];
+  if (envVal) {
+    return String(envVal).trim().replace(/^["']|["']$/g, '');
+  }
+
+  // Fallback to disk read in development if the server hasn't been restarted
+  const fileVal = readEnvFromFile(key);
+  if (fileVal) {
+    try {
+      process.env[key] = fileVal;
+    } catch {}
+    return fileVal;
+  }
+
+  return undefined;
 }
 
 export function getAppBaseUrl(req?: Request): string {

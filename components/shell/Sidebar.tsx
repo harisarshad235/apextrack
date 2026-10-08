@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { User, Project } from '@/lib/types';
 import { UserAvatar } from '@/components/ui/UserAvatar';
-import { ApexTrackLogo } from '@/components/ui/ApexTrackLogo';
+import { ApexLogo } from '@/components/brand/ApexLogo';
 import { ProjectSwitcher } from '@/components/layout/ProjectSwitcher';
 import { getActiveSprintMetricsAction, ActiveSprintMetrics } from '@/app/actions/sprints';
 
@@ -128,21 +128,8 @@ export function Sidebar({
       {/* Brand Header */}
       <div className="p-4 border-b border-black/[0.06] dark:border-white/[0.08]">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <ApexTrackLogo size={34} className="flex-shrink-0" />
-            {(sidebarOpen || mobileOpen) && (
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-base tracking-tight text-slate-900 dark:text-white">ApexTrack</span>
-                  <span className="text-[9px] font-mono font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 px-1 py-0.2 rounded">
-                    v1.0
-                  </span>
-                </div>
-                <span className="text-[9px] text-slate-400 font-mono tracking-wider block uppercase">
-                  ENTERPRISE WORKSPACE
-                </span>
-              </div>
-            )}
+          <div className="flex items-center overflow-hidden">
+            <ApexLogo size={32} showWordmark={sidebarOpen || mobileOpen} className="flex-shrink-0" />
           </div>
           <div className="flex items-center gap-1">
             {/* Close button on mobile */}

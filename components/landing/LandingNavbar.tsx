@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Menu, X, ArrowRight, ShieldCheck, Sparkles, Layers, BookOpen, Kanban } from 'lucide-react';
-import { ApexTrackLogo } from '@/components/ui/ApexTrackLogo';
+import { ApexLogo } from '@/components/brand/ApexLogo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { User } from '@/db/schema';
 
@@ -18,16 +18,8 @@ export function LandingNavbar({ currentUser }: LandingNavbarProps) {
     <header className="sticky top-0 z-50 w-full border-b border-black/[0.06] dark:border-white/[0.08] bg-white/80 dark:bg-[#090d16]/80 backdrop-blur-xl transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <ApexTrackLogo size={32} />
-          <div className="flex items-center gap-1.5">
-            <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">
-              ApexTrack
-            </span>
-            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-              v1.0
-            </span>
-          </div>
+        <Link href="/" className="flex items-center gap-2 group hover:opacity-90 transition">
+          <ApexLogo size={30} showWordmark={true} />
         </Link>
 
         {/* Desktop Navigation Links */}
