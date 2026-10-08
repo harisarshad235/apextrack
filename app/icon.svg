@@ -1,38 +1,22 @@
-<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="80" height="80" viewBox="20 20 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Container / Background Tile -->
+  <rect x="20" y="20" width="80" height="80" rx="22" fill="#090D16"/>
+  <rect x="20" y="20" width="80" height="80" rx="22" stroke="#1E293B" stroke-width="1.5"/>
+
   <defs>
-    <linearGradient id="apexIconGrad" x1="4" y1="28" x2="28" y2="4" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#3B82F6" />
-      <stop offset="100%" stop-color="#6366F1" />
-    </linearGradient>
-    <linearGradient id="apexIconFacet" x1="16" y1="4" x2="16" y2="28" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.2" />
-      <stop offset="100%" stop-color="#6366F1" stop-opacity="0.05" />
+    <!-- Cyan-to-Electric-Indigo Gradient -->
+    <linearGradient id="bladeGradFavicon" x1="30" y1="80" x2="90" y2="25" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#06B6D4"/>
+      <stop offset="50%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#6366F1"/>
     </linearGradient>
   </defs>
 
-  <!-- Ambient Facet Fill -->
-  <path
-    d="M 16 3.75 L 4.5 25.5 C 4.1 26.3 4.7 27.25 5.6 27.25 L 12 27.25 L 16 19.5 L 20 27.25 L 26.4 27.25 C 27.3 27.25 27.9 26.3 27.5 25.5 L 16 3.75 Z"
-    fill="url(#apexIconFacet)"
-  />
+  <!-- Left Ascending Fin -->
+  <path d="M40 76 L57 37 C57.8 35.2 60 35.2 60.8 37 L65 46 L47 76 Z" 
+        fill="url(#bladeGradFavicon)"/>
 
-  <!-- Outer Precision Geometric Apex Peak Stroke -->
-  <path
-    d="M 16 3.75 L 4.5 25.5 C 4.1 26.3 4.7 27.25 5.6 27.25 L 12 27.25 L 16 19.5 L 20 27.25 L 26.4 27.25 C 27.3 27.25 27.9 26.3 27.5 25.5 L 16 3.75 Z"
-    stroke="url(#apexIconGrad)"
-    stroke-width="1.75"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
-
-  <!-- Central Apex Vertex Blade / Dynamic Crossbar -->
-  <path
-    d="M 11.2 18.2 L 20.8 18.2"
-    stroke="url(#apexIconGrad)"
-    stroke-width="1.75"
-    stroke-linecap="round"
-  />
-
-  <!-- Apex Core Focal Accent -->
-  <circle cx="16" cy="11.5" r="1.5" fill="#60A5FA" />
+  <!-- Right Descending Wing with Precision Negative-Space Gap -->
+  <path d="M68 53 L74 66 C74.8 67.8 74.2 70 72.5 71 L53 82 L79 82 C80.7 82 82 80.7 81.3 79.1 L62.5 37 C61.8 35.4 59.5 35.4 58.8 37 L56 43 L68 53 Z" 
+        fill="#94A3B8" opacity="0.9"/>
 </svg>

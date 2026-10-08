@@ -32,13 +32,13 @@ export function Header({
   onToggleMobileSidebar,
 }: HeaderProps) {
   return (
-    <header className="h-16 bg-white/90 dark:bg-[#0e0e11]/90 backdrop-blur-md border-b border-black/[0.06] dark:border-white/[0.08] flex items-center justify-between px-4 md:px-6 z-20 flex-shrink-0 transition-colors w-full">
+    <header className="h-16 bg-white/90 dark:bg-[#0c1017]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between px-4 md:px-6 z-20 flex-shrink-0 transition-colors w-full">
       <div className="flex items-center gap-3 flex-1 max-w-xl">
         {/* Mobile Hamburger Menu Toggle Button */}
         {onToggleMobileSidebar && (
           <button
             onClick={onToggleMobileSidebar}
-            className="md:hidden p-2 rounded-xl text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800 transition flex-shrink-0"
+            className="md:hidden p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex-shrink-0 cursor-pointer"
             title="Toggle Navigation Menu"
           >
             <Menu className="w-5 h-5" />
@@ -53,7 +53,7 @@ export function Header({
             placeholder="Search issues, keys (e.g. APEX-101), labels, docs..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-8 py-1.5 text-xs md:text-sm bg-slate-100/80 dark:bg-zinc-900/80 border border-black/[0.06] dark:border-white/[0.08] rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition text-slate-900 dark:text-zinc-100 placeholder-slate-400"
+            className="w-full pl-9 pr-8 py-1.5 text-xs md:text-sm bg-slate-100/90 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition text-slate-900 dark:text-slate-100 placeholder-slate-400"
           />
           {searchQuery && (
             <button

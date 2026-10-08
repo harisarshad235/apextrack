@@ -52,7 +52,6 @@ export function ProjectSwitcher({
     <div className={`relative ${className}`}>
       <select
         value={activeProjectId}
-        style={{ colorScheme: 'dark' }}
         onChange={(e) => {
           if (e.target.value === '__manage__') {
             onOpenProjectsModal?.();
@@ -60,21 +59,21 @@ export function ProjectSwitcher({
             onSelectProject(e.target.value);
           }
         }}
-        className="w-full appearance-none bg-zinc-900/90 text-zinc-100 font-medium text-xs border border-white/10 rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500/50 hover:bg-zinc-800 transition cursor-pointer"
+        className="w-full appearance-none bg-slate-100/90 dark:bg-slate-900/80 text-slate-800 dark:text-slate-200 font-medium text-xs border border-slate-200/80 dark:border-slate-800/80 rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500/50 hover:bg-slate-200/60 dark:hover:bg-slate-800/70 transition cursor-pointer"
         aria-label="Active Project Switcher"
       >
         {projects.map((p) => (
-          <option key={p.id} value={p.id} className="text-zinc-200 bg-zinc-900 font-medium py-1">
+          <option key={p.id} value={p.id} className="text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 font-medium py-1">
             [{p.key}] {p.name}
           </option>
         ))}
         {onOpenProjectsModal && (
-          <option value="__manage__" className="text-zinc-200 bg-zinc-900 font-medium py-1">
+          <option value="__manage__" className="text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 font-medium py-1">
             ⚙️ Projects Directory...
           </option>
         )}
       </select>
-      <ChevronDown className="w-4 h-4 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+      <ChevronDown className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
     </div>
   );
 }
