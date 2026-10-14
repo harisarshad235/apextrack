@@ -42,7 +42,8 @@ export async function GET(
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to fetch attachment';
-    return NextResponse.json({ error: message }, { status: 500 });
+    const status = message.includes('Unauthenticated') ? 401 : message.includes('Unauthorized') ? 403 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
