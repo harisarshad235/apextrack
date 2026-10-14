@@ -22,7 +22,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/favicon') ||
     pathname.includes('.')
   ) {
-    return withSecurityHeaders(NextResponse.next());
+    return NextResponse.next();
   }
 
   // 2. Allow public marketing pages and auth flows without middleware redirection loops
@@ -36,7 +36,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/reset-password') ||
     pathname.startsWith('/awaiting-approval')
   ) {
-    return withSecurityHeaders(NextResponse.next());
+    return NextResponse.next();
   }
 
   // 3. Protected workspace routes (e.g. /dashboard, /projects):
@@ -54,7 +54,7 @@ export function middleware(request: NextRequest) {
     return withSecurityHeaders(NextResponse.redirect(loginUrl));
   }
 
-  return withSecurityHeaders(NextResponse.next());
+  return NextResponse.next();
 }
 
 export const config = {
