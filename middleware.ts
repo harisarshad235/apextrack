@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow static files, api routes, icons, and assets
+  // 1. Allow static assets, API endpoints, icons, and files
   if (
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
@@ -15,33 +15,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const sessionCookie =
-    request.cookies.get('kynov_session')?.value ||
-    request.cookies.get('apex_session')?.value ||
-    request.cookies.get('apex_session_user_id')?.value;
-  const devCookie =
-    request.cookies.get('kynov_dev_user_id')?.value ||
-    request.cookies.get('apex_dev_user_id')?.value;
-  const isAuthenticated = Boolean(sessionCookie || devCookie);
-
-  const isExplicitOverview =
-    request.nextUrl.searchParams.get('overview') === 'true' ||
-    request.nextUrl.searchParams.get('preview') === 'true';
-
-  // 1. Authenticated users: redirect root and auth pages to /dashboard
-  if (isAuthenticated) {
-    if (
-      (pathname === '/' && !isExplicitOverview) ||
-      pathname.startsWith('/login') ||
-      pathname.startsWith('/register') ||
-      pathname.startsWith('/signup')
-    ) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
-    return NextResponse.next();
-  }
-
-  // 2. Unauthenticated visitors: allow marketing landing, explicit overview, and auth flows
+  // 2. Allow public marketing pages and auth flows without middleware redirection loops
   if (
     pathname === '/' ||
     pathname.startsWith('/landing') ||
@@ -55,9 +29,22 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 3. Protected workspace routes: redirect unauthenticated visitor to /login
-  const loginUrl = new URL('/login', request.url);
-  return NextResponse.redirect(loginUrl);
+  // 3. Protected workspace routes (e.g. /dashboard, /projects):
+  // Check if session cookie exists. If none, redirect to /login.
+  const sessionCookie =
+    request.cookies.get('kynov_session')?.value ||
+    request.cookies.get('apex_session')?.value ||
+    request.cookies.get('apex_session_user_id')?.value;
+  const devCookie =
+    request.cookies.get('kynov_dev_user_id')?.value ||
+    request.cookies.get('apex_dev_user_id')?.value;
+
+  if (!sessionCookie && !devCookie) {
+    const loginUrl = new URL('/login', request.url);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {

@@ -329,7 +329,9 @@ export async function resetPassword(data: { token: string; newPassword: string }
 export async function logoutUser() {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_USER_COOKIE);
+  cookieStore.delete('apex_session');
   cookieStore.delete('apex_session_user_id');
   cookieStore.delete(DEV_USER_COOKIE);
+  cookieStore.delete('apex_dev_user_id');
   redirect('/login');
 }
