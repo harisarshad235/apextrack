@@ -20,7 +20,7 @@ function readEnvFromFile(key: string): string | undefined {
     const path = require('path');
     const envFiles = ['.env.local', '.env', '.dev.vars'];
     for (const file of envFiles) {
-      const fullPath = path.resolve(process.cwd(), file);
+      const fullPath = path.resolve(/*turbopackIgnore: true*/ process.cwd(), file);
       if (fs.existsSync(fullPath)) {
         const content = fs.readFileSync(fullPath, 'utf8');
         const lines = content.split('\n');

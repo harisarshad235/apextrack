@@ -16,11 +16,16 @@ import {
   ChevronLeft,
   ChevronRight,
   Flame,
+  CheckCircle2,
+  Layers,
+  Sparkles,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { FullIssue, User, Swimlane, Sprint } from '@/lib/types';
 import { getTypeConfig, getPriorityConfig } from '@/lib/config';
 import { UserAvatar } from '@/components/ui/UserAvatar';
 import { getActiveSprintAction } from '@/app/actions/sprints';
+import { VelocityMetricsWidget } from './VelocityMetricsWidget';
 
 interface KanbanBoardProps {
   issues: FullIssue[];
@@ -35,6 +40,7 @@ interface KanbanBoardProps {
   isViewer: boolean;
   currentUserId?: string;
   onNavigateToBacklog?: () => void;
+  onQuickCreateIssue?: (initialStatus?: string) => void;
 }
 
 const DEFAULT_WIP_LIMITS: Record<string, number> = {
@@ -44,11 +50,33 @@ const DEFAULT_WIP_LIMITS: Record<string, number> = {
 
 const getDotColor = (name: string) => {
   const lower = name.toLowerCase();
-  if (lower.includes('to do') || lower.includes('backlog')) return 'bg-zinc-400';
-  if (lower.includes('progress') || lower.includes('dev')) return 'bg-blue-500';
-  if (lower.includes('review') || lower.includes('qa') || lower.includes('test')) return 'bg-amber-500';
-  if (lower.includes('done') || lower.includes('closed') || lower.includes('complete')) return 'bg-emerald-500';
-  return 'bg-blue-400';
+  if (lower.includes('to do') || lower.includes('backlog')) return 'bg-cyan-400';
+  if (lower.includes('progress') || lower.includes('dev')) return 'bg-amber-400';
+  if (lower.includes('review') || lower.includes('qa') || lower.includes('test')) return 'bg-indigo-400';
+  if (lower.includes('done') || lower.includes('closed') || lower.includes('complete')) return 'bg-emerald-400';
+  return 'bg-cyan-400';
+};
+
+const getColBadgeColor = (name: string) => {
+  const lower = name.toLowerCase();
+  if (lower.includes('to do') || lower.includes('backlog')) return 'bg-[#171B24] border border-[#232836] text-slate-300';
+  if (lower.includes('progress') || lower.includes('dev')) return 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
+  if (lower.includes('review') || lower.includes('qa') || lower.includes('test')) return 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30';
+  if (lower.includes('done') || lower.includes('closed') || lower.includes('complete')) return 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+  return 'bg-[#171B24] border border-[#232836] text-slate-300';
+};
+
+const getStatusTag = (status: string) => {
+  const lower = status.toLowerCase();
+  if (lower.includes('to do') || lower.includes('backlog'))
+    return { label: 'To Do', dot: 'bg-cyan-400', text: 'text-cyan-400', bg: 'bg-cyan-500/10 border border-cyan-500/20' };
+  if (lower.includes('progress') || lower.includes('dev'))
+    return { label: 'In Progress', dot: 'bg-amber-400', text: 'text-amber-400', bg: 'bg-amber-500/10 border border-amber-500/20' };
+  if (lower.includes('review') || lower.includes('qa') || lower.includes('test'))
+    return { label: 'In Review', dot: 'bg-indigo-400', text: 'text-indigo-400', bg: 'bg-indigo-500/10 border border-indigo-500/20' };
+  if (lower.includes('done') || lower.includes('closed') || lower.includes('complete'))
+    return { label: 'Done', dot: 'bg-emerald-400', text: 'text-emerald-400', bg: 'bg-emerald-500/10 border border-emerald-500/20' };
+  return { label: status, dot: 'bg-cyan-400', text: 'text-cyan-400', bg: 'bg-cyan-500/10 border border-cyan-500/20' };
 };
 
 export function KanbanBoardView({
@@ -64,8 +92,10 @@ export function KanbanBoardView({
   isViewer,
   currentUserId,
   onNavigateToBacklog,
+  onQuickCreateIssue,
 }: KanbanBoardProps) {
   const [draggedIssueId, setDraggedIssueId] = useState<string | null>(null);
+  const [dragOverLaneId, setDragOverLaneId] = useState<string | null>(null);
   const [dropErrorToast, setDropErrorToast] = useState<string | null>(null);
   const [onlyMine, setOnlyMine] = useState(false);
   const [onlyFlagged, setOnlyFlagged] = useState(false);
@@ -101,13 +131,15 @@ export function KanbanBoardView({
           currentProjectId !== 'default' ? currentProjectId : undefined
         );
         if (isMounted) {
-          setActiveSprint(res || null);
+          setActiveSprint(res);
+          setLoadingSprint(false);
         }
       } catch (err) {
         console.error('Failed to load active sprint:', err);
-        if (isMounted) setActiveSprint(null);
-      } finally {
-        if (isMounted) setLoadingSprint(false);
+        if (isMounted) {
+          setActiveSprint(null);
+          setLoadingSprint(false);
+        }
       }
     }
 
@@ -116,10 +148,10 @@ export function KanbanBoardView({
     const handleSprintUpdate = () => {
       loadSprint();
     };
-    window.addEventListener('apextrack:sprint-updated', handleSprintUpdate);
+    window.addEventListener('kynov:sprint-updated', handleSprintUpdate);
     return () => {
       isMounted = false;
-      window.removeEventListener('apextrack:sprint-updated', handleSprintUpdate);
+      window.removeEventListener('kynov:sprint-updated', handleSprintUpdate);
     };
   }, [currentProjectId, sprints]);
 
@@ -128,19 +160,18 @@ export function KanbanBoardView({
       onNavigateToBacklog();
       return;
     }
-    const buttons = Array.from(document.querySelectorAll('button'));
-    const backlogBtn = buttons.find((b) =>
-      b.textContent?.toLowerCase().includes('backlog')
-    );
-    if (backlogBtn) {
-      backlogBtn.click();
+    const backlogTabBtn = document.querySelector('button[title="Sprint Backlog"]') as HTMLButtonElement | null;
+    if (backlogTabBtn) {
+      backlogTabBtn.click();
     }
   };
 
   const [wipLimits, setWipLimits] = useState<Record<string, number>>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem(`apextrack_wip_limits_${currentProjectId}`);
+        const saved =
+          localStorage.getItem(`kynov_wip_limits_${currentProjectId}`) ||
+          localStorage.getItem(`apextrack_wip_limits_${currentProjectId}`);
         if (saved) return JSON.parse(saved);
       } catch (e) {
         console.error('Failed to parse WIP limits from localStorage', e);
@@ -149,34 +180,22 @@ export function KanbanBoardView({
     return DEFAULT_WIP_LIMITS;
   });
 
-  // Re-sync WIP limits whenever active project changes
-  useEffect(() => {
-    if (typeof window !== 'undefined' && currentProjectId) {
-      try {
-        const saved = localStorage.getItem(`apextrack_wip_limits_${currentProjectId}`);
-        if (saved) {
-          setWipLimits(JSON.parse(saved));
-          return;
-        }
-      } catch (e) {
-        console.error('Failed to parse WIP limits from localStorage', e);
-      }
-      setWipLimits(DEFAULT_WIP_LIMITS);
-    }
-  }, [currentProjectId]);
-
   const [editingWipLaneId, setEditingWipLaneId] = useState<string | null>(null);
   const [wipInputVal, setWipInputVal] = useState<string>('');
 
   const handleSaveWipLimit = (laneName: string) => {
+    const parsed = parseInt(wipInputVal.trim(), 10);
+    const updated = { ...wipLimits };
     const key = laneName.toLowerCase();
-    const parsed = parseInt(wipInputVal, 10);
-    const newLimit = isNaN(parsed) || parsed < 0 ? 0 : parsed;
-    const updated = { ...wipLimits, [key]: newLimit };
+    if (isNaN(parsed) || parsed <= 0) {
+      delete updated[key];
+    } else {
+      updated[key] = parsed;
+    }
     setWipLimits(updated);
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem(`apextrack_wip_limits_${currentProjectId}`, JSON.stringify(updated));
+        localStorage.setItem(`kynov_wip_limits_${currentProjectId}`, JSON.stringify(updated));
       } catch (e) {
         console.error('Failed to save WIP limits to localStorage', e);
       }
@@ -201,12 +220,22 @@ export function KanbanBoardView({
     e.dataTransfer.setData('text/plain', issueId);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent, laneId: string) => {
     e.preventDefault();
+    if (dragOverLaneId !== laneId) {
+      setDragOverLaneId(laneId);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent, laneId: string) => {
+    if (dragOverLaneId === laneId) {
+      setDragOverLaneId(null);
+    }
   };
 
   const handleDrop = (e: React.DragEvent, columnStatus: string) => {
     e.preventDefault();
+    setDragOverLaneId(null);
     const issueId = e.dataTransfer.getData('text/plain') || draggedIssueId;
     if (issueId) {
       const draggedIssue = issues.find((i) => i.key === issueId);
@@ -309,7 +338,7 @@ export function KanbanBoardView({
       projectId: 'default',
       name: 'To Do',
       statusKey: 'To Do',
-      color: 'border-black/[0.06] dark:border-[#263348] bg-slate-100/70 dark:bg-[#111723]',
+      color: 'border-[#232836] bg-[#11141B]',
       sortOrder: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -319,7 +348,7 @@ export function KanbanBoardView({
       projectId: 'default',
       name: 'In Progress',
       statusKey: 'In Progress',
-      color: 'border-black/[0.06] dark:border-[#263348] bg-slate-100/70 dark:bg-[#111723]',
+      color: 'border-[#232836] bg-[#11141B]',
       sortOrder: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -329,7 +358,7 @@ export function KanbanBoardView({
       projectId: 'default',
       name: 'In Review',
       statusKey: 'In Review',
-      color: 'border-black/[0.06] dark:border-[#263348] bg-slate-100/70 dark:bg-[#111723]',
+      color: 'border-[#232836] bg-[#11141B]',
       sortOrder: 2,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -339,7 +368,7 @@ export function KanbanBoardView({
       projectId: 'default',
       name: 'Done',
       statusKey: 'Done',
-      color: 'border-black/[0.06] dark:border-[#263348] bg-slate-100/70 dark:bg-[#111723]',
+      color: 'border-[#232836] bg-[#11141B]',
       sortOrder: 3,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -359,6 +388,16 @@ export function KanbanBoardView({
       (i.sprintId === activeSprint.id || (i as any).sprint_id === activeSprint.id)
   );
 
+  const totalSprintPoints = activeSprintIssues.reduce(
+    (acc, curr) => acc + (Number(curr.storyPoints) || 0),
+    0
+  );
+  const completedSprintPoints = activeSprintIssues
+    .filter((i) => i.status.toLowerCase() === 'done')
+    .reduce((acc, curr) => acc + (Number(curr.storyPoints) || 0), 0);
+  const sprintCompletionRate =
+    totalSprintPoints > 0 ? Math.round((completedSprintPoints / totalSprintPoints) * 100) : 0;
+
   const visibleIssues = activeSprintIssues
     .filter((i) => !onlyMine || (!!currentUserId && i.assigneeId === currentUserId))
     .filter((i) => !onlyFlagged || i.isFlagged === true);
@@ -367,16 +406,16 @@ export function KanbanBoardView({
     : visibleIssues;
 
   const pillClass = (active: boolean, tone: string) =>
-    `flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors duration-150 flex-shrink-0 ${
+    `flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all duration-150 flex-shrink-0 hover:scale-[1.02] active:scale-95 cursor-pointer shadow-xs ${
       active
         ? tone
-        : 'bg-white dark:bg-[#151c28] border-slate-200 dark:border-[#263348] text-slate-600 dark:text-slate-300 hover:border-blue-400/50 hover:text-slate-900 dark:hover:text-slate-100'
+        : 'bg-white dark:bg-[#11141B] border-slate-200 dark:border-[#232836] text-slate-600 dark:text-slate-300 hover:border-[#343C50]'
     }`;
 
   return (
     <div className="flex flex-col h-full space-y-3">
       {dropErrorToast && (
-        <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/50 text-rose-200 text-xs font-semibold flex items-center justify-between shadow-lg animate-in fade-in">
+        <div className="p-3 rounded-xl bg-rose-950/80 border border-rose-500/50 text-rose-200 text-xs font-semibold flex items-center justify-between shadow-xl animate-in fade-in">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
             <span>{dropErrorToast}</span>
@@ -386,505 +425,595 @@ export function KanbanBoardView({
           </button>
         </div>
       )}
-      {/* Quick Filter Bar (Single Horizontal Scrolling Row) */}
-      <div className="flex items-center justify-between gap-3 flex-shrink-0">
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none whitespace-nowrap w-full">
+
+      {/* Board Header Bar: Sprint Info & Velocity Sparklines Widget */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 flex-shrink-0">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none whitespace-nowrap w-full sm:w-auto">
           {activeSprint && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-semibold flex-shrink-0">
-              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/25 text-cyan-600 dark:text-cyan-400 text-xs font-semibold flex-shrink-0">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
               <span>{activeSprint.name}</span>
               {activeSprint.goal && (
-                <span className="text-[11px] opacity-75 hidden sm:inline max-w-[200px] truncate font-normal">
+                <span className="text-[11px] opacity-75 hidden md:inline max-w-[200px] truncate font-normal">
                   — {activeSprint.goal}
                 </span>
               )}
             </div>
           )}
+
           <button
             onClick={() => setOnlyMine((v) => !v)}
-            className={pillClass(onlyMine, 'bg-blue-600 border-blue-600 text-white')}
+            className={pillClass(onlyMine, 'bg-indigo-600 border-indigo-600 text-white shadow-indigo-500/25')}
           >
-            <Zap className="w-3.5 h-3.5" /> Only My Issues
+            <Zap className="w-3.5 h-3.5" /> My Issues
           </button>
           <button
             onClick={() => setOnlyFlagged((v) => !v)}
-            className={pillClass(onlyFlagged, 'bg-amber-500 border-amber-500 text-white')}
+            className={pillClass(onlyFlagged, 'bg-amber-500 border-amber-500 text-white shadow-amber-500/25')}
           >
-            <Flag className="w-3.5 h-3.5" /> Flagged Blockers
+            <Flag className="w-3.5 h-3.5" /> Flagged
           </button>
           <button
             onClick={() => setRecentFirst((v) => !v)}
-            className={pillClass(recentFirst, 'bg-emerald-600 border-emerald-600 text-white')}
+            className={pillClass(recentFirst, 'bg-emerald-600 border-emerald-600 text-white shadow-emerald-500/25')}
           >
-            <Clock className="w-3.5 h-3.5" /> Recently Updated
+            <Clock className="w-3.5 h-3.5" /> Recent
           </button>
         </div>
+
+        {/* Inline Velocity Mini-Sparklines Widget */}
+        {activeSprint && (
+          <VelocityMetricsWidget
+            completedPoints={completedSprintPoints}
+            totalPoints={totalSprintPoints}
+            completionRate={sprintCompletionRate}
+            sprintName={activeSprint.name}
+            daysRemaining={6}
+          />
+        )}
       </div>
 
       {loadingSprint ? (
         <div className="flex-1 flex flex-col items-center justify-center p-8 min-h-[350px]">
-          <div className="flex items-center gap-2.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
-            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-            <span>Loading active sprint...</span>
+          <div className="flex items-center gap-2.5 text-xs text-slate-400 font-medium">
+            <div className="w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+            <span>Loading active sprint metrics...</span>
           </div>
         </div>
       ) : !activeSprint ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center min-h-[420px] rounded-2xl border border-dashed border-slate-300 dark:border-[#263348] bg-white/40 dark:bg-[#151c28]/40 my-4">
-          <div className="max-w-md w-full p-8 rounded-2xl border border-slate-200 dark:border-[#263348] bg-white dark:bg-[#151c28] shadow-xl flex flex-col items-center text-center transition-colors">
-            <div className="w-14 h-14 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center mb-4 ring-8 ring-blue-500/5">
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center min-h-[420px] rounded-2xl border border-dashed border-slate-300 dark:border-[#232836] bg-slate-50/50 dark:bg-[#11141B]/40 my-4">
+          <div className="max-w-md w-full p-8 rounded-2xl border border-slate-200 dark:border-[#232836] bg-white dark:bg-[#11141B] shadow-2xl flex flex-col items-center text-center transition-colors">
+            <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center mb-4 ring-8 ring-cyan-500/5">
               <Zap className="w-7 h-7" />
             </div>
             <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 mb-2">
-              No Active Sprint
+              No Active Sprint in Progress
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed max-w-sm">
-              The board only displays tasks belonging to the active sprint. Start a planned sprint from your backlog to track work here.
+              The Kanban Board displays active sprint workflow tasks. Start a planned sprint from your backlog to track velocity and card flow here.
             </p>
             <button
               onClick={handleGoToBacklog}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md hover:shadow-lg transition active:scale-95 cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white text-xs font-semibold shadow-lg shadow-indigo-500/25 transition active:scale-95 cursor-pointer"
             >
-              No active sprint. Visit the Backlog to start your next sprint.
+              Go to Backlog &amp; Start Sprint →
             </button>
           </div>
         </div>
       ) : (
         <>
           {/* Mobile Sticky Lane Navigation Pills (< md screens) */}
-          <div className="md:hidden flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none sticky top-0 z-10 bg-[#f8fafc] dark:bg-[#0b0f17] py-1 border-b border-slate-200 dark:border-[#263348]">
-        {activeLanes.map((lane) => {
-          const count = sortedIssues.filter(
-            (i) => i.status.toLowerCase() === lane.name.toLowerCase()
-          ).length;
-          return (
-            <button
-              key={lane.id}
-              onClick={() => scrollToLane(lane.id)}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-[#151c28] border border-slate-200 dark:border-[#263348] text-slate-700 dark:text-slate-300 flex-shrink-0 active:scale-95 transition"
-            >
-              <span>{lane.name}</span>
-              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-black/5 dark:bg-white/10 text-slate-500 dark:text-slate-400">
-                {count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+          <div className="md:hidden flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none sticky top-0 z-10 bg-slate-50 dark:bg-[#0A0C10] py-1 border-b border-slate-200 dark:border-[#232836]">
+            {activeLanes.map((lane) => {
+              const count = sortedIssues.filter(
+                (i) => i.status.toLowerCase() === lane.name.toLowerCase()
+              ).length;
+              return (
+                <button
+                  key={lane.id}
+                  onClick={() => scrollToLane(lane.id)}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-white dark:bg-[#11141B] border border-slate-200 dark:border-[#232836] text-slate-700 dark:text-slate-300 flex-shrink-0 active:scale-95 transition"
+                >
+                  <span>{lane.name}</span>
+                  <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-black/5 dark:bg-white/10 text-slate-400">
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
-      {/* Kanban Columns Snap-Carousel Container */}
-      <div
-        ref={boardScrollRef}
-        onScroll={updateScrollProgress}
-        className="flex gap-4 flex-1 min-h-0 items-start overflow-x-auto pb-4 board-scrollbar snap-x snap-mandatory md:snap-none"
-      >
-        {activeLanes.map((lane) => {
-          const colIssues = sortedIssues.filter(
-            (i) => i.status.toLowerCase() === lane.name.toLowerCase()
-          );
-          const wipLimit = wipLimits[lane.name.toLowerCase()];
-          const overWip = wipLimit !== undefined && wipLimit > 0 && colIssues.length > wipLimit;
-          const colPoints = colIssues.reduce(
-            (acc, curr) => acc + (Number(curr.storyPoints) || 0),
-            0
-          );
+          {/* Kanban Columns Snap Container */}
+          <div
+            ref={boardScrollRef}
+            onScroll={updateScrollProgress}
+            className="flex gap-4 flex-1 min-h-0 items-start overflow-x-auto pb-4 board-scrollbar snap-x snap-mandatory md:snap-none"
+          >
+            {activeLanes.map((lane) => {
+              const colIssues = sortedIssues.filter(
+                (i) => i.status.toLowerCase() === lane.name.toLowerCase()
+              );
+              const wipLimit = wipLimits[lane.name.toLowerCase()];
+              const overWip = wipLimit !== undefined && wipLimit > 0 && colIssues.length > wipLimit;
+              const colPoints = colIssues.reduce(
+                (acc, curr) => acc + (Number(curr.storyPoints) || 0),
+                0
+              );
+              const isEditingThisLane = editingLaneId === lane.id;
+              const isDragOver = dragOverLaneId === lane.id;
 
-          const isEditingThisLane = editingLaneId === lane.id;
+              return (
+                <div
+                  key={lane.id}
+                  ref={(el) => {
+                    colRefs.current[lane.id] = el;
+                  }}
+                  onDragOver={(e) => handleDragOver(e, lane.id)}
+                  onDragLeave={(e) => handleDragLeave(e, lane.id)}
+                  onDrop={(e) => handleDrop(e, lane.name)}
+                  className={`flex flex-col w-[86vw] sm:w-[320px] md:w-80 flex-shrink-0 snap-center md:snap-align-none max-h-full rounded-2xl border p-3.5 shadow-sm transition-all duration-200 ${
+                    isDragOver
+                      ? 'drop-zone-pulse border-cyan-500/80 bg-cyan-500/5'
+                      : 'border-slate-200/80 dark:border-[#232836] bg-slate-100/70 dark:bg-[#11141B]/90 backdrop-blur-sm'
+                  }`}
+                >
+                  {/* Column Header */}
+                  <div className="flex items-center justify-between pb-3 px-1 border-b border-slate-200/80 dark:border-[#232836]">
+                    {isEditingThisLane ? (
+                      <div className="flex items-center gap-1.5 w-full">
+                        <input
+                          type="text"
+                          autoFocus
+                          value={editingLaneName}
+                          onChange={(e) => setEditingLaneName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveEditLane(lane.id);
+                            if (e.key === 'Escape') setEditingLaneId(null);
+                          }}
+                          className="flex-1 text-xs font-bold px-2 py-1 rounded bg-white dark:bg-[#171B24] border border-cyan-500 text-slate-900 dark:text-slate-100 focus:outline-none"
+                        />
+                        <button
+                          onClick={() => handleSaveEditLane(lane.id)}
+                          className="p-1 rounded bg-cyan-600 text-white hover:bg-cyan-700"
+                          title="Save Column Name"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setEditingLaneId(null)}
+                          className="p-1 rounded bg-slate-200 dark:bg-[#232836] text-slate-600 dark:text-slate-300 hover:bg-slate-300"
+                          title="Cancel"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2 min-w-0 group">
+                          <span className="font-bold text-xs text-slate-800 dark:text-slate-100 tracking-tight truncate">
+                            {lane.name}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-xs ${getColBadgeColor(
+                              lane.name
+                            )}`}
+                          >
+                            {colIssues.length}
+                          </span>
 
-          return (
-            <div
-              key={lane.id}
-              ref={(el) => {
-                colRefs.current[lane.id] = el;
-              }}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDrop(e, lane.name)}
-              className="flex flex-col w-[86vw] sm:w-[320px] md:w-80 flex-shrink-0 snap-center md:snap-align-none max-h-full rounded-xl border border-slate-200 dark:border-[#263348] bg-slate-100/70 dark:bg-[#111723] p-3.5 transition-colors"
-            >
-              {/* Column Header */}
-              <div className="flex items-center justify-between pb-3 px-1 border-b border-slate-200 dark:border-[#263348]">
-                {isEditingThisLane ? (
-                  <div className="flex items-center gap-1.5 w-full">
+                          {/* Interactive WIP Limit Pill */}
+                          <div className="relative flex items-center">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isViewer) return;
+                                setEditingWipLaneId(editingWipLaneId === lane.id ? null : lane.id);
+                                setWipInputVal(
+                                  wipLimit !== undefined && wipLimit > 0 ? String(wipLimit) : ''
+                                );
+                              }}
+                              className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md font-bold flex-shrink-0 flex items-center gap-0.5 transition cursor-pointer ${
+                                overWip
+                                  ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse'
+                                  : 'bg-black/5 dark:bg-[#171B24] text-slate-400 hover:text-slate-200'
+                              }`}
+                              title={
+                                isViewer
+                                  ? undefined
+                                  : `Set WIP Limit (Current: ${wipLimit || 'Unlimited'})`
+                              }
+                            >
+                              <span>{wipLimit && wipLimit > 0 ? `Max ${wipLimit}` : ''}</span>
+                              {!isViewer && (
+                                <Edit2 className="w-2.5 h-2.5 opacity-40 group-hover:opacity-90 transition-opacity" />
+                              )}
+                            </button>
+
+                            {/* Floating Popover Tooltip for Setting WIP Limit */}
+                            {editingWipLaneId === lane.id && (
+                              <div className="absolute top-full left-0 mt-1.5 z-40 bg-white dark:bg-[#171B24] border border-slate-200 dark:border-[#232836] rounded-xl p-2.5 shadow-2xl flex flex-col gap-2 min-w-[160px] animate-in fade-in zoom-in-95 duration-100">
+                                <div className="flex items-center justify-between text-[10px] font-semibold text-slate-400 uppercase tracking-wider font-mono">
+                                  <span>Set WIP Limit</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingWipLaneId(null)}
+                                    className="text-slate-400 hover:text-slate-200 p-0.5 rounded"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={99}
+                                    placeholder="0"
+                                    value={wipInputVal}
+                                    onChange={(e) => setWipInputVal(e.target.value)}
+                                    className="w-14 text-xs font-mono font-bold bg-slate-100 dark:bg-[#0A0C10] text-slate-100 border border-[#232836] rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-cyan-500 text-center"
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') handleSaveWipLimit(lane.name);
+                                      if (e.key === 'Escape') setEditingWipLaneId(null);
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSaveWipLimit(lane.name)}
+                                    className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shadow-xs transition"
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                    <span>Save</span>
+                                  </button>
+                                </div>
+                                <span className="text-[9px] text-slate-500 font-mono">
+                                  0 = unlimited
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {!isViewer && (
+                            <button
+                              onClick={() => handleStartEditLane(lane)}
+                              className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-cyan-400 rounded transition"
+                              title="Rename Column"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Velocity Points Badge & Quick Add Task Trigger */}
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <span className="text-[11px] font-mono text-slate-400 font-medium px-1.5 py-0.5 rounded bg-black/5 dark:bg-[#171B24] border border-transparent dark:border-[#232836]">
+                            {colPoints} pts
+                          </span>
+
+                          {!isViewer && (
+                            <button
+                              onClick={() => {
+                                if (onQuickCreateIssue) {
+                                  onQuickCreateIssue(lane.name);
+                                }
+                              }}
+                              className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-[#171B24] text-slate-400 hover:text-cyan-400 transition cursor-pointer"
+                              title={`Quick Add Task in ${lane.name}`}
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+
+                          {!isViewer && activeLanes.length > 1 && (
+                            <button
+                              onClick={() => {
+                                if (
+                                  confirm(
+                                    `Delete swimlane "${lane.name}"? Tasks inside will be re-assigned.`
+                                  )
+                                ) {
+                                  onDeleteSwimlane(lane.id);
+                                }
+                              }}
+                              className="p-1 text-slate-400 hover:text-rose-500 rounded transition"
+                              title="Delete Swimlane"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Droppable Card List with Fluid Motion & Drop Zone affordance */}
+                  <div className="flex-1 overflow-y-auto space-y-3 pt-3 min-h-[350px] scrollbar-none">
+                    {colIssues.map((issue) => {
+                      const typeCfg = getTypeConfig(issue.type);
+                      const priorityCfg = getPriorityConfig(issue.priority);
+                      const assignee = issue.assignee;
+                      const TypeIcon = typeCfg.icon;
+                      const totalSubtasks = issue.subtasks?.length || 0;
+                      const completedSubtasks =
+                        issue.subtasks?.filter((s) => s.completed).length || 0;
+
+                      return (
+                        <motion.div
+                          key={issue.key}
+                          layout
+                          whileHover={{ y: -3, scale: 1.01 }}
+                          whileTap={{ scale: 0.99 }}
+                          transition={{ duration: 0.15, ease: 'easeOut' }}
+                          draggable={!isViewer}
+                          onDragStart={(e) => handleDragStart(e as any, issue.key)}
+                          onClick={() => onSelectIssue(issue.key)}
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              onSelectIssue(issue.key);
+                            }
+                          }}
+                          className={`rounded-2xl p-4 transition-all duration-200 cursor-pointer group shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${
+                            issue.isFlagged
+                              ? 'bg-amber-500/10 border border-amber-500/60 hover:border-amber-400'
+                              : 'bg-white dark:bg-[#11141B] border border-slate-200/80 dark:border-[#232836] hover:border-[#343C50] hover:shadow-lg dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.5)]'
+                          }`}
+                        >
+                          {/* Top Row: Type Pill, Key & Status */}
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${typeCfg.color}`}
+                              >
+                                <TypeIcon className="w-3 h-3" />
+                                <span>{issue.type}</span>
+                              </span>
+
+                              <span className="font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-tight">
+                                {issue.key}
+                              </span>
+
+                              {issue.isFlagged && (
+                                <span
+                                  className="p-0.5 rounded bg-amber-500 text-white"
+                                  title="Flagged impediment"
+                                >
+                                  <Flag className="w-3 h-3" />
+                                </span>
+                              )}
+
+                              {issue.blockedByIssues &&
+                                issue.blockedByIssues.some(
+                                  (b) => b.status.toLowerCase() !== 'done'
+                                ) && (
+                                  <span
+                                    className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                                    title="Blocked by unresolved dependencies"
+                                  >
+                                    Blocked
+                                  </span>
+                                )}
+                            </div>
+
+                            {/* Priority Icon Pill */}
+                            <span
+                              className={`text-[10px] px-2 py-0.5 rounded-md font-mono ${priorityCfg.color}`}
+                              title={`Priority: ${issue.priority}`}
+                            >
+                              {priorityCfg.icon}
+                            </span>
+                          </div>
+
+                          {/* Parent Epic Tag */}
+                          {issue.parent && (
+                            <div className="mb-1.5">
+                              <span
+                                className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold tracking-tight bg-purple-500/10 text-purple-400 border border-purple-500/25"
+                              >
+                                {issue.parent.key}: {issue.parent.title}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* High-Contrast Title */}
+                          <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 line-clamp-2 leading-snug mb-1.5 group-hover:text-cyan-400 transition-colors">
+                            {issue.title}
+                          </h4>
+
+                          {/* Description Snippet */}
+                          {issue.description && (
+                            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-3 leading-relaxed">
+                              {issue.description.replace(/[#*`_\[\]()]/g, '')}
+                            </p>
+                          )}
+
+                          {/* Labels Multi-Tag Pills */}
+                          {issue.labels && issue.labels.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-2.5">
+                              {issue.labels.slice(0, 3).map((lbl, idx) => (
+                                <span
+                                  key={idx}
+                                  className="text-[10px] bg-slate-100 dark:bg-[#171B24] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-[#232836] px-1.5 py-0.5 rounded-md font-mono"
+                                >
+                                  #{lbl}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Subtask Progress Bar (if any) */}
+                          {totalSubtasks > 0 && (
+                            <div className="mb-3 space-y-1">
+                              <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                                <span className="flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3 text-cyan-400" />
+                                  Subtasks
+                                </span>
+                                <span>
+                                  {completedSubtasks}/{totalSubtasks}
+                                </span>
+                              </div>
+                              <div className="w-full bg-slate-200 dark:bg-[#171B24] rounded-full h-1 overflow-hidden">
+                                <div
+                                  className="bg-cyan-400 h-1 rounded-full transition-all duration-300"
+                                  style={{
+                                    width: `${(completedSubtasks / totalSubtasks) * 100}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Footer: Due Date, Story Points, Comments & Assignee with Active Status Dot */}
+                          <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 dark:border-[#232836] text-xs text-slate-400">
+                            <div className="flex items-center gap-2">
+                              {issue.storyPoints && (
+                                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#171B24] border border-slate-200 dark:border-[#232836] text-cyan-400">
+                                  {issue.storyPoints} pts
+                                </span>
+                              )}
+                              {issue.comments?.length > 0 && (
+                                <span className="flex items-center gap-1 text-[11px] text-slate-400">
+                                  <MessageSquare className="w-3 h-3" />
+                                  {issue.comments.length}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {/* Assignee Avatar with active presence dot */}
+                              <div className="relative inline-block">
+                                <UserAvatar
+                                  user={assignee}
+                                  size="xs"
+                                  title={assignee ? `Assignee: ${assignee.name}` : 'Unassigned'}
+                                />
+                                {assignee && (
+                                  <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-400 ring-1 ring-[#11141B]" />
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+
+                    {colIssues.length === 0 && (
+                      <div className="h-28 border border-dashed border-slate-300 dark:border-[#232836] rounded-2xl flex flex-col items-center justify-center gap-1 text-xs text-slate-500">
+                        <span>Drop tasks here</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Add New Swimlane Column Trigger / Inline Form */}
+            {!isViewer && (
+              <div className="w-[86vw] sm:w-[320px] md:w-80 flex-shrink-0 snap-center md:snap-align-none">
+                {isAddingLane ? (
+                  <form
+                    onSubmit={handleAddLaneSubmit}
+                    className="p-4 rounded-2xl bg-white dark:bg-[#11141B] border border-slate-200 dark:border-[#232836] shadow-xl space-y-3"
+                  >
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">
+                      New Column
+                    </h4>
                     <input
                       type="text"
                       autoFocus
-                      value={editingLaneName}
-                      onChange={(e) => setEditingLaneName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSaveEditLane(lane.id);
-                        if (e.key === 'Escape') setEditingLaneId(null);
-                      }}
-                      className="flex-1 text-xs font-bold px-2 py-1 rounded bg-white dark:bg-[#1e293b] border border-blue-500 text-slate-900 dark:text-slate-100 focus:outline-none"
+                      placeholder="e.g. Staging, QA, Blocked"
+                      value={newLaneName}
+                      onChange={(e) => setNewLaneName(e.target.value)}
+                      className="w-full text-xs bg-slate-50 dark:bg-[#171B24] border border-slate-300 dark:border-[#232836] rounded-xl p-2.5 text-slate-100 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                     />
-                    <button
-                      onClick={() => handleSaveEditLane(lane.id)}
-                      className="p-1 rounded bg-blue-600 text-white hover:bg-blue-700"
-                      title="Save Swimlane Name"
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => setEditingLaneId(null)}
-                      className="p-1 rounded bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-300"
-                      title="Cancel"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAddingLane(false);
+                          setNewLaneName('');
+                        }}
+                        className="px-3 py-1.5 text-xs text-slate-400 hover:bg-[#171B24] rounded-lg cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-3 py-1.5 text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg shadow-sm cursor-pointer"
+                      >
+                        Add Column
+                      </button>
+                    </div>
+                  </form>
                 ) : (
-                  <>
-                    <div className="flex items-center gap-2 min-w-0 group">
-                      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getDotColor(lane.name)}`} />
-                      <span className="font-semibold text-xs uppercase tracking-wider text-slate-700 dark:text-zinc-400 truncate">
-                        {lane.name}
-                      </span>
-
-                      {/* Interactive WIP Limit Pill & Compact Popover */}
-                      <div className="relative flex items-center">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (isViewer) return;
-                            setEditingWipLaneId(editingWipLaneId === lane.id ? null : lane.id);
-                            setWipInputVal(wipLimit !== undefined && wipLimit > 0 ? String(wipLimit) : '');
-                          }}
-                          className={`text-[11px] font-mono px-2 py-0.5 rounded-md font-bold flex-shrink-0 flex items-center gap-1 transition cursor-pointer ${
-                            overWip
-                              ? 'bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse'
-                              : 'bg-black/5 dark:bg-white/5 text-slate-600 dark:text-zinc-400 hover:bg-black/10 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-zinc-200'
-                          }`}
-                          title={isViewer ? undefined : `Set WIP Limit (Current: ${wipLimit || 'Unlimited'})`}
-                        >
-                          <span>
-                            {colIssues.length}
-                            {wipLimit && wipLimit > 0 ? `/${wipLimit}` : ''}
-                          </span>
-                          {!isViewer && (
-                            <Edit2 className="w-2.5 h-2.5 opacity-40 group-hover:opacity-90 transition-opacity" />
-                          )}
-                        </button>
-
-                        {/* Floating Popover Tooltip for Setting WIP Limit */}
-                        {editingWipLaneId === lane.id && (
-                          <div className="absolute top-full left-0 mt-1.5 z-40 bg-white dark:bg-[#151c28] border border-slate-200 dark:border-[#263348] rounded-xl p-2.5 shadow-xl flex flex-col gap-2 min-w-[160px] animate-in fade-in zoom-in-95 duration-100">
-                            <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider font-mono">
-                              <span>Set WIP Limit</span>
-                              <button
-                                type="button"
-                                onClick={() => setEditingWipLaneId(null)}
-                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <input
-                                type="number"
-                                min={0}
-                                max={99}
-                                placeholder="0"
-                                value={wipInputVal}
-                                onChange={(e) => setWipInputVal(e.target.value)}
-                                className="w-14 text-xs font-mono font-bold bg-slate-100 dark:bg-[#1e293b] text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-[#263348] rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 text-center"
-                                autoFocus
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') handleSaveWipLimit(lane.name);
-                                  if (e.key === 'Escape') setEditingWipLaneId(null);
-                                }}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleSaveWipLimit(lane.name)}
-                                className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition"
-                                title="Save WIP Limit"
-                              >
-                                <Check className="w-3.5 h-3.5" />
-                                <span>Save</span>
-                              </button>
-                            </div>
-                            <span className="text-[9px] text-slate-400 dark:text-slate-500 font-mono">
-                              0 = unlimited
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {!isViewer && (
-                        <button
-                          onClick={() => handleStartEditLane(lane)}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-blue-600 rounded transition"
-                          title="Rename Swimlane"
-                        >
-                          <Edit3 className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 font-medium">
-                        {colPoints} pts
-                      </span>
-                      {!isViewer && activeLanes.length > 1 && (
-                        <button
-                          onClick={() => {
-                            if (confirm(`Delete swimlane "${lane.name}"? Any tasks inside will be moved to another lane.`)) {
-                              onDeleteSwimlane(lane.id);
-                            }
-                          }}
-                          className="p-1 text-slate-400 hover:text-red-500 rounded transition"
-                          title="Delete Swimlane"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
-                  </>
+                  <button
+                    onClick={() => setIsAddingLane(true)}
+                    className="w-full py-4 border-2 border-dashed border-slate-300 hover:border-cyan-500 dark:border-[#232836] dark:hover:border-cyan-400 rounded-2xl text-xs font-semibold text-slate-500 hover:text-cyan-400 dark:text-slate-400 dark:hover:text-cyan-400 flex items-center justify-center gap-2 transition bg-slate-50/50 hover:bg-cyan-500/5 dark:bg-[#11141B]/40 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" /> Add Column
+                  </button>
                 )}
               </div>
-
-              {/* Droppable Card List */}
-              <div className="flex-1 overflow-y-auto space-y-3 pt-3 min-h-[350px]">
-                {colIssues.map((issue) => {
-                  const typeCfg = getTypeConfig(issue.type);
-                  const priorityCfg = getPriorityConfig(issue.priority);
-                  const assignee = issue.assignee;
-                  const TypeIcon = typeCfg.icon;
-
-                  return (
-                    <div
-                      key={issue.key}
-                      draggable={!isViewer}
-                      onDragStart={(e) => handleDragStart(e, issue.key)}
-                      onClick={() => onSelectIssue(issue.key)}
-                      className={`rounded-xl p-3.5 transition-all duration-150 cursor-pointer group shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:shadow-none hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] ${
-                        issue.isFlagged
-                          ? 'bg-amber-500/10 border border-amber-500/60 hover:border-amber-500'
-                          : 'bg-white dark:bg-[#151c28] border border-slate-200 dark:border-[#263348] hover:border-blue-400/50 dark:hover:border-blue-500/50'
-                      }`}
-                    >
-                      {/* Top Row: Type, Key, Priority & Edit Action */}
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className={`p-1 rounded border ${typeCfg.color}`}>
-                            <TypeIcon className="w-3.5 h-3.5" />
-                          </span>
-                          <span className="font-mono text-xs font-semibold text-slate-500 dark:text-slate-400 tracking-tight group-hover:text-blue-500 transition">
-                            {issue.key}
-                          </span>
-                          {issue.isFlagged && (
-                            <span
-                              className="p-0.5 rounded bg-amber-500 text-white"
-                              title="Flagged impediment"
-                            >
-                              <Flag className="w-3 h-3" />
-                            </span>
-                          )}
-                          {issue.blockedByIssues && issue.blockedByIssues.some((b) => b.status.toLowerCase() !== 'done') && (
-                            <span
-                              className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30"
-                              title="Blocked by unresolved dependencies"
-                            >
-                              Blocked
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${priorityCfg.color}`}
-                          >
-                            {priorityCfg.icon} {issue.priority}
-                          </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onSelectIssue(issue.key);
-                            }}
-                            className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-[#1e293b] rounded transition"
-                            title="Edit Task Details"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Parent Epic Tag */}
-                      {issue.parent && (
-                        <div className="mb-1.5">
-                          <span
-                            className="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold tracking-tight"
-                            style={{
-                              backgroundColor: `${issue.parent.epicColor || '#3B82F6'}15`,
-                              color: issue.parent.epicColor || '#3B82F6',
-                              border: `1px solid ${issue.parent.epicColor || '#3B82F6'}30`,
-                            }}
-                          >
-                            {issue.parent.key}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Title */}
-                      <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug mb-2.5">
-                        {issue.title}
-                      </h4>
-
-                      {/* Labels */}
-                      {issue.labels && issue.labels.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-3">
-                          {issue.labels.slice(0, 3).map((lbl, idx) => (
-                            <span
-                              key={idx}
-                              className="text-[10px] bg-slate-100 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-[#263348] px-1.5 py-0.5 rounded"
-                            >
-                              {lbl}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Footer: Attachments, Comments, Story Points, Assignee */}
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-[#263348]/60 text-xs text-slate-400 dark:text-slate-400">
-                        <div className="flex items-center gap-3">
-                          {issue.attachments?.length > 0 && (
-                            <span className="flex items-center gap-1 text-[11px]">
-                              <Paperclip className="w-3 h-3" />
-                              {issue.attachments.length}
-                            </span>
-                          )}
-                          {issue.comments?.length > 0 && (
-                            <span className="flex items-center gap-1 text-[11px]">
-                              <MessageSquare className="w-3 h-3" />
-                              {issue.comments.length}
-                            </span>
-                          )}
-                          <span className="text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-mono px-1.5 py-0.5 rounded font-bold">
-                            {issue.storyPoints || 0} pts
-                          </span>
-                        </div>
-
-                        <UserAvatar
-                          user={assignee}
-                          size="xs"
-                          title={assignee ? `Assignee: ${assignee.name}` : 'Unassigned'}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {colIssues.length === 0 && (
-                  <div className="h-28 border border-dashed border-slate-300 dark:border-[#263348] rounded-xl flex items-center justify-center text-xs text-slate-400 dark:text-slate-500">
-                    Drop tasks here
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Add New Swimlane Column Trigger / Inline Form */}
-        {!isViewer && (
-          <div className="w-[86vw] sm:w-[320px] md:w-80 flex-shrink-0 snap-center md:snap-align-none">
-            {isAddingLane ? (
-              <form
-                onSubmit={handleAddLaneSubmit}
-                className="p-4 rounded-2xl bg-white dark:bg-[#151c28] border border-slate-200 dark:border-[#263348] shadow-md space-y-3"
-              >
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
-                  New Swimlane
-                </h4>
-                <input
-                  type="text"
-                  autoFocus
-                  placeholder="e.g. Staging, QA, Blocked"
-                  value={newLaneName}
-                  onChange={(e) => setNewLaneName(e.target.value)}
-                  className="w-full text-xs bg-slate-50 dark:bg-[#1e293b] border border-slate-300 dark:border-[#263348] rounded-lg p-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-                <div className="flex items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAddingLane(false);
-                      setNewLaneName('');
-                    }}
-                    className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1e293b] rounded-lg"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-xs"
-                  >
-                    Add Swimlane
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <button
-                onClick={() => setIsAddingLane(true)}
-                className="w-full py-4 border-2 border-dashed border-slate-300 hover:border-blue-500 dark:border-[#263348] dark:hover:border-blue-400 rounded-2xl text-xs font-semibold text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 flex items-center justify-center gap-2 transition bg-slate-50/50 hover:bg-blue-50/20 dark:bg-[#151c28]/40"
-              >
-                <Plus className="w-4 h-4" /> Add Swimlane
-              </button>
             )}
           </div>
-        )}
-      </div>
 
-      {/* Bottom Horizontal Slider Navigation Strip (Matches Screenshot 1) */}
-      <div className="flex-shrink-0 pt-2 pb-1 border-t border-slate-200 dark:border-[#263348] flex flex-col sm:flex-row items-center justify-between gap-3 select-none">
-        {/* Left: Quick Jump Lane Badges */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none max-w-full">
-          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mr-1 hidden sm:inline">
-            Columns:
-          </span>
-          {activeLanes.map((lane) => (
-            <button
-              key={lane.id}
-              onClick={() => scrollToLane(lane.id)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-white dark:bg-[#151c28] border border-slate-200 dark:border-[#263348] hover:border-blue-500/40 text-slate-700 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-[#1e293b] cursor-pointer"
-              title={`Jump to ${lane.name}`}
-            >
-              <span className={`w-1.5 h-1.5 rounded-full ${getDotColor(lane.name)}`} />
-              <span className="truncate max-w-[100px]">{lane.name}</span>
-            </button>
-          ))}
-        </div>
+          {/* Bottom Horizontal Slider Navigation Strip */}
+          <div className="flex-shrink-0 pt-2 pb-1 border-t border-slate-200 dark:border-[#232836] flex flex-col sm:flex-row items-center justify-between gap-3 select-none">
+            {/* Quick Jump Column Badges */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none max-w-full">
+              <span className="text-[10px] font-mono text-slate-500 font-bold uppercase tracking-wider mr-1 hidden sm:inline">
+                Columns:
+              </span>
+              {activeLanes.map((lane) => (
+                <button
+                  key={lane.id}
+                  onClick={() => scrollToLane(lane.id)}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium bg-white dark:bg-[#11141B] border border-slate-200 dark:border-[#232836] hover:border-cyan-500/40 text-slate-700 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-[#171B24] cursor-pointer"
+                  title={`Jump to ${lane.name}`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${getDotColor(lane.name)}`} />
+                  <span className="truncate max-w-[100px]">{lane.name}</span>
+                </button>
+              ))}
+            </div>
 
-        {/* Right: Interactive Horizontal Scroll Slider & Arrow Controls */}
-        <div className="flex items-center gap-2 w-full sm:w-auto sm:min-w-[260px] max-w-sm">
-          <button
-            onClick={() => scrollByDelta(-320)}
-            className="p-1 rounded-lg bg-white dark:bg-[#151c28] border border-slate-200 dark:border-[#263348] hover:bg-slate-100 dark:hover:bg-[#1e293b] text-slate-600 dark:text-slate-300 transition active:scale-95 cursor-pointer"
-            title="Scroll Left"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
+            {/* Horizontal Scroll Slider & Arrow Controls */}
+            <div className="flex items-center gap-2 w-full sm:w-auto sm:min-w-[260px] max-w-sm">
+              <button
+                onClick={() => scrollByDelta(-320)}
+                className="p-1 rounded-lg bg-white dark:bg-[#11141B] border border-slate-200 dark:border-[#232836] hover:bg-slate-100 dark:hover:bg-[#171B24] text-slate-400 hover:text-white transition active:scale-95 cursor-pointer"
+                title="Scroll Left"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
 
-          <div className="relative flex-1 flex items-center">
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={scrollProgress}
-              onChange={(e) => handleSliderChange(Number(e.target.value))}
-              className="w-full h-1.5 bg-slate-200 dark:bg-[#1e293b] rounded-lg appearance-none cursor-pointer accent-blue-600 hover:accent-blue-500 transition"
-              title="Drag horizontal slider across columns"
-            />
+              <div className="relative flex-1 flex items-center">
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={scrollProgress}
+                  onChange={(e) => handleSliderChange(Number(e.target.value))}
+                  className="w-full h-1.5 bg-slate-200 dark:bg-[#171B24] rounded-lg appearance-none cursor-pointer accent-cyan-500 hover:accent-cyan-400 transition"
+                  title="Drag horizontal slider across columns"
+                />
+              </div>
+
+              <button
+                onClick={() => scrollByDelta(320)}
+                className="p-1 rounded-lg bg-white dark:bg-[#11141B] border border-slate-200 dark:border-[#232836] hover:bg-slate-100 dark:hover:bg-[#171B24] text-slate-400 hover:text-white transition active:scale-95 cursor-pointer"
+                title="Scroll Right"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-
-          <button
-            onClick={() => scrollByDelta(320)}
-            className="p-1 rounded-lg bg-white dark:bg-[#151c28] border border-slate-200 dark:border-[#263348] hover:bg-slate-100 dark:hover:bg-[#1e293b] text-slate-600 dark:text-slate-300 transition active:scale-95 cursor-pointer"
-            title="Scroll Right"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
         </>
       )}
     </div>
   );
 }
 
+export default KanbanBoardView;

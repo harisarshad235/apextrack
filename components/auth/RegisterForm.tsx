@@ -84,10 +84,10 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
         <input
           type="email"
           required
-          placeholder="jordan.v@apextrack.io"
+          placeholder="jordan.v@kynov.io"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full text-sm bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
+          className="w-full text-sm bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition"
         />
       </div>
 

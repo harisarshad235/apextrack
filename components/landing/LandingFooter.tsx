@@ -3,17 +3,17 @@
 import React from 'react';
 import Link from 'next/link';
 import { ShieldCheck, Cloud, Lock, Sparkles, Heart } from 'lucide-react';
-import { ApexLogo } from '@/components/brand/ApexLogo';
+import { KynovLogo } from '@/components/brand/KynovLogo';
 
 export function LandingFooter() {
   return (
-    <footer className="border-t border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-[#070b12] text-slate-600 dark:text-slate-400 text-xs">
+    <footer className="border-t border-slate-200/80 dark:border-[#232836] bg-slate-50/60 dark:bg-[#0A0C10] text-slate-600 dark:text-slate-400 text-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-12">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           {/* Brand Column */}
           <div className="col-span-2 space-y-4">
             <Link href="/" className="inline-flex items-center gap-2 group hover:opacity-90 transition">
-              <ApexLogo size={26} showWordmark={true} />
+              <KynovLogo size="md" variant="full" subtitle="Agile Velocity & Sprint Tracking" />
             </Link>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm leading-relaxed">
               The high-performance Agile Project Management &amp; Knowledge Base platform built for modern engineering teams. Powered by Cloudflare D1 Edge SQLite.
@@ -111,7 +111,7 @@ export function LandingFooter() {
 
         {/* Bottom Badges & Copyright */}
         <div className="pt-8 border-t border-slate-200/80 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500 dark:text-slate-400">
-          <p>© 2026 ApexTrack Inc. All rights reserved.</p>
+          <p>© 2026 Kynov Inc. All rights reserved.</p>
 
           <div className="flex items-center gap-4 flex-wrap">
             <span className="flex items-center gap-1">

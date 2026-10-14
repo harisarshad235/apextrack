@@ -26,7 +26,7 @@ export async function GET(
     return NextResponse.redirect(url);
   }
 
-  return NextResponse.json({ message: 'ApexTrack OAuth Gateway Active' });
+  return NextResponse.json({ message: 'Kynov OAuth Gateway Active' });
 }
 
 export async function POST(

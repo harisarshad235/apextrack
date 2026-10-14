@@ -80,7 +80,7 @@ export function StartSprintModal({
 
       if (res.success) {
         if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('apextrack:sprint-updated'));
+          window.dispatchEvent(new CustomEvent('kynov:sprint-updated'));
         }
         onSprintStarted?.({
           ...sprint,

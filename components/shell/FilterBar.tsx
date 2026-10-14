@@ -91,7 +91,7 @@ export function FilterBar({
         )}
       </div>
 
-      {/* Jira Sprint Pulse Metrics */}
+      {/* Kynov Sprint Pulse Metrics */}
       <div className="flex items-center gap-4 text-slate-500 dark:text-slate-400">
         <div className="flex items-center gap-1.5">
           <span className="font-semibold text-slate-800 dark:text-slate-200">

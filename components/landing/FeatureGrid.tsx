@@ -28,30 +28,30 @@ export function FeatureGrid() {
             Engineered for Precision, Speed, and Scale
           </h2>
           <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
-            Eliminate multi-tool sprawl. ApexTrack brings sprint lifecycles, project governance, and documentation together in a single, high-performance edge platform.
+            Eliminate multi-tool sprawl. Kynov brings sprint lifecycles, project governance, and documentation together in a single, high-performance edge platform.
           </p>
         </div>
 
         {/* 4 Cards Showcase Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Card 1: Jira-Style Agile Sprints */}
+          {/* Card 1: High-Velocity Agile Sprints */}
           <div
             id="sprints"
-            className="group relative rounded-3xl p-8 border border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-[#0c121e]/60 backdrop-blur-xl shadow-xl hover:border-blue-500/50 transition duration-300 space-y-6"
+            className="group relative rounded-3xl p-8 border border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-[#0c121e]/60 backdrop-blur-xl shadow-xl hover:border-indigo-500/50 transition duration-300 space-y-6"
           >
-            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
               <Kanban className="w-6 h-6" />
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
                   Agile Core
                 </span>
-                <span className="text-xs font-semibold text-slate-400">Jira Parity</span>
+                <span className="text-xs font-semibold text-slate-400">High Velocity</span>
               </div>
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                Jira-Style Agile Sprints
+                High-Velocity Agile Sprints
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                 Plan, start, and complete multi-sprint lifecycles with transaction-safe state transitions. Track story points, original and remaining hour estimates, and real-time burndown velocity.
@@ -122,7 +122,7 @@ export function FeatureGrid() {
             </div>
           </div>
 
-          {/* Card 3: Confluence-Style Knowledge Base */}
+          {/* Card 3: Integrated Engineering Knowledge Base */}
           <div
             id="docs"
             className="group relative rounded-3xl p-8 border border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-[#0c121e]/60 backdrop-blur-xl shadow-xl hover:border-emerald-500/50 transition duration-300 space-y-6"
@@ -136,10 +136,10 @@ export function FeatureGrid() {
                 <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                   Docs &amp; Specs
                 </span>
-                <span className="text-xs font-semibold text-slate-400">Confluence Parity</span>
+                <span className="text-xs font-semibold text-slate-400">Knowledge Hub</span>
               </div>
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                Confluence-Style Knowledge Base
+                Integrated Knowledge Base
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                 Centralized architectural decisions, runbooks, and product specifications. Rich markdown formatting, instant multi-document full-text search, and Cloudflare R2 file attachments.
@@ -209,16 +209,16 @@ export function FeatureGrid() {
         </div>
 
         {/* CTA Banner */}
-        <div className="rounded-3xl p-8 sm:p-12 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-6 shadow-2xl">
+        <div className="rounded-3xl p-8 sm:p-12 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-6 shadow-2xl shadow-indigo-500/20">
           <div className="space-y-2 max-w-xl">
             <h3 className="text-2xl font-bold">Ready to modernize your engineering sprint cycle?</h3>
-            <p className="text-sm text-blue-100 leading-relaxed">
+            <p className="text-sm text-indigo-100 leading-relaxed">
               Start free today with Google or GitHub OAuth. No credit card required.
             </p>
           </div>
           <Link
             href="/signup"
-            className="px-6 py-3 rounded-2xl bg-white text-blue-600 hover:bg-blue-50 font-bold text-xs sm:text-sm shadow-lg whitespace-nowrap transition active:scale-95 flex items-center gap-2"
+            className="px-6 py-3 rounded-2xl bg-white text-indigo-600 hover:bg-slate-50 font-bold text-xs sm:text-sm shadow-lg whitespace-nowrap transition-all duration-300 active:scale-95 flex items-center gap-2"
           >
             <span>Get Started Free</span>
             <ArrowRight className="w-4 h-4" />

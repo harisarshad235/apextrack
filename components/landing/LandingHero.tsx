@@ -31,27 +31,27 @@ export function LandingHero({ currentUser }: LandingHeroProps) {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
         {/* Release Pill Badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 text-blue-700 dark:text-blue-300 text-xs font-semibold shadow-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <Sparkles className="w-3.5 h-3.5 text-blue-500" />
-          <span>ApexTrack Enterprise 1.0</span>
-          <span className="w-1 h-1 rounded-full bg-blue-400" />
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/80 text-indigo-700 dark:text-indigo-300 text-xs font-semibold shadow-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+          <span>Kynov Enterprise 1.0</span>
+          <span className="w-1 h-1 rounded-full bg-indigo-400" />
           <span className="font-normal text-slate-500 dark:text-slate-400">
-            Jira-Parity &amp; Project RBAC
+            High-Velocity Agile &amp; Project RBAC
           </span>
         </div>
 
         {/* Catchy Headline */}
         <div className="max-w-4xl mx-auto space-y-4">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.12]">
-            The Agile Management Platform Built for{' '}
-            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent">
+            The Agile Management Engine Built for{' '}
+            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-500 bg-clip-text text-transparent">
               Modern Engineering Teams.
             </span>
           </h1>
 
           {/* Sub-headline */}
           <p className="max-w-2xl mx-auto text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
-            Sprint planning, Jira-style lifecycles, and Project-Level RBAC without the legacy bloat. Ship faster with automated burndown metrics, issue hierarchies, and real-time collaboration.
+            Sprint planning, flexible issue lifecycles, and Project-Level RBAC without legacy bloat. Ship faster with automated burndown metrics, issue hierarchies, and real-time collaboration.
           </p>
         </div>
 
@@ -61,7 +61,7 @@ export function LandingHero({ currentUser }: LandingHeroProps) {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
                 href="/dashboard"
-                className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm shadow-xl shadow-blue-500/25 flex items-center justify-center gap-2 transition active:scale-95"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:via-indigo-500 hover:to-violet-500 text-white font-semibold text-sm shadow-xl shadow-indigo-500/25 flex items-center justify-center gap-2 transition-all duration-300 active:scale-95"
               >
                 <span>Open Your Workspace</span>
                 <ArrowRight className="w-4 h-4" />
@@ -82,7 +82,7 @@ export function LandingHero({ currentUser }: LandingHeroProps) {
                 />
                 <button
                   type="submit"
-                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs sm:text-sm whitespace-nowrap transition shadow-sm active:scale-95 cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:via-indigo-500 hover:to-violet-500 text-white font-semibold text-xs sm:text-sm whitespace-nowrap transition-all duration-300 shadow-md shadow-indigo-500/25 active:scale-95 cursor-pointer"
                 >
                   Start Free
                 </button>

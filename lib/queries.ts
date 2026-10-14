@@ -49,8 +49,8 @@ export async function getWorkspaceData(): Promise<{
   if (projectList.length === 0) {
     const defaultProj = {
       id: 'proj-apex',
-      key: 'APEX',
-      name: 'ApexTrack Platform',
+      key: 'KYN',
+      name: 'Kynov Platform',
       description: 'Core enterprise agile tracking and architecture knowledge base.',
       category: 'Software',
       leadId: userList[0]?.id || null,

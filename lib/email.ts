@@ -1,8 +1,8 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 const RESEND_API_URL = 'https://api.resend.com/emails';
-const DEFAULT_FROM = 'ApexTrack <notifications@harisarshad.site>';
-const FALLBACK_FROM = 'ApexTrack <onboarding@resend.dev>';
+const DEFAULT_FROM = 'Kynov <notifications@harisarshad.site>';
+const FALLBACK_FROM = 'Kynov <onboarding@resend.dev>';
 const ADMIN_NOTIFICATION_EMAIL = 'harisarshad235@gmail.com';
 
 function getEnvVar(key: string): string | undefined {
@@ -45,7 +45,7 @@ export async function sendEmail({ to, subject, html, text, from, replyTo }: Send
       html,
       reply_to: replyAddress,
       headers: {
-        'X-Entity-Ref-ID': `apextrack-${Date.now()}`,
+        'X-Entity-Ref-ID': `kynov-${Date.now()}`,
       },
     };
 
@@ -89,11 +89,11 @@ export async function sendEmail({ to, subject, html, text, from, replyTo }: Send
  * Includes both HTML and plain-text (RFC 2046 multipart/alternative) to maximize inbox deliverability.
  */
 export async function sendPasswordResetEmail(toEmail: string, resetLink: string): Promise<{ success: boolean; error?: string }> {
-  const subject = 'Reset your ApexTrack password';
+  const subject = 'Reset your Kynov password';
   
   const text = `Hello,
 
-We received a request to reset your password for your ApexTrack account (${toEmail}).
+We received a request to reset your password for your Kynov account (${toEmail}).
 
 To choose a new password, click the link below or copy and paste it into your browser:
 ${resetLink}
@@ -103,7 +103,7 @@ This link is valid for 15 minutes.
 If you did not request a password reset, you can safely ignore this email. Your existing password will remain unchanged.
 
 Best regards,
-ApexTrack Team
+Kynov Team
 https://apex.harisarshad.site
 Support: harisarshad235@gmail.com`;
 
@@ -114,7 +114,7 @@ Support: harisarshad235@gmail.com`;
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Reset your ApexTrack password</title>
+  <title>Reset your Kynov password</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0b0f19; color: #e2e8f0; margin: 0; padding: 32px 16px; }
     .container { max-width: 520px; margin: 0 auto; background-color: #111827; border: 1px solid #1f2937; border-radius: 14px; padding: 32px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4); }
@@ -134,12 +134,12 @@ Support: harisarshad235@gmail.com`;
 <body>
   <div class="container">
     <div class="brand">
-      <div class="brand-title">ApexTrack</div>
+      <div class="brand-title">Kynov</div>
       <span class="brand-sub">ACCOUNT RECOVERY</span>
     </div>
     <h1>Password Reset Request</h1>
     <p>Hello,</p>
-    <p>We received a request to reset the password for your ApexTrack account associated with <strong>${toEmail}</strong>.</p>
+    <p>We received a request to reset the password for your Kynov account associated with <strong>${toEmail}</strong>.</p>
     <p>Click the button below to choose a new password. This link will expire in <strong>15 minutes</strong> for security.</p>
     
     <div class="btn-container">
@@ -156,8 +156,8 @@ Support: harisarshad235@gmail.com`;
     </div>
 
     <div class="footer">
-      ApexTrack Agile & Architecture Platform<br>
-      © 2026 ApexTrack. Need help? Reply to this email or contact support.
+      Kynov Agile &amp; Knowledge Base Platform<br>
+      © 2026 Kynov. Need help? Reply to this email or contact support.
     </div>
   </div>
 </body>
@@ -175,7 +175,7 @@ export async function sendAdminNewUserAlert(
   newUserName?: string,
   department?: string
 ): Promise<{ success: boolean; error?: string }> {
-  const subject = `[ApexTrack Alert] New user pending approval: ${newUserEmail}`;
+  const subject = `[Kynov Alert] New user pending approval: ${newUserEmail}`;
   const name = newUserName || 'A new user';
   const dept = department || 'General';
 
@@ -201,7 +201,7 @@ export async function sendAdminNewUserAlert(
 </head>
 <body>
   <div class="container">
-    <div class="brand-title">ApexTrack Access Control</div>
+    <div class="brand-title">Kynov Access Control</div>
     <h1>New Account Registration Awaiting Approval</h1>
     <p>A new user has registered and is currently in the <strong>PENDING</strong> holding queue.</p>
     
@@ -212,17 +212,17 @@ export async function sendAdminNewUserAlert(
       <div class="row"><span class="label">Status:</span> <span class="badge">PENDING APPROVAL</span></div>
     </div>
 
-    <p>You can approve or adjust role privileges from the <strong>Team & Access</strong> control center inside ApexTrack.</p>
+    <p>You can approve or adjust role privileges from the <strong>Team & Access</strong> control center inside Kynov.</p>
 
     <div class="footer">
-      ApexTrack Workspace Admin Alerts
+      Kynov Workspace Admin Alerts
     </div>
   </div>
 </body>
 </html>
   `;
 
-  const text = `ApexTrack Admin Alert
+  const text = `Kynov Admin Alert
 
 New user pending approval:
 Name: ${name}
@@ -256,9 +256,9 @@ export async function sendMentionNotificationEmail({
   commentSnippet: string;
   issueUrl: string;
 }): Promise<{ success: boolean; error?: string }> {
-  const subject = `[ApexTrack] ${actorName} mentioned you on ${issueKey}`;
+  const subject = `[Kynov] ${actorName} mentioned you on ${issueKey}`;
 
-  const text = `ApexTrack Notification
+  const text = `Kynov Notification
 
 Hello ${recipientName || 'there'},
 
@@ -266,12 +266,12 @@ ${actorName} tagged you in a comment on ${issueKey}: ${issueTitle}
 
 "${commentSnippet}"
 
-Open Issue in ApexTrack:
+Open Issue in Kynov:
 ${issueUrl}
 
 ---
-You received this email because you were mentioned on ApexTrack.
-ApexTrack Agile & Issue Tracking Platform`;
+You received this email because you were mentioned on Kynov.
+Kynov Agile & Knowledge Base Platform`;
 
   const html = `
 <!DOCTYPE html>
@@ -389,7 +389,7 @@ ApexTrack Agile & Issue Tracking Platform`;
 <body>
   <div class="container">
     <div class="brand">
-      <div class="brand-title">ApexTrack Notification</div>
+      <div class="brand-title">Kynov Notification</div>
       <span class="brand-badge">${issueKey}</span>
     </div>
 
@@ -402,7 +402,7 @@ ApexTrack Agile & Issue Tracking Platform`;
     </div>
 
     <div class="btn-container">
-      <a href="${issueUrl}" class="btn" target="_blank" rel="noopener noreferrer">Open Issue in ApexTrack</a>
+      <a href="${issueUrl}" class="btn" target="_blank" rel="noopener noreferrer">Open Issue in Kynov</a>
     </div>
 
     <div class="fallback">
@@ -411,7 +411,7 @@ ApexTrack Agile & Issue Tracking Platform`;
 
     <div class="footer">
       Project &amp; Workspace Reference: ${issueKey}<br>
-      You received this email because you were mentioned on ApexTrack.
+      You received this email because you were mentioned on Kynov.
     </div>
   </div>
 </body>

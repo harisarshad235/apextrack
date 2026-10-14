@@ -1,23 +1,23 @@
--- ApexTrack Operations Manual & User Guide Update Script
--- To apply to local D1:  npx wrangler d1 execute apextrack_db --local --file=./db/update_manual.sql
--- To apply to remote D1: npx wrangler d1 execute apextrack_db --remote --file=./db/update_manual.sql
+-- Kynov Operations Manual & User Guide Update Script
+-- To apply to local D1:  npx wrangler d1 execute kynov_db --local --file=./db/update_manual.sql
+-- To apply to remote D1: npx wrangler d1 execute kynov_db --remote --file=./db/update_manual.sql
 
 UPDATE documents
-SET title = 'ApexTrack System Architecture, RBAC & Operations Manual',
-    content = '# ApexTrack System Architecture, RBAC & Operations Manual
+SET title = 'Kynov System Architecture, RBAC & Operations Manual',
+    content = '# Kynov System Architecture, RBAC & Operations Manual
 
-> **Executive Overview**: ApexTrack is an enterprise-grade, zero-per-seat-cost serverless alternative to Jira Software and Atlassian Confluence. It is architected from the ground up on Cloudflare edge primitives (Next.js 16 App Router on Cloudflare Workers, Cloudflare D1 distributed SQLite, and Cloudflare R2 zero-egress object storage).
+> **Executive Overview**: Kynov is an enterprise-grade, zero-per-seat-cost serverless alternative to legacy issue trackers and documentation tools. It is architected from the ground up on Cloudflare edge primitives (Next.js 16 App Router on Cloudflare Workers, Cloudflare D1 distributed SQLite, and Cloudflare R2 zero-egress object storage).
 
 ---
 
 ## 1. Visual UI Map & Workspace Layout Guide
 
-Below is the complete ASCII wireframe layout map of the ApexTrack Workspace interface:
+Below is the complete ASCII wireframe layout map of the Kynov Workspace interface:
 
 ```
 +-------------------------------------------------------------------------------------------------------------+
-|                                           APEXTRACK WORKSPACE HEADER                                        |
-| [Logo] ApexTrack  [Search: "APEX-101, bug, label..."]   [Theme]  [🔔 (2)]  [+ Create Issue]  [+ New Doc]  (Avatar) |
+|                                           KYNOV WORKSPACE HEADER                                        |
+| [Logo] Kynov  [Search: "KYN-101, bug, label..."]   [Theme]  [🔔 (2)]  [+ Create Issue]  [+ New Doc]  (Avatar) |
 +------------------+------------------------------------------------------------------------------------------+
 | SIDEBAR          | TOP METRICS BAR                                                                          |
 |                  | [Completion Rate: 75%]  [Velocity: 28/35 pts]  [In Flight: 5]  [Open Defects: 2]           |
@@ -30,7 +30,7 @@ Below is the complete ASCII wireframe layout map of the ApexTrack Workspace inte
 | > Velocity Reports| | TO DO          [3]| | IN PROGRESS [WIP 5]| | IN REVIEW  [WIP 4]| | DONE           [8]| |
 |                  | | 0 pts             | | 12 pts            | | 7 pts             | | 28 pts            | |
 |                  | SPRINT STATS     | +-------------------+ +-------------------+ +-------------------+ +-------------------+ |
-| Sprint 24        | | [Story]  APEX-103 | | [Bug] 🚩 APEX-101 | | [Task]   APEX-102 | | [Story]  APEX-104 | |
+| Sprint 24        | | [Story]  KYN-103 | | [Bug] 🚩 KYN-101 | | [Task]   KYN-102 | | [Story]  KYN-104 | |
 | 80% Complete     | | Knowledge Base    | | D1 Database schema| | Kanban drag fix   | | RBAC Auth logic   | |
 |                  | | 8 pts    (Assignee)| | 5 pts    (Assignee)| | 3 pts    (Assignee)| | 5 pts    (Assignee)| |
 | PERSONA SWITCH   | +-------------------+ +-------------------+ +-------------------+ +-------------------+ |
@@ -38,13 +38,13 @@ Below is the complete ASCII wireframe layout map of the ApexTrack Workspace inte
 +------------------+------------------------------------------------------------------------------------------+
 ```
 
-### SLIDE-OUT ISSUE DETAIL DRAWER (Triggers on ticket click, e.g. APEX-101):
+### SLIDE-OUT ISSUE DETAIL DRAWER (Triggers on ticket click, e.g. KYN-101):
 
 ```
 +-------------------------------------------------------------------------------------------------------------+
 | ISSUE DETAIL DRAWER                                                                                  [X]    |
 +-------------------------------------------------------------------------------------------------------------+
-| [Type: Bug v]  APEX-101  [Status: In Progress v]                           [🚩 Add Flag] [🗑️ Delete Issue]   |
+| [Type: Bug v]  KYN-101  [Status: In Progress v]                           [🚩 Add Flag] [🗑️ Delete Issue]   |
 +-------------------------------------------------------------------------------------------------------------+
 | TITLE: Design and connect Cloudflare D1 distributed edge database schema                                    |
 | METADATA: Assignee: Marcus Brody | Reporter: Alex Chen | Priority: ▲▲ Critical | Points: [5 pts]            |
@@ -60,9 +60,9 @@ Below is the complete ASCII wireframe layout map of the ApexTrack Workspace inte
 | [+ Add a subtask and press Enter...]                                                                        |
 +-------------------------------------------------------------------------------------------------------------+
 | LINKED ISSUES (2)                                                                                           |
-| (blocks) [● APEX-102] Kanban drag-and-drop focus drops [In Review] [X]                                      |
+| (blocks) [● KYN-102] Kanban drag-and-drop focus drops [In Review] [X]                                      |
 | (relates to) [● CORE-101] Anycast DNS failover [Dev Implementation] [X]                                     |
-| [Type: blocks v] [Select issue e.g. APEX-105 v] [+ Link]                                                    |
+| [Type: blocks v] [Select issue e.g. KYN-105 v] [+ Link]                                                    |
 +-------------------------------------------------------------------------------------------------------------+
 | ATTACHMENTS (2)                                                                         [+ Attach File]     |
 | 📁 d1_schema_v2.sql (14.5 KB) [⬇️]    📁 edge_latency_benchmark.pdf (1.8 MB) [⬇️]                            |
@@ -101,15 +101,15 @@ Below is the complete ASCII wireframe layout map of the ApexTrack Workspace inte
 4. **WIP Limits**: Swimlane headers set safety caps (`In Progress`: 5, `In Review`: 4). If a column exceeds its WIP limit, the issue counter badge turns bold red (`bg-red-500 text-white animate-pulse`) to alert team members to clear bottlenecks.
 
 #### C. Using the Issue Detail Drawer
-1. Click on any ticket card key (e.g. `APEX-101`) to slide out the Issue Detail Drawer.
+1. Click on any ticket card key (e.g. `KYN-101`) to slide out the Issue Detail Drawer.
 2. **Story Points**: Edit the story point value (0-100) to feed velocity tracking.
 3. **Subtask Checklist**: Type a subtask name in the text box and press `Enter` to create item checklist. Check off completed items to update the progress bar (`X of Y completed`).
-4. **Issue Linking**: Relate tickets by picking a relationship type (`blocks`, `is_blocked_by`, `relates_to`), typing the target key (e.g., `APEX-102`), and clicking **Link**.
+4. **Issue Linking**: Relate tickets by picking a relationship type (`blocks`, `is_blocked_by`, `relates_to`), typing the target key (e.g., `KYN-102`), and clicking **Link**.
 5. **Flagging Impediments**: Click `🚩 Add Flag` in the drawer header. The ticket card turns amber (`bg-amber-500/10 border-amber-500/60`) and displays a flag badge on the board.
 
 #### D. Mentioning Teammates & Notifications
 1. In the Issue Drawer comments box, type a comment containing `@name` (e.g., `@alex`, `@sarah`, `@marcus`).
-2. When posted, ApexTrack parses the mention, identifies the target user, and inserts a notification into `notifications`.
+2. When posted, Kynov parses the mention, identifies the target user, and inserts a notification into `notifications`.
 3. The tagged user receives an unread badge count on the **Notification Bell (`🔔`)** in the top navigation bar. Clicking the bell opens a popover to preview mentions and jump directly to the issue.
 
 ---
@@ -142,7 +142,7 @@ Below is the complete ASCII wireframe layout map of the ApexTrack Workspace inte
 #### B. Emergency Direct Database Promotion (Cloudflare D1 Console)
 If an Admin account is accidentally locked out or emergency access is needed via CLI:
 ```bash
-npx wrangler d1 execute apextrack_db --remote --command="UPDATE users SET status=''APPROVED'', role=''Admin'' WHERE email=''admin@apextrack.io'';"
+npx wrangler d1 execute kynov_db --remote --command="UPDATE users SET status=''APPROVED'', role=''Admin'' WHERE email=''admin@kynov.io'';"
 ```
 
 ---
@@ -151,15 +151,15 @@ npx wrangler d1 execute apextrack_db --remote --command="UPDATE users SET status
 
 ### 3.1 Plain-English Cloudflare Edge Stack Architecture
 
-| Cloudflare Technology | What It Is | Why It Outperforms Traditional Jira |
+| Cloudflare Technology | What It Is | Why It Outperforms Traditional Legacy Platforms |
 | :--- | :--- | :--- |
 | **Next.js on Cloudflare Pages** | Serverless Web Application framework running on V8 edge isolates across 300+ global data centers. | Eliminates centralized origin servers; pages load in <20ms globally without server cold starts. |
 | **Cloudflare D1 SQLite** | Serverless distributed SQL database natively integrated into edge functions. | Zero database server management, zero port configurations, sub-15ms edge read caching. |
 | **Cloudflare R2 Storage** | High-performance object storage for issue and document file attachments. | S3-compatible file storage with **zero bandwidth egress fees**, saving thousands in bandwidth costs. |
 
-### 3.2 Comparison Table: Per-Seat Jira vs. ApexTrack Edge Platform
+### 3.2 Comparison Table: Traditional Per-Seat Tools vs. Kynov Edge Platform
 
-| Feature / Dimension | Traditional Per-Seat Jira | ApexTrack Edge Architecture |
+| Feature / Dimension | Traditional Per-Seat Suites | Kynov Edge Architecture |
 | :--- | :--- | :--- |
 | **Pricing Model** | $8 - $16 per user / month (Expensive scaling) | Open Source / Zero per-seat fee (Cloudflare free/usage tier) |
 | **Global Latency** | 200ms - 1500ms (Centralized US/EU AWS regions) | Sub-20ms worldwide (Anycast Edge deployment) |

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Mail, ArrowLeft, Loader2, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react';
 import { requestPasswordReset } from '@/app/actions/auth';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { ApexTrackLogo } from '@/components/ui/ApexTrackLogo';
+import { KynovLogo } from '@/components/brand/KynovLogo';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -48,11 +48,11 @@ export default function ForgotPasswordPage() {
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-6">
           <div className="mb-3">
-            <ApexTrackLogo size={48} />
+            <KynovLogo size={52} />
           </div>
           <div className="flex items-center gap-1.5">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">ApexTrack</h1>
-            <span className="text-[10px] font-mono font-bold bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Kynov</h1>
+            <span className="text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 px-1.5 py-0.5 rounded">
               v1.0
             </span>
           </div>
@@ -91,7 +91,7 @@ export default function ForgotPasswordPage() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
-              Enter the work email address linked to your ApexTrack workspace account. We will send you a one-time link to set a new password.
+              Enter the work email address linked to your Kynov workspace account. We will send you a one-time link to set a new password.
             </p>
 
             {error && (

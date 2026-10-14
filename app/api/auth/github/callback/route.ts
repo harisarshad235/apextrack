@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     const userRes = await fetch('https://api.github.com/user', {
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        'User-Agent': 'ApexTrack-OAuth',
+        'User-Agent': 'Kynov-OAuth',
       },
     });
 
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
         const emailsRes = await fetch('https://api.github.com/user/emails', {
           headers: {
             Authorization: `Bearer ${accessToken}`,
-            'User-Agent': 'ApexTrack-OAuth',
+            'User-Agent': 'Kynov-OAuth',
           },
         });
         const emailsData = (await emailsRes.json()) as any[];

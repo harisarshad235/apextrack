@@ -3,7 +3,7 @@ import { connection } from 'next/server';
 import { ShieldAlert, RefreshCw, LogOut, CheckCircle2, Clock } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth';
 import { logoutUser } from '@/app/actions/auth';
-import { ApexTrackLogo } from '@/components/ui/ApexTrackLogo';
+import { KynovLogo } from '@/components/brand/KynovLogo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 export const dynamic = 'force-dynamic';
@@ -34,9 +34,9 @@ export default async function AwaitingApprovalPage() {
       <div className="w-full max-w-md bg-white/95 dark:bg-slate-900/90 backdrop-blur-xl border border-amber-500/30 dark:border-amber-500/30 rounded-3xl p-8 shadow-2xl text-center z-10 transition-colors">
         {/* Brand Header */}
         <div className="flex flex-col items-center mb-6">
-          <ApexTrackLogo size={44} className="mb-2" />
+          <KynovLogo size={48} className="mb-2" />
           <div className="flex items-center gap-1.5">
-            <span className="font-bold text-lg text-slate-900 dark:text-white">ApexTrack</span>
+            <span className="font-bold text-lg text-slate-900 dark:text-white">Kynov</span>
             <span className="text-[9px] font-mono font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-1 py-0.2 rounded">
               GATEKEEPER
             </span>

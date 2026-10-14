@@ -2,31 +2,35 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const ROOT_DIR = process.cwd();
-const APP_DIR = path.join(ROOT_DIR, 'app');
 const DOCS_DIR = path.join(ROOT_DIR, 'docs');
-const ASSETS_DIR = path.join(DOCS_DIR, 'assets', 'screenshots');
 const TARGET_MANUAL = path.join(DOCS_DIR, 'USER_OPERATIONS_MANUAL.md');
+const ASSETS_DIR = path.join(DOCS_DIR, 'assets', 'screenshots');
+const APP_DIR = path.join(ROOT_DIR, 'app');
 const PACKAGE_JSON = path.join(ROOT_DIR, 'package.json');
 
-interface RouteInfo {
-  path: string;
-  type: 'Page' | 'API' | 'Action';
-  description: string;
-}
+function getAppRoutes(): string[] {
+  const routes: string[] = [];
 
-function getAppRoutes(): RouteInfo[] {
-  const routes: RouteInfo[] = [
-    { path: '/', type: 'Page', description: 'Main Workspace Dashboard, Kanban Board, Documents, Backlog & Reports' },
-    { path: '/login', type: 'Page', description: 'User Authentication, Persona Fast-Switcher & Gateway' },
-    { path: '/login?tab=register', type: 'Page', description: 'Self-Service User Registration & Onboarding Portal' },
-    { path: '/forgot-password', type: 'Page', description: 'Self-Service Password Recovery Request via Resend Email' },
-    { path: '/reset-password', type: 'Page', description: 'Cryptographic HMAC Token Password Reset & Update Form' },
-    { path: '/awaiting-approval', type: 'Page', description: 'Holding Room for New Accounts Pending Administrator Review' },
-    { path: '/api/auth/logout', type: 'API', description: 'Secure Session Invalidation & Cookie Revocation' },
-    { path: '/api/health', type: 'API', description: 'Edge Runtime & Database Health Check Endpoint' },
-  ];
+  function scan(dir: string, routePrefix = '') {
+    if (!fs.existsSync(dir)) return;
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
 
-  return routes;
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const seg = entry.name;
+        if (seg.startsWith('(') && seg.endsWith(')')) {
+          scan(path.join(dir, seg), routePrefix);
+        } else if (!seg.startsWith('_') && !seg.startsWith('.')) {
+          scan(path.join(dir, seg), `${routePrefix}/${seg}`);
+        }
+      } else if (entry.name === 'page.tsx' || entry.name === 'page.jsx') {
+        routes.push(routePrefix || '/');
+      }
+    }
+  }
+
+  scan(APP_DIR);
+  return Array.from(new Set(routes)).sort();
 }
 
 function getPackageMetadata(): { version: string; name: string } {
@@ -34,11 +38,11 @@ function getPackageMetadata(): { version: string; name: string } {
     const pkgContent = fs.readFileSync(PACKAGE_JSON, 'utf-8');
     const pkg = JSON.parse(pkgContent);
     return {
-      name: pkg.name || 'ApexTrack',
+      name: pkg.name || 'kynov',
       version: pkg.version || '1.0.0',
     };
   } catch (err) {
-    return { name: 'ApexTrack', version: '1.0.0' };
+    return { name: 'kynov', version: '1.0.0' };
   }
 }
 
@@ -49,23 +53,46 @@ function generateHeader(): string {
   const dateStr = now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
 
   let header = `<!-- ========================================================================= -->\n`;
-  header += `<!-- APEXTRACK LIVING DOCUMENTATION MANIFEST & OPERATIONS HANDBOOK             -->\n`;
+  header += `<!-- KYNOV LIVING DOCUMENTATION MANIFEST & OPERATIONS HANDBOOK                  -->\n`;
   header += `<!-- Automatically generated and verified by scripts/generate-docs-manifest.ts -->\n`;
   header += `<!-- ========================================================================= -->\n\n`;
 
-  header += `# ApexTrack User Operations Manual & Visual Handbook\n\n`;
+  header += `# Kynov User Operations Manual & Visual Handbook\n\n`;
   header += `> **Living Documentation Status**: Active & Synchronized  \n`;
   header += `> **Release Version**: \`v${meta.version}\`  \n`;
   header += `> **Target Deployment Environment**: \`Cloudflare Pages Edge (V8 Serverless Isolates)\`  \n`;
   header += `> **Database Engine**: \`Cloudflare D1 Distributed SQLite\`  \n`;
-  header += `> **Object Storage**: \`Cloudflare R2 Zero-Egress Storage\`  \n`;
   header += `> **Last Synchronized**: \`${dateStr}\`  \n\n`;
 
-  header += `## Active Application Route Inventory\n\n`;
-  header += `| Route Path | Type | Functional Purpose |\n`;
+  header += `### Verified Active Route Inventory\n\n`;
+  header += `| Route Path | Scope / Purpose | Access Requirement |\n`;
   header += `| :--- | :--- | :--- |\n`;
   for (const r of routes) {
-    header += `| \`${r.path}\` | \`${r.type}\` | ${r.description} |\n`;
+    let scope = 'Core Application View';
+    let access = 'Authenticated User';
+    if (r === '/') {
+      scope = 'Public Landing & Feature Showcase';
+      access = 'Public';
+    } else if (r.startsWith('/login')) {
+      scope = 'User Sign-In & Authentication Form';
+      access = 'Public / Anonymous';
+    } else if (r.startsWith('/signup')) {
+      scope = 'New User Self-Registration Portal';
+      access = 'Public / Anonymous';
+    } else if (r.startsWith('/awaiting-approval')) {
+      scope = 'Pending Authorization Holding Room';
+      access = 'Registered (Pending Status)';
+    } else if (r.startsWith('/forgot-password')) {
+      scope = 'Tokenized Self-Service Password Recovery';
+      access = 'Public / Anonymous';
+    } else if (r.startsWith('/reset-password')) {
+      scope = 'Password Reset Credential Update';
+      access = 'Token Holder (15-min TTL)';
+    } else if (r.includes('settings')) {
+      scope = 'Project RBAC & Workflow Settings';
+      access = 'Admin Only';
+    }
+    header += `| \`${r}\` | ${scope} | ${access} |\n`;
   }
   header += `\n---\n\n`;
 
@@ -75,10 +102,10 @@ function generateHeader(): string {
 export function buildManualContent(): string {
   const header = generateHeader();
 
-  const body = `## 1. Welcome to ApexTrack (The 30-Second Overview)
+  const body = `## 1. Welcome to Kynov (The 30-Second Overview)
 
-### What is ApexTrack?
-ApexTrack is your team's central workspace for managing agile software delivery, tracking tickets, and publishing architecture documentation. Unlike traditional enterprise issue trackers that require heavy servers and expensive per-seat subscriptions, ApexTrack is built directly on Cloudflare's serverless edge network. It delivers sub-20 millisecond response times globally and has zero per-user licensing fees.
+### What is Kynov?
+Kynov is your team's central workspace for managing agile software delivery, tracking tickets, and publishing architecture documentation. Built directly on Cloudflare's serverless edge network, Kynov delivers sub-20 millisecond response times globally and has zero per-user licensing fees.
 
 ### The 3-Step Work Lifecycle
 
@@ -89,7 +116,7 @@ ApexTrack is your team's central workspace for managing agile software delivery,
   +--------------------+        +---------------------+        +--------------------+
 \`\`\`
 
-1. **Capture Work**: Log User Stories, Bugs, Epics, Tasks, and Confluence-style Knowledge Base documents with rich markdown and attachments.
+1. **Capture Work**: Log User Stories, Bugs, Epics, Tasks, and Knowledge Base documents with rich markdown and attachments.
 2. **Move on Board**: Drag cards across customizable Kanban swimlanes to provide instant visual transparency on active progress.
 3. **Measure Delivery**: Monitor automated completion metrics, story point burndown charts, and Work-In-Progress (WIP) safety caps in real time.
 
@@ -111,7 +138,7 @@ ApexTrack is your team's central workspace for managing agile software delivery,
 1. Open the login portal and click the **Create Account** tab (or navigate directly to \`/login?tab=register\`).
 2. Fill in your details:
    - **Full Name**: Your first and last name (e.g., \`Jordan Vance\`).
-   - **Work Email Address**: Your corporate email (e.g., \`jordan.v@company.com\`).
+   - **Work Email Address**: Your corporate email (e.g., \`jordan.v@kynov.io\`).
    - **Password**: A secure password (minimum 6 characters).
    - **Department**: Your team (e.g., \`Frontend\`, \`Backend\`, \`QA\`, \`DevOps\`, \`Product\`).
 3. Click **Create Account & Enter Approval Queue**.
@@ -120,11 +147,11 @@ ApexTrack is your team's central workspace for managing agile software delivery,
 
 \`\`\`
 +----------------------------------------------------------------------+
-| [ApexTrack Logo]                                                     |
+| [Kynov Logo]                                                         |
 | Sign In  |  [ Create Account ]                                       |
 |----------------------------------------------------------------------|
 | Full Name:         [ Jordan Vance                                  ] |
-| Work Email:        [ jordan.v@company.com                          ] |
+| Work Email:        [ jordan.v@kynov.io                             ] |
 | Password:          [ ••••••••••••                               👁️ ] |
 | Department:        [ Frontend Engineering                          ] |
 | [🔒 Gated Security: New accounts require Administrator approval]     |
@@ -135,73 +162,68 @@ ApexTrack is your team's central workspace for managing agile software delivery,
 ---
 
 ### Flow 2.2: The Holding Room (Awaiting Admin Approval)
-**Why can't I see tasks immediately?**  
-To protect organization privacy and enforce zero-trust governance, new accounts are created with a \`PENDING\` status and \`Viewer\` role. You will land on the holding page (\`/awaiting-approval\`).
+After registration, accounts are immediately quarantined in **PENDING** status to protect project integrity:
+- You will see the **Account Pending Approval** screen (\`/awaiting-approval\`).
+- An automated alert email is dispatched to the administrator.
+- Once approved, clicking **Check Status & Open Workspace** takes you directly to your project board.
 
-1. Once your registration is submitted, an automated notification is dispatched to your workspace administrator.
-2. The administrator reviews and approves your account from the **Team & Access** panel.
-3. Once approved, you can immediately sign in and access the full workspace.
-
-![Awaiting Approval - Holding Room](/docs/assets/screenshots/02-awaiting-approval.png)
+![Account Pending Approval Holding Room](/docs/assets/screenshots/02-awaiting-approval.png)
 
 \`\`\`
 +----------------------------------------------------------------------+
-| [ ⏳ Clock Icon - Amber Glow ]                                       |
-| Account Pending Administrator Approval                               |
-|----------------------------------------------------------------------|
-| Welcome, Jordan Vance! Your account has been securely created.       |
-| Organization administrators have been notified. Once approved, you   |
-| will have full access to your team's workspace.                      |
+|                           [⏳ HOLDING ROOM]                          |
+|                     Account Pending Approval                         |
 |                                                                      |
-| [ Check Approval Status ]            [ Sign In with Another Account ]|
+|  Welcome Jordan Vance (jordan.v@kynov.io). Your registration is      |
+|  waiting for administrator authorization.                            |
+|                                                                      |
+|  Assigned Role: Viewer (Pending)                                     |
+|  Security Tier: Gated Isolation                                      |
+|                                                                      |
+|  [ 🔄 Check Status & Open Workspace ]         [ 🚪 Sign Out ]        |
 +----------------------------------------------------------------------+
 \`\`\`
 
 ---
 
-### Flow 2.3: Signing In & Secure Sessions
-1. Navigate to \`/login\` (or click **Sign In**).
+### Flow 2.3: Signing In & Session Security
+1. Navigate to \`/login\`.
 2. Enter your work email and password.
-3. Click **Sign In to Workspace**.
-4. ApexTrack generates an encrypted session cookie and directs you to your active project board.
+3. Or click **Continue with Google** / **GitHub** for one-click OAuth SSO.
+4. Kynov generates an encrypted session cookie and directs you to your active project board.
 
-![Sign In - Authentication Portal](/docs/assets/screenshots/03-sign-in.png)
+![Sign In Portal](/docs/assets/screenshots/03-sign-in.png)
 
 \`\`\`
 +----------------------------------------------------------------------+
-| [ApexTrack Logo] ApexTrack [v1.0]                                    |
+| [Kynov Logo] Kynov [v1.0]                                            |
 | [ Sign In ]  |  Create Account                                       |
 |----------------------------------------------------------------------|
-| Work Email:        [ harisarshad235@gmail.com                      ] |
+| [ G Continue with Google ]           [ 🐙 Continue with GitHub ]     |
+| ------------------------ OR WORK EMAIL ----------------------------- |
+| Email:             [ alex.chen@kynov.io                            ] |
 | Password:          [ ••••••••••••                               👁️ ] |
-|                    [ Forgot password?                              ] |
 | [  Sign In to Workspace                                            ] |
+|                                              [ Forgot password? ]    |
 +----------------------------------------------------------------------+
 \`\`\`
 
 ---
 
-### Flow 2.4: Self-Service Password Recovery
-If you forget your password, you can reset it in seconds without contacting IT support:
+### Flow 2.4: Self-Service Password Reset
+1. Click **Forgot password?** or visit \`/forgot-password\`.
+2. Enter your work email and click **Send Recovery Link**.
+3. Check your email inbox for a message from \`Kynov <notifications@harisarshad.site>\`.
+4. Click the tokenized reset button within **15 minutes**.
+5. Enter your new password and submit.
 
-1. Click **Forgot password?** on the sign-in form (or visit \`/forgot-password\`).
-2. Enter your work email address and click **Send Reset Link**.
-3. Check your email inbox for a message from \`ApexTrack <notifications@harisarshad.site>\`.
-4. Click the **Reset Password** button inside the email (valid for **15 minutes**).
-5. Enter your new password, confirm it, and click **Save New Password**.
-6. Sign in immediately with your new credentials.
-
-![Password Reset - Recovery Request and Reset](/docs/assets/screenshots/04-password-reset.png)
+![Password Reset Form](/docs/assets/screenshots/04-password-reset.png)
 
 \`\`\`
 +----------------------------------------------------------------------+
-| Password Recovery -> Email Link -> Set New Password                  |
-|----------------------------------------------------------------------|
-| 1. Enter email:    [ name@company.com ] -> [ Send Reset Link ]       |
-| 2. Check Inbox:    "Reset your ApexTrack password" (15 min link)     |
-| 3. Set Password:   New Password:     [ •••••••••••• ]                |
-|                    Confirm Password: [ •••••••••••• ]                |
-|                    [ Save New Password ]                             |
+| 1. Request Link:   Email: [ alex.chen@kynov.io ]  [ Send Reset Link ]|
+| 2. Check Inbox:    "Reset your Kynov password" (15 min link)         |
+| 3. Set Password:   New Password: [ •••••••••••• ] [ Update Password ]|
 +----------------------------------------------------------------------+
 \`\`\`
 
@@ -211,12 +233,12 @@ If you forget your password, you can reset it in seconds without contacting IT s
 
 \`\`\`
 +-------------------------------------------------------------------------------------------------------------+
-|                                           APEXTRACK WORKSPACE HEADER                                        |
-| [Logo] ApexTrack  [Search: "APEX-101, bug, label..."]   [Theme]  [🔔 (2)]  [+ Create Issue]  [+ New Doc]  (Avatar) |
+|                                             KYNOV WORKSPACE HEADER                                          |
+| [Logo] Kynov      [Search: "KYN-101, bug, label..."]   [Theme]  [🔔 (2)]  [+ Create Issue]  [+ New Doc]  (Avatar) |
 +------------------+------------------------------------------------------------------------------------------+
 | SIDEBAR          | TOP METRICS BAR                                                                          |
 |                  | [Completion Rate: 75%]  [Velocity: 28/35 pts]  [In Flight: 5]  [Open Defects: 2]           |
-| [Proj: APEX v]   +------------------------------------------------------------------------------------------+
+| [Proj: KYN v]    +------------------------------------------------------------------------------------------+
 |                  | KANBAN QUICK FILTERS                                                                     |
 | > Board          | [⚡ Only My Issues]  [🚩 Flagged Blockers]  [⏳ Recently Updated]                           |
 | > Backlog        +------------------------------------------------------------------------------------------+
@@ -225,7 +247,7 @@ If you forget your password, you can reset it in seconds without contacting IT s
 | > Velocity Reports| | TO DO          [3]| | IN PROGRESS [WIP 5]| | IN REVIEW  [WIP 4]| | DONE           [8]| |
 |                  | | 0 pts             | | 12 pts            | | 7 pts             | | 28 pts            | |
 |                  | +-------------------+ +-------------------+ +-------------------+ +-------------------+ |
-| Sprint 24        | | [Story]  APEX-103 | | [Bug] 🚩 APEX-101 | | [Task]   APEX-102 | | [Story]  APEX-104 | |
+| Sprint 24        | | [Story]  KYN-103  | | [Bug] 🚩 KYN-101  | | [Task]   KYN-102  | | [Story]  KYN-104  | |
 | 80% Complete     | | Knowledge Base    | | D1 Database schema| | Kanban drag fix   | | RBAC Auth logic   | |
 |                  | | 8 pts    (Assignee)| | 5 pts    (Assignee)| | 3 pts    (Assignee)| | 5 pts    (Assignee)| |
 | PERSONA SWITCH   | +-------------------+ +-------------------+ +-------------------+ +-------------------+ |
@@ -272,7 +294,7 @@ Work-In-Progress (WIP) caps prevent teams from taking on too many parallel tasks
 ---
 
 ### Flow 3.4: Working with the Issue Detail Drawer
-Click any ticket key (such as \`APEX-101\`) to slide out the comprehensive ticket drawer.
+Click any ticket key (such as \`KYN-101\`) to slide out the comprehensive ticket drawer.
 
 ![Issue Detail Drawer - Full Feature View](/docs/assets/screenshots/06-issue-drawer-full.png)
 
@@ -280,7 +302,7 @@ Click any ticket key (such as \`APEX-101\`) to slide out the comprehensive ticke
 +-----------------------------------------------------------------------------+
 | ISSUE DETAIL DRAWER                                                  [ X ]  |
 |-----------------------------------------------------------------------------|
-| [Type: Bug v]  APEX-101  [Status: In Progress v]   [🚩 Add Flag] [🗑️ Delete] |
+| [Type: Bug v]  KYN-101  [Status: In Progress v]   [🚩 Add Flag] [🗑️ Delete]  |
 | TITLE: Design and connect Cloudflare D1 distributed edge database schema    |
 | METADATA: Assignee: Marcus Brody | Reporter: Alex Chen | Points: [ 5 pts ]  |
 |-----------------------------------------------------------------------------|
@@ -295,7 +317,7 @@ Click any ticket key (such as \`APEX-101\`) to slide out the comprehensive ticke
 | [+ Add a subtask and press Enter...]                                        |
 |-----------------------------------------------------------------------------|
 | LINKED ISSUES (2)                                                           |
-| (blocks)    [● APEX-102] Kanban drag focus drops [In Review] [X]             |
+| (blocks)    [● KYN-102] Kanban drag focus drops [In Review] [X]              |
 | (relates to)[● CORE-101] Anycast DNS failover [Dev Implementation] [X]      |
 | [Type: blocks v] [Select target issue v] [+ Link Issue]                     |
 |-----------------------------------------------------------------------------|
@@ -406,7 +428,7 @@ If an administrator is ever locked out of their account or requires CLI emergenc
 
 \`\`\`bash
 # Direct Administrator Promotion via Cloudflare D1
-npx wrangler d1 execute apextrack_db --remote --command="UPDATE users SET status='APPROVED', role='Admin' WHERE email='harisarshad235@gmail.com';"
+npx wrangler d1 execute kynov_db --remote --command="UPDATE users SET status='APPROVED', role='Admin' WHERE email='harisarshad235@gmail.com';"
 \`\`\`
 
 ---
@@ -416,7 +438,7 @@ npx wrangler d1 execute apextrack_db --remote --command="UPDATE users SET status
 ### What is "The Edge"?
 Traditional apps host their servers and databases in a single data center (such as Northern Virginia or Frankfurt). If a team member in London, Tokyo, or Sydney accesses the site, requests must travel thousands of miles across undersea cables, causing slow page loads.
 
-ApexTrack runs on **Cloudflare Pages and Workers**, which deploy your code to over **300 global data centers**. When you open ApexTrack, you connect to a server within a few miles of your physical location, resulting in instant page loads and zero lag.
+Kynov runs on **Cloudflare Pages and Workers**, which deploy your code to over **300 global data centers**. When you open Kynov, you connect to a server within a few miles of your physical location, resulting in instant page loads and zero lag.
 
 ### Where Data and Files Live
 
@@ -446,7 +468,7 @@ The manual is pre-configured with standard visual placeholders. Team members cap
 
 ---
 
-*© 2026 ApexTrack Systems. All rights reserved. Generated automatically via \`npm run docs:sync\`.*
+*© 2026 Kynov Systems. All rights reserved. Generated automatically via \`npm run docs:sync\`.*
 `;
 
   return header + body;
@@ -466,7 +488,7 @@ export function syncManual(): void {
   if (!fs.existsSync(assetsReadme)) {
     fs.writeFileSync(
       assetsReadme,
-      `# ApexTrack Screenshot Assets\n\nPlace high-resolution (1920x1080 or retina 2x) PNG screenshots here matching the naming conventions defined in \`/docs/USER_OPERATIONS_MANUAL.md\`.\n`
+      `# Kynov Screenshot Assets\n\nPlace high-resolution (1920x1080 or retina 2x) PNG screenshots here matching the naming conventions defined in \`/docs/USER_OPERATIONS_MANUAL.md\`.\n`
     );
   }
 

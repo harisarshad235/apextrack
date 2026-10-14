@@ -5,7 +5,7 @@ import { getDb } from './db';
 let enterpriseSchemaInitialized = false;
 
 /**
- * Ensures enterprise Jira schemas, tables, columns, and indexes exist in Cloudflare D1.
+ * Ensures enterprise agile schemas, tables, columns, and indexes exist in Cloudflare D1.
  * Self-healing edge SQLite migration for zero-downtime deployment.
  */
 export async function ensureEnterpriseSchema(dbInstance?: ReturnType<typeof getDb>) {

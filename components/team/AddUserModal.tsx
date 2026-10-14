@@ -60,7 +60,7 @@ export function AddUserModal({ onClose, onAdd }: AddUserModalProps) {
             <input
               type="email"
               required
-              placeholder="jordan.m@apextrack.io"
+              placeholder="jordan.m@kynov.io"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full text-sm bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"

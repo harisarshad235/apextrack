@@ -28,6 +28,7 @@ import { CreateIssueModal } from '@/components/issues/CreateIssueModal';
 import { ProjectsModal } from '@/components/projects/ProjectsModal';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { Toast, Notification } from '@/components/ui/Toast';
+import { CommandPalette } from '@/components/command/CommandPalette';
 
 import {
   moveIssueStatus,
@@ -80,8 +81,9 @@ export function Workspace({
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
   const [activeProjectId, setActiveProjectId] = useState<string>(
-    initialProjects[0]?.id || 'proj-apex'
+    initialProjects[0]?.id || 'proj-kyn'
   );
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [boardFilters, setBoardFilters] = useState<BoardFiltersState>({
     selectedTypes: [],
@@ -114,6 +116,18 @@ export function Workspace({
     }, 15000);
     return () => clearInterval(interval);
   }, [router]);
+
+  // Global Cmd+K / Ctrl+K shortcut for Command Palette
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Synchronize issue detail drawer with URL param (?issue=APEX-XXX)
   useEffect(() => {
@@ -510,8 +524,11 @@ export function Workspace({
     );
   }
 
+  const currentProject =
+    initialProjects.find((p) => p.id === activeProjectId) || initialProjects[0];
+
   return (
-    <div className="flex h-screen w-full bg-[#f8fafc] dark:bg-[#09090b] text-slate-900 dark:text-zinc-100 overflow-hidden font-sans">
+    <div className="flex h-screen w-full bg-slate-100 dark:bg-[#0A0C10] text-slate-900 dark:text-slate-100 overflow-hidden font-sans p-2 sm:p-3 md:p-4 gap-3 md:gap-4">
       <Toast notification={notification} onClose={() => setNotification(null)} />
 
       {/* Dim backdrop overlay for mobile off-canvas drawer */}
@@ -543,8 +560,12 @@ export function Workspace({
         onSwitchPersona={handleSwitchPersona}
       />
 
-      {/* Main Container */}
-      <main className="flex-1 flex flex-col w-full min-w-0 overflow-hidden bg-[#f8fafc] dark:bg-[#09090b]">
+      {/* Main Container - Floating rounded panel matching reference design */}
+      <main className="flex-1 flex flex-col w-full min-w-0 overflow-hidden bg-white dark:bg-[#11141B] rounded-2xl md:rounded-3xl border border-slate-200/80 dark:border-[#232836] shadow-xs relative">
+        {/* Ambient Visual Depth Orbs */}
+        <div className="pointer-events-none absolute -top-40 right-10 w-96 h-96 bg-indigo-500/5 blur-[120px] rounded-full dark:bg-indigo-600/10" />
+        <div className="pointer-events-none absolute bottom-10 left-1/3 w-[28rem] h-[28rem] bg-cyan-600/5 blur-[140px] rounded-full dark:bg-cyan-600/10" />
+
         {/* Top Header */}
         <Header
           searchQuery={searchQuery}
@@ -552,6 +573,10 @@ export function Workspace({
           currentUser={currentUser}
           isViewer={isViewer}
           onToggleMobileSidebar={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+          activeProjectName={currentProject?.name || 'Kynov Platform'}
+          activeTab={activeTab}
+          users={initialUsers}
           onOpenCreateIssue={() => {
             if (isViewer) {
               showToast('Viewers cannot create issues. Please switch roles.', 'error');
@@ -583,8 +608,8 @@ export function Workspace({
           />
         )}
 
-        {/* View Content */}
-        <div className="flex-1 overflow-auto p-3 sm:p-4 md:p-6">
+        {/* View Content with Dynamic Smooth Transition */}
+        <div key={activeTab} className="flex-1 overflow-auto p-3 sm:p-4 md:p-6 animate-slide-up relative z-10">
           {activeTab === 'board' && (
             <KanbanBoardView
               issues={filteredIssues}
@@ -597,6 +622,13 @@ export function Workspace({
               onDeleteSwimlane={handleDeleteSwimlane}
               isViewer={isViewer}
               currentUserId={currentUser.id}
+              onQuickCreateIssue={() => {
+                if (isViewer) {
+                  showToast('Viewers cannot create issues. Please switch roles.', 'error');
+                  return;
+                }
+                setIsCreateIssueOpen(true);
+              }}
             />
           )}
 
@@ -755,6 +787,36 @@ export function Workspace({
           onSaveProfile={handleUpdateProfile}
         />
       )}
+
+      {/* Global Command Palette (Cmd+K / Ctrl+K) */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        issues={optimisticIssues}
+        projects={initialProjects}
+        activeProjectId={activeProjectId}
+        onSelectProject={(projId) => {
+          setActiveProjectId(projId);
+        }}
+        onSelectTab={(tab) => setActiveTab(tab)}
+        onSelectIssue={(key) => handleSelectIssue(key)}
+        onOpenCreateIssue={() => {
+          if (isViewer) {
+            showToast('Viewers cannot create issues. Please switch roles.', 'error');
+            return;
+          }
+          setIsCreateIssueOpen(true);
+        }}
+        onOpenCreateDoc={() => {
+          if (isViewer) {
+            showToast('Viewers cannot add documents.', 'error');
+            return;
+          }
+          setEditingDoc(null);
+          setIsCreateDocOpen(true);
+        }}
+        onOpenProjectsModal={() => setIsProjectsModalOpen(true)}
+      />
     </div>
   );
 }

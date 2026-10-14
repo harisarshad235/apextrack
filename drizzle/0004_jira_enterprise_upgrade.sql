@@ -1,4 +1,4 @@
--- Phase 1 Enterprise Jira Upgrade Migration
+-- Phase 1 Enterprise Agile Upgrade Migration
 ALTER TABLE `issues` ADD `parent_issue_id` text REFERENCES issues(key) ON DELETE SET NULL;
 --> statement-breakpoint
 ALTER TABLE `issues` ADD `issue_type` text DEFAULT 'TASK' NOT NULL;

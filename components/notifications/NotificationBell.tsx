@@ -218,7 +218,7 @@ export function NotificationBell({ onSelectIssue }: NotificationBellProps) {
                   {/* Actor Avatar */}
                   <div className="mt-0.5 flex-shrink-0">
                     <UserAvatar
-                      user={n.author || { name: 'ApexTrack User' }}
+                      user={n.author || { name: 'Kynov User' }}
                       size="sm"
                       className="ring-1 ring-black/5 dark:ring-white/10"
                     />
@@ -228,7 +228,7 @@ export function NotificationBell({ onSelectIssue }: NotificationBellProps) {
                   <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-semibold truncate text-slate-800 dark:text-slate-200">
-                        {n.title || (n.issueId ? `Mention on ${n.issueId}` : 'ApexTrack Alert')}
+                        {n.title || (n.issueId ? `Mention on ${n.issueId}` : 'Kynov Alert')}
                       </p>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <span className="flex items-center gap-0.5 text-[10px] text-slate-400 font-mono">

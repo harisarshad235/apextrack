@@ -9,7 +9,7 @@ import { LoginForm } from '@/components/auth/LoginForm';
 import { RegisterForm } from '@/components/auth/RegisterForm';
 import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { ApexTrackLogo } from '@/components/ui/ApexTrackLogo';
+import { KynovLogo } from '@/components/brand/KynovLogo';
 
 function LoginContent() {
   const searchParams = useSearchParams();
@@ -31,7 +31,7 @@ function LoginContent() {
     setError(null);
     startTransition(async () => {
       try {
-        const res = await loginAction({ email: targetEmail, password: 'ApexTrack2026!' });
+        const res = await loginAction({ email: targetEmail, password: 'Kynov2026!' });
         if (!res.success) {
           if (res.error === 'PENDING_APPROVAL') {
             window.location.href = '/awaiting-approval';
@@ -67,20 +67,20 @@ function LoginContent() {
         <ThemeToggle />
       </div>
 
-      <div className="w-full max-w-md bg-white/95 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800 rounded-3xl p-8 shadow-2xl z-10 transition-colors">
+      <div className="w-full max-w-md bg-white/95 dark:bg-[#11141B]/95 backdrop-blur-xl border border-slate-200/80 dark:border-[#232836] rounded-3xl p-8 shadow-2xl z-10 transition-colors">
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-6">
           <Link href="/" className="mb-3 hover:scale-105 transition-transform">
-            <ApexTrackLogo size={46} />
+            <KynovLogo size={52} variant="icon" />
           </Link>
           <div className="flex items-center gap-1.5">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">ApexTrack</h1>
-            <span className="text-[10px] font-mono font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Kynov</h1>
+            <span className="text-[10px] font-mono font-bold bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 px-1.5 py-0.5 rounded">
               v1.0
             </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider font-semibold">
-            Enterprise Agile &amp; Knowledge Base Platform
+            Agile Velocity &amp; Sprint Tracking
           </p>
         </div>
 
@@ -153,7 +153,7 @@ function LoginContent() {
               <button
                 type="button"
                 disabled={isPending}
-                onClick={() => handleQuickSignIn('alex.chen@apextrack.io')}
+                onClick={() => handleQuickSignIn('alex.chen@kynov.io')}
                 className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-left transition disabled:opacity-50 cursor-pointer"
               >
                 <div className="font-semibold text-slate-900 dark:text-white truncate">Alex Chen</div>
@@ -162,7 +162,7 @@ function LoginContent() {
               <button
                 type="button"
                 disabled={isPending}
-                onClick={() => handleQuickSignIn('s.jenkins@apextrack.io')}
+                onClick={() => handleQuickSignIn('s.jenkins@kynov.io')}
                 className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-left transition disabled:opacity-50 cursor-pointer"
               >
                 <div className="font-semibold text-slate-900 dark:text-white truncate">Sarah J.</div>

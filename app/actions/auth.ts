@@ -32,13 +32,20 @@ export async function loginAction(formData: { email: string; password: string })
 
     const db = getDb();
     let userList = await db.select().from(users).where(eq(users.email, cleanEmail)).limit(1).catch(() => []);
+    if (userList.length === 0 && cleanEmail.endsWith('@kynov.io')) {
+      const legacyEmail = cleanEmail.replace('@kynov.io', '@apextrack.io');
+      userList = await db.select().from(users).where(eq(users.email, legacyEmail)).limit(1).catch(() => []);
+    } else if (userList.length === 0 && cleanEmail.endsWith('@apextrack.io')) {
+      const kynovEmail = cleanEmail.replace('@apextrack.io', '@kynov.io');
+      userList = await db.select().from(users).where(eq(users.email, kynovEmail)).limit(1).catch(() => []);
+    }
     let user = userList[0];
 
     // Auto-provision workspace owner Haris Arshad as Admin if not yet in database
     if (!user && (cleanEmail === 'harisarshad235@gmail.com' || cleanEmail.includes('harisarshad'))) {
-      if (password === 'ApexTrack2026!') {
+      if (password === 'Kynov2026!') {
         const adminId = 'u0';
-        const initialHash = await hashPassword('ApexTrack2026!');
+        const initialHash = await hashPassword('Kynov2026!');
         await db.insert(users).values({
           id: adminId,
           name: 'Haris Arshad',
@@ -80,7 +87,7 @@ export async function loginAction(formData: { email: string; password: string })
 
     // Password verification (plain text match, master password fallback, or PBKDF2)
     let isValid = false;
-    if (password === 'ApexTrack2026!' || user.passwordHash === password || user.passwordHash === 'default_seed' || !user.passwordHash) {
+    if (password === 'Kynov2026!' || user.passwordHash === password || user.passwordHash === 'default_seed' || !user.passwordHash) {
       isValid = true;
     } else if (user.passwordHash) {
       isValid = await verifyPassword(password, user.passwordHash).catch(() => false);
@@ -90,8 +97,8 @@ export async function loginAction(formData: { email: string; password: string })
       return { success: false, error: 'Invalid email or password' };
     }
 
-    // Auto-migrate legacy user to store password hash on first successful login if empty
-    if (!user.passwordHash || user.passwordHash === 'ApexTrack2026!' || user.passwordHash === 'default_seed') {
+    // Auto-migrate user to store password hash on first successful login if empty
+    if (!user.passwordHash || user.passwordHash === 'default_seed') {
       const newHash = await hashPassword(password).catch(() => null);
       if (newHash) {
         await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, user.id)).catch(() => null);
@@ -229,7 +236,7 @@ export async function requestPasswordReset(email: string) {
 
     if (!user && (cleanEmail === 'harisarshad235@gmail.com' || cleanEmail.includes('harisarshad'))) {
       const adminId = 'u0';
-      const initialHash = await hashPassword('ApexTrack2026!');
+      const initialHash = await hashPassword('Kynov2026!');
       await db.insert(users).values({
         id: adminId,
         name: 'Haris Arshad',
@@ -262,7 +269,7 @@ export async function requestPasswordReset(email: string) {
       const resetLink = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
 
       console.log('\n======================================================');
-      console.log('[ApexTrack Password Reset Link]:', resetLink);
+      console.log('[Kynov Password Reset Link]:', resetLink);
       console.log('======================================================\n');
 
       await sendPasswordResetEmail(cleanEmail, resetLink);

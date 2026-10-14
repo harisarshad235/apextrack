@@ -184,7 +184,7 @@ export function BacklogView({
       if (res.success && res.sprint) {
         setLocalSprints((prev) => [...prev, res.sprint!]);
         if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('apextrack:sprint-updated'));
+          window.dispatchEvent(new CustomEvent('kynov:sprint-updated'));
         }
       }
     } catch (err) {
@@ -205,7 +205,7 @@ export function BacklogView({
           prev.map((i) => (i.sprintId === sprintId ? { ...i, sprintId: null } : i))
         );
         if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('apextrack:sprint-updated'));
+          window.dispatchEvent(new CustomEvent('kynov:sprint-updated'));
         }
       }
     } catch (err) {
@@ -236,7 +236,7 @@ export function BacklogView({
           }
         }}
         onClick={() => onSelectIssue(issue.key)}
-        className="group flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700/80 hover:bg-blue-50/40 dark:hover:bg-slate-700/50 cursor-pointer transition select-none"
+        className="group flex items-center justify-between px-4 py-3 bg-white dark:bg-[#111622] border-b border-slate-200/80 dark:border-slate-800/80 hover:bg-indigo-50/20 dark:hover:bg-slate-800/40 cursor-pointer transition-all duration-150 select-none"
       >
         <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-4">
           {!isViewer && !isReadOnly && (
@@ -339,7 +339,7 @@ export function BacklogView({
           <button
             onClick={handleCreateSprint}
             disabled={isCreatingSprint}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm transition disabled:opacity-50 active:scale-95 cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:via-indigo-500 hover:to-violet-500 text-white font-semibold text-xs shadow-md shadow-indigo-500/25 transition-all duration-150 disabled:opacity-50 hover:scale-[1.02] active:scale-95 cursor-pointer"
           >
             {isCreatingSprint ? (
               <>
@@ -365,10 +365,10 @@ export function BacklogView({
           }}
           onDragLeave={() => setDragOverSprintId(null)}
           onDrop={(e) => handleDropIssue(e, activeSprint.id)}
-          className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm border transition overflow-hidden ${
+          className={`bg-white/95 dark:bg-slate-900/50 backdrop-blur-sm rounded-2xl shadow-sm border transition-all duration-200 overflow-hidden ${
             dragOverSprintId === activeSprint.id
               ? 'border-emerald-500 ring-2 ring-emerald-500/20'
-              : 'border-slate-200 dark:border-slate-700'
+              : 'border-slate-200/80 dark:border-slate-800/80'
           }`}
         >
           {(() => {
@@ -617,7 +617,7 @@ export function BacklogView({
               )
             );
             if (typeof window !== 'undefined') {
-              window.dispatchEvent(new CustomEvent('apextrack:sprint-updated'));
+              window.dispatchEvent(new CustomEvent('kynov:sprint-updated'));
             }
           }}
         />

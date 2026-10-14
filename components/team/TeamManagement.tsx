@@ -507,7 +507,7 @@ export function TeamManagementView({
                               <button
                                 onClick={() => onApproveUser(member.id, member.role)}
                                 className="flex items-center gap-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-md font-semibold shadow-sm transition"
-                                title="Approve access to ApexTrack"
+                                title="Approve access to Kynov"
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" /> Approve
                               </button>

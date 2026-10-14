@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { KeyRound, ArrowLeft, Loader2, CheckCircle2, AlertCircle, Eye, EyeOff, ShieldAlert } from 'lucide-react';
 import { resetPassword } from '@/app/actions/auth';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { ApexTrackLogo } from '@/components/ui/ApexTrackLogo';
+import { KynovLogo } from '@/components/brand/KynovLogo';
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -55,7 +55,7 @@ function ResetPasswordForm() {
         <div className="space-y-2">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Password Updated!</h2>
           <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-            Your ApexTrack password has been securely updated. You can now sign in with your new credentials.
+            Your Kynov password has been securely updated. You can now sign in with your new credentials.
           </p>
         </div>
 
@@ -201,11 +201,11 @@ export default function ResetPasswordPage() {
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-6">
           <div className="mb-3">
-            <ApexTrackLogo size={48} />
+            <KynovLogo size={52} />
           </div>
           <div className="flex items-center gap-1.5">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">ApexTrack</h1>
-            <span className="text-[10px] font-mono font-bold bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Kynov</h1>
+            <span className="text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 px-1.5 py-0.5 rounded">
               v1.0
             </span>
           </div>

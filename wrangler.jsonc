@@ -17,6 +17,10 @@
   "workers_dev": true,
   "routes": [
     {
+      "pattern": "kynov.harisarshad.site",
+      "custom_domain": true
+    },
+    {
       "pattern": "apex.harisarshad.site",
       "custom_domain": true
     }
@@ -37,7 +41,7 @@
   ],
   "vars": {
     "AUTH_MODE": "dev",
-    "PROJECT_KEY": "APEX",
-    "NEXT_PUBLIC_APP_URL": "https://apex.harisarshad.site"
+    "PROJECT_KEY": "KYN",
+    "NEXT_PUBLIC_APP_URL": "https://kynov.harisarshad.site"
   }
 }

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Menu, X, ArrowRight, ShieldCheck, Sparkles, Layers, BookOpen, Kanban } from 'lucide-react';
-import { ApexLogo } from '@/components/brand/ApexLogo';
+import { KynovLogo } from '@/components/brand/KynovLogo';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { User } from '@/db/schema';
 
@@ -15,11 +15,11 @@ export function LandingNavbar({ currentUser }: LandingNavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-black/[0.06] dark:border-white/[0.08] bg-white/80 dark:bg-[#090d16]/80 backdrop-blur-xl transition-colors">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200/80 dark:border-[#232836] bg-white/80 dark:bg-[#0A0C10]/85 backdrop-blur-xl transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-2 group hover:opacity-90 transition">
-          <ApexLogo size={30} showWordmark={true} />
+          <KynovLogo size="md" variant="full" subtitle="Agile Velocity & Sprint Tracking" />
         </Link>
 
         {/* Desktop Navigation Links */}
@@ -61,7 +61,7 @@ export function LandingNavbar({ currentUser }: LandingNavbarProps) {
           {currentUser ? (
             <Link
               href="/dashboard"
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition active:scale-95"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:via-indigo-500 hover:to-violet-500 text-white text-xs font-semibold shadow-md shadow-indigo-500/20 transition-all duration-200 active:scale-95"
             >
               <span>Go to Workspace</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -76,7 +76,7 @@ export function LandingNavbar({ currentUser }: LandingNavbarProps) {
               </Link>
               <Link
                 href="/signup"
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition active:scale-95"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:via-indigo-500 hover:to-violet-500 text-white text-xs font-semibold shadow-md shadow-indigo-500/20 transition-all duration-200 active:scale-95"
               >
                 <span>Get Started Free</span>
                 <ArrowRight className="w-3.5 h-3.5" />

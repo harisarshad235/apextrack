@@ -341,16 +341,16 @@ export function ProjectsModal({
               {view === 'create' && (
                 <div>
                   <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Project Key * (e.g. APEX, CORE, MOBILE)
+                    Project Key * (e.g. KYN, CORE, MOBILE)
                   </label>
                   <input
                     type="text"
                     required
                     maxLength={10}
-                    placeholder="e.g. CORE"
+                    placeholder="e.g. KYN"
                     value={key}
                     onChange={(e) => setKey(e.target.value.toUpperCase())}
-                    className="w-full text-sm font-mono uppercase bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                    className="w-full text-sm font-mono uppercase bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500"
                   />
                   <p className="text-[11px] text-slate-400 mt-1">
                     Used as the ticket prefix for all issues in this board (e.g., CORE-101).

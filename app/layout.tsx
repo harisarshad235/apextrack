@@ -14,11 +14,28 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ApexTrack — Enterprise Agile & Knowledge Base",
+  title: "Kynov | Agile Velocity & Sprint Tracking",
   description:
-    "Self-hosted Jira & Confluence alternative: Edge Kanban boards, sprint backlog, RBAC team management and ADR knowledge base on Cloudflare Workers, D1, and R2.",
+    "Next-generation Agile Velocity & Sprint Tracking engine for modern high-output teams. Kanban boards, sprint backlogs, velocity sparklines, and RBAC team collaboration.",
+  openGraph: {
+    title: "Kynov | Agile Velocity & Sprint Tracking",
+    description:
+      "Next-generation Agile Velocity & Sprint Tracking engine for modern high-output teams. Kanban boards, sprint backlogs, velocity sparklines, and RBAC team collaboration.",
+    url: "https://kynov.io",
+    siteName: "Kynov",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Kynov | Agile Velocity & Sprint Tracking",
+    description:
+      "Next-generation Agile Velocity & Sprint Tracking engine for modern high-output teams.",
+  },
   icons: {
-    icon: "/icon.svg",
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
     shortcut: "/icon.svg",
     apple: "/icon.svg",
   },
@@ -38,7 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+      <body className="min-h-full flex flex-col bg-slate-50 dark:bg-[#0A0C10] text-slate-900 dark:text-slate-100 selection:bg-cyan-500/20 selection:text-cyan-200">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

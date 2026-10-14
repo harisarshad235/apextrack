@@ -46,12 +46,12 @@ function VisualRegisterMockup() {
 
       <div className="max-w-md mx-auto p-4 rounded-2xl bg-slate-800/90 border border-slate-700/80 shadow-lg space-y-3">
         <div className="flex items-center justify-center gap-1.5 pb-2 border-b border-slate-700/60">
-          <span className="font-bold text-sm text-white">ApexTrack</span>
-          <span className="text-[10px] font-mono bg-blue-500/20 text-blue-400 px-1.5 py-0.2 rounded font-bold">v1.0</span>
+          <span className="font-bold text-sm text-white">Kynov</span>
+          <span className="text-[10px] font-mono bg-indigo-500/20 text-indigo-400 px-1.5 py-0.2 rounded font-bold">v1.0</span>
         </div>
         <div className="grid grid-cols-2 p-0.5 bg-slate-900/80 rounded-lg text-xs font-semibold text-center">
           <span className="py-1 text-slate-400">Sign In</span>
-          <span className="py-1 bg-blue-600 text-white rounded-md shadow-xs">Create Account</span>
+          <span className="py-1 bg-indigo-600 text-white rounded-md shadow-xs">Create Account</span>
         </div>
         <div className="space-y-2 text-xs">
           <div>
@@ -60,7 +60,7 @@ function VisualRegisterMockup() {
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-400 block mb-0.5">Work Email Address *</label>
-            <div className="p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-xs">jordan.v@apextrack.io</div>
+            <div className="p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-xs">jordan.v@kynov.io</div>
           </div>
           <div>
             <label className="text-[11px] font-medium text-slate-400 block mb-0.5">Password *</label>
@@ -106,7 +106,7 @@ function VisualHoldingRoomMockup() {
           </p>
         </div>
         <div className="p-3 bg-slate-900/80 border border-slate-700/60 rounded-xl text-[11px] text-slate-300 text-left space-y-1">
-          <div className="flex justify-between"><span className="text-slate-500">Email:</span><span>jordan.v@apextrack.io</span></div>
+          <div className="flex justify-between"><span className="text-slate-500">Email:</span><span>jordan.v@kynov.io</span></div>
           <div className="flex justify-between"><span className="text-slate-500">Assigned Role:</span><span className="text-blue-400 font-semibold">Viewer (Pending)</span></div>
           <div className="flex justify-between"><span className="text-slate-500">Admin Notification:</span><span className="text-emerald-400">✓ Dispatched</span></div>
         </div>
@@ -257,7 +257,7 @@ function VisualWipAlertMockup() {
           </div>
           <p className="text-[11px] text-slate-400 mb-3">Under maximum capacity limit of 5 parallel issues.</p>
           <div className="p-2 rounded bg-slate-900 border border-slate-700 text-xs text-slate-300">
-            <span className="font-mono text-blue-400 text-[10px] font-bold">APEX-101</span> · D1 Edge Schema (5 pts)
+            <span className="font-mono text-indigo-400 text-[10px] font-bold">KYN-101</span> · D1 Edge Schema (5 pts)
           </div>
         </div>
 
@@ -271,7 +271,7 @@ function VisualWipAlertMockup() {
           </div>
           <p className="text-[11px] text-red-300 font-medium mb-3">Capacity limit breached! Team must review tickets before taking new tasks.</p>
           <div className="p-2 rounded bg-slate-900 border border-red-500/50 text-xs text-slate-300">
-            <span className="font-mono text-blue-400 text-[10px] font-bold">APEX-102</span> · Kanban Drag Focus (3 pts)
+            <span className="font-mono text-indigo-400 text-[10px] font-bold">KYN-102</span> · Kanban Drag Focus (3 pts)
           </div>
         </div>
       </div>
@@ -304,11 +304,11 @@ function VisualBacklogMockup() {
           </div>
           <div className="space-y-1.5">
             <div className="p-2 rounded bg-slate-900 border border-slate-800 flex justify-between items-center text-[11px]">
-              <span><span className="text-blue-400 font-mono font-bold mr-2">APEX-101</span> Design & connect D1 database</span>
+              <span><span className="text-indigo-400 font-mono font-bold mr-2">KYN-101</span> Design & connect D1 database</span>
               <span className="bg-slate-800 px-1.5 py-0.2 rounded font-mono">5 pts</span>
             </div>
             <div className="p-2 rounded bg-slate-900 border border-slate-800 flex justify-between items-center text-[11px]">
-              <span><span className="text-blue-400 font-mono font-bold mr-2">APEX-103</span> Confluence-style Docs editor</span>
+              <span><span className="text-indigo-400 font-mono font-bold mr-2">KYN-103</span> Interactive Markdown Docs editor</span>
               <span className="bg-slate-800 px-1.5 py-0.2 rounded font-mono">8 pts</span>
             </div>
           </div>
@@ -321,7 +321,7 @@ function VisualBacklogMockup() {
             <span className="font-mono text-slate-400">4 issues</span>
           </div>
           <div className="p-2 rounded bg-slate-900/80 border border-slate-800 flex justify-between items-center text-[11px] text-slate-400">
-            <span><span className="text-blue-400 font-mono font-bold mr-2">APEX-105</span> Zero Trust SSO webhook payload schema</span>
+            <span><span className="text-indigo-400 font-mono font-bold mr-2">KYN-105</span> Zero Trust SSO webhook payload schema</span>
             <span className="bg-slate-800 px-1.5 py-0.2 rounded font-mono text-slate-400">2 pts</span>
           </div>
         </div>
@@ -412,7 +412,7 @@ function VisualAdminApprovalsMockup() {
         </div>
         <div className="grid grid-cols-4 p-2.5 bg-slate-900/90 items-center border-b border-slate-800">
           <span className="font-semibold text-white">Jordan Vance</span>
-          <span className="text-slate-400 font-mono text-[11px]">jordan.v@apextrack.io</span>
+          <span className="text-slate-400 font-mono text-[11px]">jordan.v@kynov.io</span>
           <div>
             <span className="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-blue-400 font-semibold text-[11px]">
               Member ▾
@@ -426,7 +426,7 @@ function VisualAdminApprovalsMockup() {
         </div>
         <div className="grid grid-cols-4 p-2.5 bg-slate-900/60 items-center">
           <span className="font-semibold text-white">Priya Natarajan</span>
-          <span className="text-slate-400 font-mono text-[11px]">priya.n@apextrack.io</span>
+          <span className="text-slate-400 font-mono text-[11px]">priya.n@kynov.io</span>
           <div>
             <span className="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300 text-[11px]">
               Viewer ▾
@@ -447,12 +447,12 @@ function VisualAdminApprovalsMockup() {
 function VisualWorkspaceMockup() {
   return (
     <div className="my-6 p-4 md:p-5 rounded-2xl bg-slate-900 text-slate-100 border border-slate-800 shadow-xl font-sans not-prose">
-      <div className="text-xs font-mono font-bold text-blue-400 mb-3 flex items-center justify-between border-b border-slate-800 pb-2.5">
+      <div className="text-xs font-mono font-bold text-indigo-400 mb-3 flex items-center justify-between border-b border-slate-800 pb-2.5">
         <span className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-          APEXTRACK WORKSPACE LAYOUT OVERVIEW
+          <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+          KYNOV WORKSPACE LAYOUT OVERVIEW
         </span>
-        <span className="bg-blue-500/20 text-blue-300 text-[10px] px-2 py-0.5 rounded font-mono">
+        <span className="bg-indigo-500/20 text-indigo-300 text-[10px] px-2 py-0.5 rounded font-mono">
           Interactive UI Component
         </span>
       </div>
@@ -465,7 +465,7 @@ function VisualWorkspaceMockup() {
         </div>
         <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60">
           <span className="text-[10px] text-slate-400 block font-mono">Velocity</span>
-          <span className="font-bold text-sm text-blue-400">28/35 pts</span>
+          <span className="font-bold text-sm text-indigo-400">28/35 pts</span>
         </div>
         <div className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60">
           <span className="text-[10px] text-slate-400 block font-mono">In Flight</span>
@@ -486,7 +486,7 @@ function VisualWorkspaceMockup() {
             <span className="text-[10px] font-mono bg-slate-700 px-1.5 py-0.2 rounded text-slate-300">3</span>
           </div>
           <div className="p-2.5 rounded-lg bg-slate-800 border border-slate-700 text-xs shadow-xs">
-            <span className="font-mono text-[10px] text-blue-400 font-bold block mb-1">APEX-103</span>
+            <span className="font-mono text-[10px] text-indigo-400 font-bold block mb-1">KYN-103</span>
             <p className="font-medium text-slate-200 text-xs mb-2">Knowledge Base Setup</p>
             <span className="text-[10px] bg-slate-700 px-1.5 py-0.5 rounded font-mono">8 pts</span>
           </div>
@@ -500,7 +500,7 @@ function VisualWorkspaceMockup() {
           </div>
           <div className="p-2.5 rounded-lg bg-slate-800 border border-amber-500/50 text-xs shadow-xs">
             <div className="flex items-center justify-between mb-1">
-              <span className="font-mono text-[10px] text-blue-400 font-bold">APEX-101</span>
+              <span className="font-mono text-[10px] text-indigo-400 font-bold">KYN-101</span>
               <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.2 rounded flex items-center gap-1 font-bold">
                 🚩 Flagged
               </span>
@@ -517,7 +517,7 @@ function VisualWorkspaceMockup() {
             <span className="text-[10px] font-mono bg-purple-500/20 text-purple-300 px-1.5 py-0.2 rounded">WIP 4</span>
           </div>
           <div className="p-2.5 rounded-lg bg-slate-800 border border-slate-700 text-xs shadow-xs">
-            <span className="font-mono text-[10px] text-blue-400 font-bold block mb-1">APEX-102</span>
+            <span className="font-mono text-[10px] text-indigo-400 font-bold block mb-1">KYN-102</span>
             <p className="font-medium text-slate-200 text-xs mb-2">Kanban Drag Fix</p>
             <span className="text-[10px] bg-slate-700 px-1.5 py-0.5 rounded font-mono">3 pts</span>
           </div>
@@ -530,7 +530,7 @@ function VisualWorkspaceMockup() {
             <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 px-1.5 py-0.2 rounded">8</span>
           </div>
           <div className="p-2.5 rounded-lg bg-slate-800 border border-slate-700 text-xs shadow-xs">
-            <span className="font-mono text-[10px] text-blue-400 font-bold block mb-1">APEX-104</span>
+            <span className="font-mono text-[10px] text-indigo-400 font-bold block mb-1">KYN-104</span>
             <p className="font-medium text-slate-200 text-xs mb-2">RBAC Auth Logic</p>
             <span className="text-[10px] bg-slate-700 px-1.5 py-0.5 rounded font-mono">5 pts</span>
           </div>
@@ -546,8 +546,8 @@ function VisualDrawerMockup() {
     <div className="my-6 p-4 md:p-5 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 shadow-xl font-sans not-prose">
       <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3 mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 px-2.5 py-0.5 rounded">
-            APEX-101
+          <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950 px-2.5 py-0.5 rounded">
+            KYN-101
           </span>
           <span className="text-xs font-bold text-slate-800 dark:text-zinc-100">
             Design & Connect Cloudflare D1 Distributed Edge Schema
@@ -587,7 +587,7 @@ function VisualDrawerMockup() {
       <div className="flex flex-wrap gap-2 text-xs pt-3 border-t border-slate-100 dark:border-zinc-800">
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300">
           <span className="text-slate-400 text-[11px]">blocks</span>
-          <span className="font-mono font-bold text-blue-600 dark:text-blue-400">APEX-102</span>
+          <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">KYN-102</span>
         </span>
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300">
           <span className="text-slate-400 text-[11px]">relates to</span>
@@ -1121,7 +1121,7 @@ export function DocumentReaderModal({
       if (
         lang === 'ascii' ||
         lang === 'wireframe' ||
-        rawText.includes('APEXTRACK WORKSPACE') ||
+        rawText.includes('KYNOV WORKSPACE') ||
         rawText.includes('+---------------------------------') ||
         rawText.includes('KANBAN BOARD')
       ) {
@@ -1143,8 +1143,8 @@ export function DocumentReaderModal({
         return (
           <div className="my-6 p-4 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 shadow-md max-w-sm font-sans not-prose">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/80 px-2 py-0.5 rounded">
-                {data.key || 'APEX-101'}
+              <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/80 px-2 py-0.5 rounded">
+                {data.key || 'KYN-101'}
               </span>
               <div className="flex items-center gap-1.5">
                 {data.flagged === 'true' && (

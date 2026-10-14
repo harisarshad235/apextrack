@@ -86,7 +86,7 @@ export async function getUserNotificationsAction({
         userId: n.userId,
         authorId: n.authorId,
         issueId: n.issueId,
-        title: n.title || (n.issueId ? `Mentioned on ${n.issueId}` : 'ApexTrack Alert'),
+        title: n.title || (n.issueId ? `Mentioned on ${n.issueId}` : 'Kynov Alert'),
         message: n.message,
         linkUrl: n.linkUrl || (n.issueId ? `/?issue=${n.issueId}` : '/'),
         read: Boolean(n.read),

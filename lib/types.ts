@@ -22,7 +22,7 @@ import {
   ProjectWorkflowStatus,
   WorkflowTransitionRule,
   IssueGitLink,
-  JiraIssueType,
+  AgileIssueType,
   WorkflowCategory,
   EnterpriseLinkType,
 } from '@/db/schema';
@@ -51,7 +51,7 @@ export type {
   ProjectWorkflowStatus,
   WorkflowTransitionRule,
   IssueGitLink,
-  JiraIssueType,
+  AgileIssueType,
   WorkflowCategory,
   EnterpriseLinkType,
 };

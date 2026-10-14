@@ -293,7 +293,7 @@ export function IssueDetailDrawer({
   const [gitRefType, setGitRefType] = useState<'BRANCH' | 'PULL_REQUEST' | 'COMMIT'>('PULL_REQUEST');
   const [gitRefName, setGitRefName] = useState('');
   const [gitUrl, setGitUrl] = useState('');
-  const [gitRepo, setGitRepo] = useState('org/apextrack');
+  const [gitRepo, setGitRepo] = useState('org/kynov');
 
   // Work Log modal
   const [isLogWorkOpen, setIsLogWorkOpen] = useState(false);
@@ -874,7 +874,7 @@ export function IssueDetailDrawer({
                       type="text"
                       value={linkTarget}
                       onChange={(e) => setLinkTarget(e.target.value)}
-                      placeholder="Target Key (e.g. APEX-102)"
+                      placeholder="Target Key (e.g. KYN-102)"
                       className="bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none font-mono"
                     />
                   </div>
@@ -985,7 +985,7 @@ export function IssueDetailDrawer({
                       type="text"
                       value={gitRefName}
                       onChange={(e) => setGitRefName(e.target.value)}
-                      placeholder={gitRefType === 'BRANCH' ? 'feat/apex-101-upgrade' : gitRefType === 'PULL_REQUEST' ? '#42 PR Title' : 'a1b2c3d'}
+                      placeholder={gitRefType === 'BRANCH' ? 'feat/kyn-101-upgrade' : gitRefType === 'PULL_REQUEST' ? '#42 PR Title' : 'a1b2c3d'}
                       className="bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none font-mono"
                     />
 

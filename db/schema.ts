@@ -19,8 +19,8 @@ export const ISSUE_TYPES = [
   'Story', 'Bug', 'Task', 'Epic', 'Subtask',
   'STORY', 'BUG', 'TASK', 'EPIC', 'SUBTASK'
 ] as const;
-export const JIRA_ISSUE_TYPES = ['EPIC', 'STORY', 'TASK', 'BUG', 'SUBTASK'] as const;
-export type JiraIssueType = (typeof JIRA_ISSUE_TYPES)[number];
+export const AGILE_ISSUE_TYPES = ['EPIC', 'STORY', 'TASK', 'BUG', 'SUBTASK'] as const;
+export type AgileIssueType = (typeof AGILE_ISSUE_TYPES)[number];
 
 export const WORKFLOW_CATEGORIES = ['TODO', 'IN_PROGRESS', 'DONE'] as const;
 export type WorkflowCategory = (typeof WORKFLOW_CATEGORIES)[number];
@@ -149,7 +149,7 @@ export const sprints = sqliteTable(
 export const issues = sqliteTable(
   'issues',
   {
-    key: text('key').primaryKey(), // e.g. APEX-101
+    key: text('key').primaryKey(), // e.g. KYN-101
     projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
     parentIssueId: text('parent_issue_id').references((): any => issues.key, { onDelete: 'set null' }),
     title: text('title').notNull(),
@@ -236,7 +236,7 @@ export const issueHistory = sqliteTable(
 
 /* ------------------------------------------------------------------ */
 /* Subtasks, Issue Links & Notifications                               */
-/* NOTE: issues' primary key is `key` (e.g. APEX-101), so FKs target it.*/
+/* NOTE: issues' primary key is `key` (e.g. KYN-101), so FKs target it.*/
 /* ------------------------------------------------------------------ */
 export const LINK_TYPES = ['blocks', 'is_blocked_by', 'relates_to', 'duplicates', 'BLOCKS', 'IS_BLOCKED_BY', 'RELATES_TO', 'DUPLICATES'] as const;
 export type LinkType = (typeof LINK_TYPES)[number];

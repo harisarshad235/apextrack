@@ -12,7 +12,7 @@ const escapedContent = manualContent.replace(/'/g, "''");
 const seedContent = fs.readFileSync(SEED_SQL_PATH, 'utf-8');
 
 // Find the start of doc-4
-const doc4Marker = "('doc-4','ApexTrack System Architecture, RBAC & Operations Manual','Architecture',";
+const doc4Marker = "('doc-4','Kynov System Architecture, RBAC & Operations Manual','Architecture',";
 const doc4Start = seedContent.indexOf(doc4Marker);
 
 if (doc4Start !== -1) {

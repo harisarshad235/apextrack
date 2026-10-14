@@ -1,22 +1,16 @@
 'use client';
 
 import React from 'react';
-import { ApexLogo } from '@/components/brand/ApexLogo';
+import { KynovLogo, KynovLogoProps } from '@/components/brand/KynovLogo';
 
-export interface ApexTrackLogoProps {
-  size?: number;
-  className?: string;
-  showGlow?: boolean;
-}
+export type ApexTrackLogoProps = KynovLogoProps;
 
 /**
- * Backward-compatible wrapper forwarding to the new minimalist enterprise ApexLogo.
+ * Backward-compatible wrapper forwarding to KynovLogo.
  */
-export function ApexTrackLogo({
-  size = 36,
-  className = '',
-}: ApexTrackLogoProps) {
-  return <ApexLogo size={size} showWordmark={false} className={className} />;
+export function ApexTrackLogo(props: ApexTrackLogoProps) {
+  return <KynovLogo {...props} />;
 }
 
-export default ApexTrackLogo;
+export { KynovLogo };
+export default KynovLogo;

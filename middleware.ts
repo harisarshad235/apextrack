@@ -16,9 +16,12 @@ export function middleware(request: NextRequest) {
   }
 
   const sessionCookie =
+    request.cookies.get('kynov_session')?.value ||
     request.cookies.get('apex_session')?.value ||
     request.cookies.get('apex_session_user_id')?.value;
-  const devCookie = request.cookies.get('apex_dev_user_id')?.value;
+  const devCookie =
+    request.cookies.get('kynov_dev_user_id')?.value ||
+    request.cookies.get('apex_dev_user_id')?.value;
   const isAuthenticated = Boolean(sessionCookie || devCookie);
 
   const isExplicitOverview =

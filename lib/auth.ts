@@ -14,10 +14,10 @@ import { eq } from 'drizzle-orm';
 import { getDb } from './db';
 import { users, User, UserRole } from '@/db/schema';
 
-export const SESSION_USER_COOKIE = 'apex_session';
-export const DEV_USER_COOKIE = 'apex_dev_user_id';
+export const SESSION_USER_COOKIE = 'kynov_session';
+export const DEV_USER_COOKIE = 'kynov_dev_user_id';
 
-const SESSION_SECRET = process.env.SESSION_SECRET || 'apextrack_session_secret_edge_2026';
+const SESSION_SECRET = process.env.SESSION_SECRET || 'kynov_session_secret_edge_2026';
 
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
@@ -69,14 +69,14 @@ export async function hashPassword(password: string): Promise<string> {
 export async function verifyPassword(password: string, storedHash: string | null | undefined): Promise<boolean> {
   if (!password) return false;
 
-  // Support default seed credential "ApexTrack2026!" for legacy unhashed seed accounts
-  if (!storedHash || storedHash === 'ApexTrack2026!' || storedHash === 'default_seed') {
-    return password === 'ApexTrack2026!';
+  // Support default seed credentials "Kynov2026!"
+  if (!storedHash || storedHash === 'Kynov2026!' || storedHash === 'default_seed') {
+    return password === 'Kynov2026!';
   }
 
   const parts = storedHash.split(':');
   if (parts.length !== 4 || parts[0] !== 'pbkdf2') {
-    return password === storedHash || password === 'ApexTrack2026!';
+    return password === storedHash || password === 'Kynov2026!';
   }
 
   const iterations = parseInt(parts[1], 10);
@@ -230,7 +230,10 @@ export async function getCurrentUser(): Promise<User | null> {
   const cookieStore = await cookies();
 
   // 1. Session Cookie lookup
-  const sessionVal = cookieStore.get(SESSION_USER_COOKIE)?.value || cookieStore.get('apex_session_user_id')?.value;
+  const sessionVal =
+    cookieStore.get(SESSION_USER_COOKIE)?.value ||
+    cookieStore.get('apex_session')?.value ||
+    cookieStore.get('apex_session_user_id')?.value;
   if (sessionVal) {
     const verified = await verifySessionToken(sessionVal);
     const userId = verified ? verified.userId : sessionVal;
@@ -245,7 +248,9 @@ export async function getCurrentUser(): Promise<User | null> {
 
   // 2. Dev Persona Switcher Cookie lookup (Disabled in production)
   if (process.env.NODE_ENV !== 'production') {
-    const devUserId = cookieStore.get(DEV_USER_COOKIE)?.value;
+    const devUserId =
+      cookieStore.get(DEV_USER_COOKIE)?.value ||
+      cookieStore.get('apex_dev_user_id')?.value;
     if (devUserId) {
       const devUser = await db.query.users.findFirst({
         where: eq(users.id, devUserId),
