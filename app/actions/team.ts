@@ -122,6 +122,10 @@ export async function removeUser(userId: string) {
 
 export async function switchPersona(userId: string) {
   try {
+    if (process.env.NODE_ENV === 'production') {
+      return { success: false, error: 'Persona switcher is disabled in production.' };
+    }
+
     const cookieStore = await cookies();
     cookieStore.set(DEV_USER_COOKIE, userId, {
       path: '/',

@@ -20,10 +20,10 @@ export default async function ProjectSettingsPage({ params }: ProjectSettingsPag
     redirect('/login');
   }
 
-  // Access check
-  const hasAccess = await verifyProjectAccess(currentUser.id, projectId);
+  // Access check: strictly requires Admin, CTO, or Project Manager role
+  const hasAccess = await verifyProjectAccess(currentUser.id, projectId, 'PROJECT_MANAGER');
   if (!hasAccess) {
-    redirect('/dashboard?error=unauthorized_project');
+    redirect('/dashboard?error=unauthorized_project_settings');
   }
 
   const db = getDb();

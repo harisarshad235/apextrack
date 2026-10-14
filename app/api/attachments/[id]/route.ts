@@ -10,6 +10,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await requireRole(['Admin', 'Member', 'Viewer']);
     const { id } = await params;
     const db = getDb();
     const bucket = getBucket();

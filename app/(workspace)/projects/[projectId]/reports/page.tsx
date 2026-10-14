@@ -1,6 +1,7 @@
 import { connection } from 'next/server';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
+import { verifyProjectAccess } from '@/lib/rbac';
 import { getWorkspaceData } from '@/lib/queries';
 import { MetricsReportView } from '@/components/metrics/MetricsReport';
 import Link from 'next/link';
@@ -19,6 +20,11 @@ export default async function ProjectReportsPage({
 
   if (!currentUser) {
     redirect('/login');
+  }
+
+  const hasAccess = await verifyProjectAccess(currentUser.id, projectId);
+  if (!hasAccess) {
+    redirect('/dashboard?error=unauthorized_project');
   }
 
   const { users, issues, sprints, metrics, projects } = await getWorkspaceData();

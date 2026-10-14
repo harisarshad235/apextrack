@@ -34,7 +34,7 @@ function hexToBytes(hex: string): Uint8Array {
 }
 
 /**
- * Edge-compatible WebCrypto PBKDF2 Password Hashing (SHA-256 + 16-byte salt + 100,000 iterations)
+ * Edge-compatible WebCrypto PBKDF2 Password Hashing (SHA-256 + 16-byte salt + 250,000 iterations)
  */
 export async function hashPassword(password: string): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -50,7 +50,7 @@ export async function hashPassword(password: string): Promise<string> {
     {
       name: 'PBKDF2',
       salt: salt.buffer as ArrayBuffer,
-      iterations: 100000,
+      iterations: 250000,
       hash: 'SHA-256',
     },
     keyMaterial,
@@ -60,26 +60,29 @@ export async function hashPassword(password: string): Promise<string> {
   const saltHex = bytesToHex(salt);
   const hashHex = bytesToHex(new Uint8Array(derivedBits));
 
-  return `pbkdf2:100000:${saltHex}:${hashHex}`;
+  return `pbkdf2:250000:${saltHex}:${hashHex}`;
 }
 
 /**
- * Verify plain password against stored PBKDF2 hash or default seed credential
+ * Verify plain password against stored PBKDF2 hash or default initial seed credential
  */
 export async function verifyPassword(password: string, storedHash: string | null | undefined): Promise<boolean> {
   if (!password) return false;
 
-  // Support default seed credentials "Kynov2026!"
+  // Support default initial seed credentials "Kynov2026!"
   if (!storedHash || storedHash === 'Kynov2026!' || storedHash === 'default_seed') {
     return password === 'Kynov2026!';
   }
 
   const parts = storedHash.split(':');
   if (parts.length !== 4 || parts[0] !== 'pbkdf2') {
-    return password === storedHash || password === 'Kynov2026!';
+    return password === 'Kynov2026!';
   }
 
   const iterations = parseInt(parts[1], 10);
+  if (isNaN(iterations) || iterations < 10000) {
+    return false;
+  }
   const salt = hexToBytes(parts[2]);
   const expectedHashHex = parts[3];
 

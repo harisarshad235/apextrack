@@ -256,8 +256,7 @@ export async function deleteSprintAction({
   sprintId: string;
 }): Promise<{ success: boolean; message?: string; error?: string }> {
   try {
-    const currentUser = await getCurrentUser();
-    if (!currentUser) return { success: false, error: 'Unauthenticated' };
+    const currentUser = await requireRole(['Admin', 'Member']);
 
     const db = getDb();
     await ensureSprintTables(db);
@@ -318,8 +317,7 @@ export async function startSprintAction({
   goal?: string;
 }): Promise<{ success: boolean; message?: string; error?: string }> {
   try {
-    const currentUser = await getCurrentUser();
-    if (!currentUser) return { success: false, error: 'Unauthenticated' };
+    const currentUser = await requireRole(['Admin', 'Member']);
 
     const db = getDb();
     await ensureSprintTables(db);
@@ -398,8 +396,7 @@ export async function completeSprintAction({
   rolloverTarget?: string | null;
 }): Promise<{ success: boolean; message?: string; error?: string }> {
   try {
-    const currentUser = await getCurrentUser();
-    if (!currentUser) return { success: false, error: 'Unauthenticated' };
+    const currentUser = await requireRole(['Admin', 'Member']);
 
     const db = getDb();
     await ensureSprintTables(db);
