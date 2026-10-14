@@ -1,6 +1,16 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+function withSecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), browsing-topics=()');
+  response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+  return response;
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -12,7 +22,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/favicon') ||
     pathname.includes('.')
   ) {
-    return NextResponse.next();
+    return withSecurityHeaders(NextResponse.next());
   }
 
   // 2. Allow public marketing pages and auth flows without middleware redirection loops
@@ -26,7 +36,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/reset-password') ||
     pathname.startsWith('/awaiting-approval')
   ) {
-    return NextResponse.next();
+    return withSecurityHeaders(NextResponse.next());
   }
 
   // 3. Protected workspace routes (e.g. /dashboard, /projects):
@@ -41,10 +51,10 @@ export function middleware(request: NextRequest) {
 
   if (!sessionCookie && !devCookie) {
     const loginUrl = new URL('/login', request.url);
-    return NextResponse.redirect(loginUrl);
+    return withSecurityHeaders(NextResponse.redirect(loginUrl));
   }
 
-  return NextResponse.next();
+  return withSecurityHeaders(NextResponse.next());
 }
 
 export const config = {

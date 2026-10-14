@@ -40,7 +40,7 @@
     }
   ],
   "vars": {
-    "AUTH_MODE": "dev",
+    "AUTH_MODE": "production",
     "PROJECT_KEY": "KYN",
     "NEXT_PUBLIC_APP_URL": "https://kynov.harisarshad.site"
   }
