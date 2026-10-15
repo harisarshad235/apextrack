@@ -39,6 +39,20 @@
       "bucket_name": "apextrack-attachments"
     }
   ],
+  "previews": {
+    "r2_buckets": [
+      {
+        "binding": "ATTACHMENTS",
+        "bucket_name": "apextrack-attachments"
+      }
+    ],
+    "d1_databases": [
+      {
+        "binding": "apextrack_db",
+        "database_id": "b92298b4-1644-491d-9aa1-70402d4a0881"
+      }
+    ]
+  },
   "vars": {
     "AUTH_MODE": "production",
     "PROJECT_KEY": "KYN",
