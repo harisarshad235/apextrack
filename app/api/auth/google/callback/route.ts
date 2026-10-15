@@ -2,9 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getOAuthEnv, getAppBaseUrl, handleOAuthUserHandshake } from '@/lib/oauth';
 import { SESSION_USER_COOKIE } from '@/lib/auth';
 
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
+
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
+  // Rate limiting for OAuth callback (15 requests / min)
+  const clientIp = await getClientIp();
+  const rateLimit = await checkRateLimit(`oauth:google:${clientIp}`, 15, 60);
+  if (!rateLimit.allowed) {
+    const loginUrl = new URL('/login', req.url);
+    loginUrl.searchParams.set('error', 'rate_limit_exceeded');
+    return NextResponse.redirect(loginUrl);
+  }
+
   const code = req.nextUrl.searchParams.get('code');
   const error = req.nextUrl.searchParams.get('error');
 

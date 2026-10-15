@@ -25,6 +25,7 @@ import {
   EnterpriseLinkType,
 } from '@/db/schema';
 import { ensureEnterpriseSchema } from '@/lib/schemaInit';
+import { createIssueSchema, updateIssueSchema } from '@/lib/schemas';
 
 /**
  * Validates enterprise issue hierarchy rules:
@@ -173,17 +174,26 @@ export async function createIssue(data: {
 }) {
   try {
     const currentUser = await requireRole(['Admin', 'Member']);
+    const parsed = createIssueSchema.safeParse(data);
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message || 'Invalid issue input',
+      };
+    }
+    const validData = parsed.data;
+
     const db = getDb();
     await ensureEnterpriseSchema(db);
 
-    const resolvedType = (data.issueType || data.type || 'TASK').toUpperCase();
-    await validateIssueHierarchy(db, resolvedType, data.parentIssueId);
+    const resolvedType = (validData.issueType || validData.type || 'TASK').toUpperCase();
+    await validateIssueHierarchy(db, resolvedType, validData.parentIssueId);
 
     // 1. Determine target project and key prefix
     let targetProject = null;
-    if (data.projectId) {
+    if (validData.projectId) {
       targetProject = await db.query.projects.findFirst({
-        where: eq(projects.id, data.projectId),
+        where: eq(projects.id, validData.projectId),
       });
     }
 
@@ -226,27 +236,28 @@ export async function createIssue(data: {
     await db.insert(issues).values({
       key,
       projectId,
-      parentIssueId: data.parentIssueId || null,
-      title: data.title.trim(),
+      parentIssueId: validData.parentIssueId || null,
+      title: validData.title,
       type: legacyType,
       issueType: resolvedType,
-      epicColor: data.epicColor || (resolvedType === 'EPIC' ? '#3B82F6' : undefined),
-      priority: data.priority,
-      status: data.status?.trim() || 'To Do',
-      assigneeId: data.assigneeId || currentUser.id,
+      epicColor: validData.epicColor || (resolvedType === 'EPIC' ? '#3B82F6' : undefined),
+      priority: validData.priority as IssuePriority,
+      status: validData.status || 'To Do',
+      assigneeId: validData.assigneeId || currentUser.id,
       reporterId: currentUser.id,
-      sprintId: data.sprintId === 'Backlog' || !data.sprintId ? null : data.sprintId,
-      storyPoints: data.storyPoints != null ? Number(data.storyPoints) : 0,
-      originalEstimateHours: data.originalEstimateHours != null ? Number(data.originalEstimateHours) : null,
-      remainingEstimateHours: data.remainingEstimateHours != null ? Number(data.remainingEstimateHours) : (data.originalEstimateHours != null ? Number(data.originalEstimateHours) : null),
-      dueDate: data.dueDate || null,
-      description: data.description?.trim() || '',
+      sprintId: validData.sprintId === 'Backlog' || !validData.sprintId ? null : validData.sprintId,
+      storyPoints: validData.storyPoints != null ? Number(validData.storyPoints) : 0,
+      originalEstimateHours: validData.originalEstimateHours != null ? Number(validData.originalEstimateHours) : null,
+      remainingEstimateHours: validData.remainingEstimateHours != null ? Number(validData.remainingEstimateHours) : (validData.originalEstimateHours != null ? Number(validData.originalEstimateHours) : null),
+      dueDate: validData.dueDate || null,
+      description: validData.description || '',
     });
 
     // Handle labels
-    if (data.labelsList && data.labelsList.length > 0) {
-      for (const labelName of data.labelsList) {
+    if (validData.labelsList && validData.labelsList.length > 0) {
+      for (const labelName of validData.labelsList) {
         const cleanName = labelName.trim();
+
         if (!cleanName) continue;
 
         let labelObj = await db.query.labels.findFirst({
@@ -314,6 +325,15 @@ export async function updateIssue(
 ) {
   try {
     const currentUser = await requireRole(['Admin', 'Member']);
+    const parsed = updateIssueSchema.safeParse(data);
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message || 'Invalid update payload',
+      };
+    }
+    const validData = parsed.data;
+
     const db = getDb();
     await ensureEnterpriseSchema(db);
 
@@ -323,21 +343,21 @@ export async function updateIssue(
 
     if (!existing) return { success: false, error: 'Issue not found' };
 
-    const effectiveType = (data.issueType || data.type || existing.issueType || existing.type).toUpperCase();
-    const effectiveParent = data.parentIssueId !== undefined ? data.parentIssueId : existing.parentIssueId;
+    const effectiveType = (validData.issueType || validData.type || existing.issueType || existing.type).toUpperCase();
+    const effectiveParent = validData.parentIssueId !== undefined ? validData.parentIssueId : existing.parentIssueId;
 
-    if (data.issueType !== undefined || data.type !== undefined || data.parentIssueId !== undefined) {
+    if (validData.issueType !== undefined || validData.type !== undefined || validData.parentIssueId !== undefined) {
       await validateIssueHierarchy(db, effectiveType, effectiveParent);
     }
 
     // Prepare update payload
     const updatePayload: Record<string, any> = {
-      ...data,
+      ...validData,
       updatedAt: new Date(),
     };
 
-    if (data.issueType) {
-      updatePayload.issueType = data.issueType.toUpperCase();
+    if (validData.issueType) {
+      updatePayload.issueType = validData.issueType.toUpperCase();
     }
 
     await db

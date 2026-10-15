@@ -112,6 +112,9 @@ export async function extractAndFilterMentionTargets({
   return verifiedTargets;
 }
 
+import { createCommentSchema } from '@/lib/schemas';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
+
 /**
  * Server action to post a comment on an issue, dispatch in-app notifications,
  * and asynchronously trigger email delivery for @mentioned members.
@@ -119,10 +122,26 @@ export async function extractAndFilterMentionTargets({
 export async function addCommentAction(issueKey: string, body: string): Promise<AddCommentResult> {
   try {
     const currentUser = await requireRole(['Admin', 'Member']);
-    const trimmedBody = body.trim();
-    if (!trimmedBody) {
-      return { success: false, error: 'Comment body cannot be empty' };
+
+    // Rate limit comment submissions (20 per minute)
+    const clientIp = await getClientIp();
+    const rateLimit = await checkRateLimit(`comment:${currentUser.id || clientIp}`, 20, 60);
+    if (!rateLimit.allowed) {
+      return {
+        success: false,
+        error: 'Too many comments submitted. Please wait a moment before trying again.',
+      };
     }
+
+    const parsed = createCommentSchema.safeParse({ issueId: issueKey, body });
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message || 'Invalid comment content',
+      };
+    }
+
+    const trimmedBody = parsed.data.body;
 
     const db = getDb();
     await ensureEnterpriseSchema(db);

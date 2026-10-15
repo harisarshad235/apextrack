@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { handleApiCors, isAllowedOrigin, getCorsHeaders } from '@/lib/cors';
 
 function withSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set('X-Content-Type-Options', 'nosniff');
@@ -14,9 +15,26 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Allow static assets, API endpoints, icons, and files
+  // 1. Handle API routes with strict CORS origin verification
+  if (pathname.startsWith('/api')) {
+    const corsResponse = handleApiCors(request);
+    if (corsResponse) {
+      return withSecurityHeaders(corsResponse);
+    }
+
+    const response = NextResponse.next();
+    const origin = request.headers.get('origin');
+    if (origin && isAllowedOrigin(origin)) {
+      const corsHeaders = getCorsHeaders(origin);
+      for (const [key, value] of Object.entries(corsHeaders)) {
+        response.headers.set(key, value);
+      }
+    }
+    return withSecurityHeaders(response);
+  }
+
+  // 2. Allow static files, icons, and next internal assets
   if (
-    pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/icon') ||
     pathname.startsWith('/favicon') ||
@@ -25,7 +43,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 2. Allow public marketing pages and auth flows without middleware redirection loops
+  // 3. Allow public marketing pages and auth flows without middleware redirection loops
   if (
     pathname === '/' ||
     pathname.startsWith('/landing') ||
@@ -39,7 +57,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 3. Protected workspace routes (e.g. /dashboard, /projects):
+  // 4. Protected workspace routes (e.g. /dashboard, /projects):
   // Check if session cookie exists. If none, redirect to /login.
   const sessionCookie =
     request.cookies.get('kynov_session')?.value ||
@@ -60,13 +78,12 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
+     * Match all request paths except for:
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - icon.svg (vector favicon)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|icon.svg).*)',
+    '/((?!_next/static|_next/image|favicon.ico|icon.svg).*)',
   ],
 };

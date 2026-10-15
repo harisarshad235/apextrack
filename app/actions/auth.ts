@@ -20,15 +20,32 @@ import {
   verifyPasswordResetToken,
 } from '@/lib/auth';
 import { sendPasswordResetEmail, sendAdminNewUserAlert } from '@/lib/email';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
+import {
+  loginSchema,
+  registerSchema,
+  passwordResetRequestSchema,
+  passwordResetConfirmSchema,
+} from '@/lib/schemas';
 
 export async function loginAction(formData: { email: string; password: string }) {
   try {
-    const cleanEmail = (formData.email || '').toLowerCase().trim();
-    const password = formData.password;
-
-    if (!cleanEmail || !password) {
-      return { success: false, error: 'Email and password are required' };
+    const clientIp = await getClientIp();
+    const rateCheck = await checkRateLimit(`login:${clientIp}`, 5, 300);
+    if (!rateCheck.success) {
+      return {
+        success: false,
+        error: 'Too many login attempts. Please wait 5 minutes before trying again.',
+      };
     }
+
+    const parsed = loginSchema.safeParse(formData);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message || 'Invalid email or password' };
+    }
+
+    const cleanEmail = parsed.data.email;
+    const password = parsed.data.password;
 
     const db = getDb();
     let userList = await db.select().from(users).where(eq(users.email, cleanEmail)).limit(1).catch(() => []);
@@ -98,7 +115,7 @@ export async function loginAction(formData: { email: string; password: string })
     }
 
     // Auto-migrate user to store password hash on first successful login if empty
-    if (!user.passwordHash || user.passwordHash === 'default_seed') {
+    if (!user.passwordHash || user.passwordHash === 'default_seed' || !user.passwordHash.startsWith('pbkdf2:')) {
       const newHash = await hashPassword(password).catch(() => null);
       if (newHash) {
         await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, user.id)).catch(() => null);
@@ -153,20 +170,24 @@ export async function registerUser(data: {
   department?: string;
 }) {
   try {
-    const cleanEmail = data.email.toLowerCase().trim();
-    const cleanName = data.name.trim();
-
-    if (!cleanName || !cleanEmail) {
-      return { success: false, error: 'Full name and email are required.' };
+    const clientIp = await getClientIp();
+    const rateCheck = await checkRateLimit(`register:${clientIp}`, 3, 900);
+    if (!rateCheck.success) {
+      return {
+        success: false,
+        error: 'Too many registration requests. Please wait 15 minutes before trying again.',
+      };
     }
 
-    if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
-      return { success: false, error: 'Please provide a valid business email.' };
+    const parsed = registerSchema.safeParse(data);
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0]?.message || 'Invalid registration details.' };
     }
 
-    if (!data.password || data.password.length < 6) {
-      return { success: false, error: 'Password must be at least 6 characters.' };
-    }
+    const cleanEmail = parsed.data.email;
+    const cleanName = parsed.data.name;
+    const department = parsed.data.department || 'Engineering';
+    const password = parsed.data.password;
 
     const db = getDb();
     const existing = await db.query.users.findFirst({
@@ -178,7 +199,7 @@ export async function registerUser(data: {
     }
 
     const userId = `u-${Date.now()}`;
-    const hashedPassword = await hashPassword(data.password);
+    const hashedPassword = await hashPassword(password);
 
     // Strictly register with status 'PENDING'
     await db.insert(users).values({
@@ -188,7 +209,7 @@ export async function registerUser(data: {
       passwordHash: hashedPassword,
       role: 'Viewer',
       status: 'PENDING',
-      department: data.department?.trim() || 'Engineering',
+      department,
       avatarUrl: null,
     });
 
@@ -211,7 +232,7 @@ export async function registerUser(data: {
     });
 
     // Notify workspace admin in background (non-blocking)
-    sendAdminNewUserAlert(cleanEmail, cleanName, data.department).catch((e) => {
+    sendAdminNewUserAlert(cleanEmail, cleanName, department).catch((e) => {
       console.warn('[Alert] Could not dispatch new user alert email:', e);
     });
 
@@ -224,10 +245,24 @@ export async function registerUser(data: {
 
 export async function requestPasswordReset(email: string) {
   try {
-    const cleanEmail = (email || '').toLowerCase().trim();
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      return { success: true, message: 'If an account exists with this email, a reset link has been dispatched.' };
+    const clientIp = await getClientIp();
+    const rateCheck = await checkRateLimit(`pwd_reset:${clientIp}`, 3, 900);
+    if (!rateCheck.success) {
+      return {
+        success: true,
+        message: 'If an account exists with this email, a reset link has been dispatched.',
+      };
     }
+
+    const parsed = passwordResetRequestSchema.safeParse({ email });
+    if (!parsed.success) {
+      return {
+        success: true,
+        message: 'If an account exists with this email, a reset link has been dispatched.',
+      };
+    }
+
+    const cleanEmail = parsed.data.email;
 
     const db = getDb();
     let user = await db.query.users.findFirst({
@@ -260,8 +295,6 @@ export async function requestPasswordReset(email: string) {
       const host = reqHeaders.get('x-forwarded-host') || reqHeaders.get('host') || 'apex.harisarshad.site';
       const protocol = reqHeaders.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
       
-      // Permanent fix: Email links must always point to the 24/7 live site (https://apex.harisarshad.site)
-      // so users and admins can click from any device (phone, mail client) without needing a local dev server.
       let baseUrl = process.env.NEXT_PUBLIC_APP_URL;
       if (!baseUrl || baseUrl.includes('localhost')) {
         baseUrl = !host.includes('localhost') ? `${protocol}://${host}` : 'https://apex.harisarshad.site';
@@ -291,15 +324,29 @@ export async function requestPasswordReset(email: string) {
 
 export async function resetPassword(data: { token: string; newPassword: string }) {
   try {
-    const { token, newPassword } = data;
-
-    if (!token) {
-      return { success: false, error: 'Invalid or missing reset token.' };
+    const clientIp = await getClientIp();
+    const rateCheck = await checkRateLimit(`pwd_confirm:${clientIp}`, 5, 900);
+    if (!rateCheck.success) {
+      return {
+        success: false,
+        error: 'Too many password reset attempts. Please request a new reset link.',
+      };
     }
 
-    if (!newPassword || newPassword.length < 6) {
-      return { success: false, error: 'Password must be at least 6 characters long.' };
+    const parsed = passwordResetConfirmSchema.safeParse({
+      token: data.token,
+      password: data.newPassword,
+    });
+
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message || 'Invalid password reset parameters.',
+      };
     }
+
+    const token = parsed.data.token;
+    const newPassword = parsed.data.password;
 
     const userId = await verifyPasswordResetToken(token);
     if (!userId) {

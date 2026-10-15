@@ -262,6 +262,8 @@ export async function canManageProjectMembersAction(projectId: string): Promise<
   }
 }
 
+import { sanitizePlainText, sanitizeMarkdown } from '@/lib/sanitize';
+
 export async function createProject(data: {
   key: string;
   name: string;
@@ -275,7 +277,9 @@ export async function createProject(data: {
     await ensureProjectRbacTables(db);
 
     const cleanKey = data.key.trim().toUpperCase();
-    const cleanName = data.name.trim();
+    const cleanName = sanitizePlainText(data.name.trim());
+    const cleanDescription = data.description ? sanitizeMarkdown(data.description.trim()) : '';
+    const cleanCategory = data.category ? sanitizePlainText(data.category.trim()) : 'Software';
 
     if (!cleanKey || !cleanName) {
       return { success: false, error: 'Project Key and Name are required.' };
@@ -307,8 +311,8 @@ export async function createProject(data: {
       id: projectId,
       key: cleanKey,
       name: cleanName,
-      description: data.description?.trim() || '',
-      category: data.category?.trim() || 'Software',
+      description: cleanDescription,
+      category: cleanCategory,
       leadId: effectiveLeadId,
       status: 'active',
     });

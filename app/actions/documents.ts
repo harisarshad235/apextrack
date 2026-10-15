@@ -6,6 +6,8 @@ import { getDb } from '@/lib/db';
 import { requireRole } from '@/lib/auth';
 import { documents } from '@/db/schema';
 
+import { createDocumentSchema, updateDocumentSchema } from '@/lib/schemas';
+
 export async function createDocument(data: {
   title: string;
   category: string;
@@ -13,14 +15,23 @@ export async function createDocument(data: {
 }) {
   try {
     const currentUser = await requireRole(['Admin', 'Member']);
+    const parsed = createDocumentSchema.safeParse(data);
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message || 'Invalid document payload',
+      };
+    }
+
+    const validData = parsed.data;
     const db = getDb();
     const docId = `doc-${Date.now()}`;
 
     await db.insert(documents).values({
       id: docId,
-      title: data.title.trim(),
-      category: data.category.trim() || 'Architecture',
-      content: data.content.trim(),
+      title: validData.title,
+      category: validData.category,
+      content: validData.content,
       authorId: currentUser.id,
       updatedById: currentUser.id,
     });
@@ -43,12 +54,21 @@ export async function updateDocument(
 ) {
   try {
     const currentUser = await requireRole(['Admin', 'Member']);
+    const parsed = updateDocumentSchema.safeParse(data);
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message || 'Invalid document update payload',
+      };
+    }
+
+    const validData = parsed.data;
     const db = getDb();
 
     await db
       .update(documents)
       .set({
-        ...data,
+        ...validData,
         updatedById: currentUser.id,
         updatedAt: new Date(),
       })

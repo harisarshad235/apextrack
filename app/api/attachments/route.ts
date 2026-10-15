@@ -4,17 +4,50 @@ import { requireRole } from '@/lib/auth';
 import { attachments } from '@/db/schema';
 import { revalidatePath } from 'next/cache';
 
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
+import { sanitizePlainText } from '@/lib/sanitize';
+
+const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
+
 export async function POST(req: Request) {
   try {
     const currentUser = await requireRole(['Admin', 'Member']);
+
+    // Rate limiting: max 15 uploads per minute
+    const clientIp = await getClientIp();
+    const rateLimit = await checkRateLimit(`upload:${currentUser.id || clientIp}`, 15, 60);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Upload rate limit exceeded. Please wait a moment.' },
+        { status: 429 }
+      );
+    }
+
     const formData = await req.formData();
 
     const file = formData.get('file') as File | null;
-    const issueKey = (formData.get('issueKey') as string) || null;
-    const documentId = (formData.get('documentId') as string) || null;
+    const rawIssueKey = (formData.get('issueKey') as string) || null;
+    const rawDocumentId = (formData.get('documentId') as string) || null;
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+    }
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      return NextResponse.json(
+        { error: 'File size exceeds maximum allowed limit (25MB)' },
+        { status: 413 }
+      );
+    }
+
+    const issueKey = rawIssueKey ? sanitizePlainText(rawIssueKey.trim()) : null;
+    const documentId = rawDocumentId ? sanitizePlainText(rawDocumentId.trim()) : null;
+
+    if (issueKey && !/^[A-Za-z0-9_-]+$/.test(issueKey)) {
+      return NextResponse.json({ error: 'Invalid issue key format' }, { status: 400 });
+    }
+    if (documentId && !/^[A-Za-z0-9_-]+$/.test(documentId)) {
+      return NextResponse.json({ error: 'Invalid document ID format' }, { status: 400 });
     }
 
     if (!issueKey && !documentId) {

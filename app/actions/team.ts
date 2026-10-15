@@ -7,6 +7,8 @@ import { getDb } from '@/lib/db';
 import { requireRole, getCurrentUser, DEV_USER_COOKIE } from '@/lib/auth';
 import { users, UserRole } from '@/db/schema';
 
+import { inviteUserSchema } from '@/lib/schemas';
+
 export async function inviteUser(data: {
   name: string;
   email: string;
@@ -15,10 +17,19 @@ export async function inviteUser(data: {
 }) {
   try {
     const adminUser = await requireRole(['Admin']);
+    const parsed = inviteUserSchema.safeParse(data);
+    if (!parsed.success) {
+      return {
+        success: false,
+        error: parsed.error.issues[0]?.message || 'Invalid user invitation data',
+      };
+    }
+    const validData = parsed.data;
+
     const db = getDb();
 
     const existing = await db.query.users.findFirst({
-      where: eq(users.email, data.email.toLowerCase().trim()),
+      where: eq(users.email, validData.email),
     });
 
     if (existing) {
@@ -29,18 +40,18 @@ export async function inviteUser(data: {
 
     await db.insert(users).values({
       id: userId,
-      name: data.name.trim(),
-      email: data.email.toLowerCase().trim(),
-      role: data.role,
+      name: validData.name,
+      email: validData.email,
+      role: validData.role,
       status: 'APPROVED', // Invited by Admin directly -> APPROVED
-      department: data.department.trim() || 'Engineering',
+      department: validData.department,
       avatarUrl: null, // Default to clean initials badge
       approvedById: adminUser.id,
       approvedAt: new Date(),
     });
 
     revalidatePath('/');
-    return { success: true, message: `User ${data.name} invited as ${data.role}` };
+    return { success: true, message: `User ${validData.name} invited as ${validData.role}` };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to invite user';
     return { success: false, error: message };
