@@ -18,7 +18,6 @@ import {
   issueGitLinks,
   issueComments,
 } from '@/db/schema';
-import { ensureEnterpriseSchema } from './schemaInit';
 import { FullIssue, FullDocument, WorkspaceMetrics, User, Sprint, Project, Swimlane } from './types';
 import { desc, asc } from 'drizzle-orm';
 
@@ -32,20 +31,72 @@ export async function getWorkspaceData(): Promise<{
   metrics: WorkspaceMetrics;
 }> {
   const db = getDb();
-  await ensureEnterpriseSchema(db);
 
-  // 1. Fetch Users
-  const userList = await db.select().from(users);
+  // Run all primary queries in parallel via Promise.all for minimal CPU time and latency
+  const [
+    rawUsers,
+    projectListRaw,
+    swimlaneList,
+    sprintList,
+    rawIssues,
+    rawComments,
+    rawIssueComments,
+    rawHistory,
+    rawAuditLogs,
+    rawGitLinks,
+    rawAttachments,
+    rawLabels,
+    rawIssueLabels,
+    rawSubtasks,
+    rawLinks,
+    rawDocs,
+  ] = await Promise.all([
+    db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        role: users.role,
+        status: users.status,
+        authProvider: users.authProvider,
+        department: users.department,
+        avatarUrl: users.avatarUrl,
+        approvedById: users.approvedById,
+        approvedAt: users.approvedAt,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      })
+      .from(users),
+    db.select().from(projects).orderBy(asc(projects.name)),
+    db.select().from(swimlanes).orderBy(asc(swimlanes.sortOrder)),
+    db.select().from(sprints),
+    db.select().from(issues).orderBy(desc(issues.updatedAt)),
+    db.select().from(comments).orderBy(desc(comments.createdAt)).limit(150),
+    db.select().from(issueComments).orderBy(desc(issueComments.createdAt)).limit(150).catch(() => []),
+    db.select().from(issueHistory).orderBy(desc(issueHistory.createdAt)).limit(100).catch(() => []),
+    db.select().from(issueAuditLogs).orderBy(desc(issueAuditLogs.createdAt)).limit(50).catch(() => []),
+    db.select().from(issueGitLinks).orderBy(desc(issueGitLinks.createdAt)).limit(50).catch(() => []),
+    db.select().from(attachments),
+    db.select().from(labels),
+    db.select().from(issueLabels),
+    db.select().from(subtasks).orderBy(asc(subtasks.sortOrder)),
+    db.select().from(issueLinks),
+    db.select().from(documents).orderBy(desc(documents.updatedAt)),
+  ]);
+
+  // Strip sensitive password hash and map to User
+  const userList: User[] = rawUsers.map((u) => ({
+    ...u,
+    passwordHash: null,
+    providerId: null,
+  }));
 
   // Map users by ID for fast lookup
   const userMap = new Map<string, User>();
   userList.forEach((u) => userMap.set(u.id, u));
 
-  // 2. Fetch Projects & Swimlanes
-  let projectList = await db.select().from(projects).orderBy(asc(projects.name));
-  let swimlaneList = await db.select().from(swimlanes).orderBy(asc(swimlanes.sortOrder));
-
   // Fallback bootstrap if table empty
+  let projectList = projectListRaw;
   if (projectList.length === 0) {
     const defaultProj = {
       id: 'proj-apex',
@@ -63,63 +114,40 @@ export async function getWorkspaceData(): Promise<{
   const projectMap = new Map<string, Project>();
   projectList.forEach((p) => projectMap.set(p.id, p));
 
-  // 3. Fetch Sprints
-  const sprintList = await db.select().from(sprints);
   const sprintMap = new Map<string, Sprint>();
   sprintList.forEach((s) => sprintMap.set(s.id, s));
 
-  // 4. Fetch Issues
-  const rawIssues = await db.select().from(issues).orderBy(desc(issues.updatedAt));
-
-  // Fetch related records for issues
-  const rawComments = await db.select().from(comments).orderBy(desc(comments.createdAt));
-  let rawIssueComments: (typeof issueComments.$inferSelect)[] = [];
-  try {
-    rawIssueComments = await db.select().from(issueComments).orderBy(desc(issueComments.createdAt));
-  } catch {
-    // Ignore if not yet populated
-  }
-
-  const rawHistory = await db.select().from(issueHistory).orderBy(desc(issueHistory.createdAt));
-  let rawAuditLogs: (typeof issueAuditLogs.$inferSelect)[] = [];
-  try {
-    rawAuditLogs = await db.select().from(issueAuditLogs).orderBy(desc(issueAuditLogs.createdAt));
-  } catch {
-    // Ignore
-  }
-
-  let rawGitLinks: (typeof issueGitLinks.$inferSelect)[] = [];
-  try {
-    rawGitLinks = await db.select().from(issueGitLinks).orderBy(desc(issueGitLinks.createdAt));
-  } catch {
-    // Ignore
-  }
-
-  const rawAttachments = await db.select().from(attachments);
-  const rawLabels = await db.select().from(labels);
-  const rawIssueLabels = await db.select().from(issueLabels);
-  const rawSubtasks = await db.select().from(subtasks).orderBy(asc(subtasks.sortOrder));
-  const rawLinks = await db.select().from(issueLinks);
-
+  // Efficient map groupings without quadratic allocations
   const subtasksByIssue = new Map<string, (typeof subtasks.$inferSelect)[]>();
   rawSubtasks.forEach((s) => {
-    subtasksByIssue.set(s.issueId, [...(subtasksByIssue.get(s.issueId) || []), s]);
+    const list = subtasksByIssue.get(s.issueId);
+    if (list) list.push(s);
+    else subtasksByIssue.set(s.issueId, [s]);
   });
 
   const linksByIssue = new Map<string, (typeof issueLinks.$inferSelect)[]>();
   rawLinks.forEach((l) => {
-    linksByIssue.set(l.sourceIssueId, [...(linksByIssue.get(l.sourceIssueId) || []), l]);
-    linksByIssue.set(l.targetIssueId, [...(linksByIssue.get(l.targetIssueId) || []), l]);
+    const src = linksByIssue.get(l.sourceIssueId);
+    if (src) src.push(l);
+    else linksByIssue.set(l.sourceIssueId, [l]);
+
+    const tgt = linksByIssue.get(l.targetIssueId);
+    if (tgt) tgt.push(l);
+    else linksByIssue.set(l.targetIssueId, [l]);
   });
 
   const auditLogsByIssue = new Map<string, (typeof issueAuditLogs.$inferSelect)[]>();
   rawAuditLogs.forEach((a) => {
-    auditLogsByIssue.set(a.issueId, [...(auditLogsByIssue.get(a.issueId) || []), a]);
+    const list = auditLogsByIssue.get(a.issueId);
+    if (list) list.push(a);
+    else auditLogsByIssue.set(a.issueId, [a]);
   });
 
   const gitLinksByIssue = new Map<string, (typeof issueGitLinks.$inferSelect)[]>();
   rawGitLinks.forEach((g) => {
-    gitLinksByIssue.set(g.issueId, [...(gitLinksByIssue.get(g.issueId) || []), g]);
+    const list = gitLinksByIssue.get(g.issueId);
+    if (list) list.push(g);
+    else gitLinksByIssue.set(g.issueId, [g]);
   });
 
   // Map labels
@@ -130,8 +158,9 @@ export async function getWorkspaceData(): Promise<{
   rawIssueLabels.forEach((il) => {
     const name = labelMap.get(il.labelId);
     if (name) {
-      const existing = issueLabelsMap.get(il.issueKey) || [];
-      issueLabelsMap.set(il.issueKey, [...existing, name]);
+      const list = issueLabelsMap.get(il.issueKey);
+      if (list) list.push(name);
+      else issueLabelsMap.set(il.issueKey, [name]);
     }
   });
 
@@ -139,22 +168,27 @@ export async function getWorkspaceData(): Promise<{
   const commentsByIssue = new Map<string, (typeof comments.$inferSelect & { author?: User | null })[]>();
   rawComments.forEach((c) => {
     const author = c.authorId ? userMap.get(c.authorId) : null;
-    const existing = commentsByIssue.get(c.issueKey) || [];
-    commentsByIssue.set(c.issueKey, [...existing, { ...c, author }]);
+    const item = { ...c, author };
+    const list = commentsByIssue.get(c.issueKey);
+    if (list) list.push(item);
+    else commentsByIssue.set(c.issueKey, [item]);
   });
 
   const customCommentsByIssue = new Map<string, (typeof issueComments.$inferSelect & { author?: User | null })[]>();
   rawIssueComments.forEach((c) => {
     const author = c.authorId ? userMap.get(c.authorId) : null;
-    const existing = customCommentsByIssue.get(c.issueId) || [];
-    customCommentsByIssue.set(c.issueId, [...existing, { ...c, author }]);
+    const item = { ...c, author };
+    const list = customCommentsByIssue.get(c.issueId);
+    if (list) list.push(item);
+    else customCommentsByIssue.set(c.issueId, [item]);
   });
 
   // Map history by issue
   const historyByIssue = new Map<string, (typeof issueHistory.$inferSelect)[]>();
   rawHistory.forEach((h) => {
-    const existing = historyByIssue.get(h.issueKey) || [];
-    historyByIssue.set(h.issueKey, [...existing, h]);
+    const list = historyByIssue.get(h.issueKey);
+    if (list) list.push(h);
+    else historyByIssue.set(h.issueKey, [h]);
   });
 
   // Map attachments by issue / document
@@ -163,11 +197,13 @@ export async function getWorkspaceData(): Promise<{
 
   rawAttachments.forEach((att) => {
     if (att.issueKey) {
-      const existing = issueAttachmentsMap.get(att.issueKey) || [];
-      issueAttachmentsMap.set(att.issueKey, [...existing, att]);
+      const list = issueAttachmentsMap.get(att.issueKey);
+      if (list) list.push(att);
+      else issueAttachmentsMap.set(att.issueKey, [att]);
     } else if (att.documentId) {
-      const existing = docAttachmentsMap.get(att.documentId) || [];
-      docAttachmentsMap.set(att.documentId, [...existing, att]);
+      const list = docAttachmentsMap.get(att.documentId);
+      if (list) list.push(att);
+      else docAttachmentsMap.set(att.documentId, [att]);
     }
   });
 
@@ -236,9 +272,7 @@ export async function getWorkspaceData(): Promise<{
     };
   });
 
-  // 5. Fetch Documents
-  const rawDocs = await db.select().from(documents).orderBy(desc(documents.updatedAt));
-
+  // 5. Fetch Documents (using rawDocs from parallel Promise.all)
   const fullDocs: FullDocument[] = rawDocs.map((doc) => ({
     ...doc,
     author: doc.authorId ? userMap.get(doc.authorId) : null,
