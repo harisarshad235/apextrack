@@ -50,6 +50,7 @@ export function CreateIssueModal({
   const [remainingEstimateHours, setRemainingEstimateHours] = useState<number | ''>('');
   const [parentIssueId, setParentIssueId] = useState<string>('');
   const [epicColor, setEpicColor] = useState<string>('#3B82F6');
+  const [environment, setEnvironment] = useState<'LIVE' | 'DEMO'>('LIVE');
   const [validationError, setValidationError] = useState<string | null>(null);
 
   // Filter sprints for selected project or active project
@@ -124,10 +125,16 @@ export function CreateIssueModal({
           ? Number(originalEstimateHours)
           : null,
       sprintId: sprintId === 'Backlog' ? null : sprintId,
-      labelsList: labels
-        .split(',')
-        .map((l) => l.trim())
-        .filter(Boolean),
+      environment,
+      labelsList: Array.from(
+        new Set([
+          ...labels
+            .split(',')
+            .map((l) => l.trim())
+            .filter(Boolean),
+          environment === 'DEMO' ? 'demo' : 'live',
+        ])
+      ),
       description: description.trim(),
     });
   };
@@ -265,6 +272,42 @@ export function CreateIssueModal({
               </select>
             </div>
           )}
+
+          {/* Issue Classification: Live Issue vs Demo */}
+          <div>
+            <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
+              <span>Issue Classification</span>
+              <span className="text-[11px] font-normal text-slate-400">
+                {environment === 'LIVE' ? 'Production / Customer-facing' : 'Demo / Sandbox / Showcase'}
+              </span>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setEnvironment('LIVE')}
+                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                  environment === 'LIVE'
+                    ? 'bg-emerald-500/15 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/25 shadow-xs font-bold'
+                    : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Live Issue</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setEnvironment('DEMO')}
+                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                  environment === 'DEMO'
+                    ? 'bg-purple-500/15 border-purple-500 text-purple-700 dark:text-purple-300 ring-2 ring-purple-500/25 shadow-xs font-bold'
+                    : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-purple-500" />
+                <span>Demo Issue</span>
+              </button>
+            </div>
+          </div>
 
           {/* Title */}
           <div>

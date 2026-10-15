@@ -22,7 +22,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FullIssue, User, Swimlane, Sprint } from '@/lib/types';
+import { FullIssue, User, Swimlane, Sprint, isDemoIssue } from '@/lib/types';
 import { getTypeConfig, getPriorityConfig } from '@/lib/config';
 import { UserAvatar } from '@/components/ui/UserAvatar';
 import { getActiveSprintAction } from '@/app/actions/sprints';
@@ -668,32 +668,34 @@ export function KanbanBoardView({
                                   wipLimit !== undefined && wipLimit > 0 ? String(wipLimit) : ''
                                 );
                               }}
-                              className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md font-bold flex-shrink-0 flex items-center gap-0.5 transition cursor-pointer ${
+                              className={`text-[10px] font-mono px-2 py-0.5 rounded-md font-bold flex-shrink-0 flex items-center gap-1 transition shadow-xs cursor-pointer ${
                                 overWip
-                                  ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse'
-                                  : 'bg-black/5 dark:bg-[#171B24] text-slate-400 hover:text-slate-200'
+                                  ? 'bg-rose-500/20 text-rose-700 dark:text-rose-400 border border-rose-500/50 animate-pulse'
+                                  : wipLimit && wipLimit > 0
+                                  ? 'bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-[#1E2330] dark:hover:bg-[#272F42] dark:text-slate-100 border border-slate-300 dark:border-[#2E3648]'
+                                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-[#141822] dark:hover:bg-[#1C2230] dark:text-slate-300 border border-dashed border-slate-300 dark:border-[#283040]'
                               }`}
                               title={
                                 isViewer
                                   ? undefined
-                                  : `Set WIP Limit (Current: ${wipLimit || 'Unlimited'})`
+                                  : `Set WIP Limit (Current: ${wipLimit && wipLimit > 0 ? `Max ${wipLimit}` : 'Unlimited'})`
                               }
                             >
-                              <span>{wipLimit && wipLimit > 0 ? `Max ${wipLimit}` : ''}</span>
+                              <span>{wipLimit && wipLimit > 0 ? `Max ${wipLimit}` : 'WIP: ∞'}</span>
                               {!isViewer && (
-                                <Edit2 className="w-2.5 h-2.5 opacity-40 group-hover:opacity-90 transition-opacity" />
+                                <Edit2 className="w-2.5 h-2.5 text-slate-500 dark:text-slate-400 opacity-70 group-hover:opacity-100 transition-opacity" />
                               )}
                             </button>
 
                             {/* Floating Popover Tooltip for Setting WIP Limit */}
                             {editingWipLaneId === lane.id && (
-                              <div className="absolute top-full left-0 mt-1.5 z-40 bg-white dark:bg-[#171B24] border border-slate-200 dark:border-[#232836] rounded-xl p-2.5 shadow-2xl flex flex-col gap-2 min-w-[160px] animate-in fade-in zoom-in-95 duration-100">
-                                <div className="flex items-center justify-between text-[10px] font-semibold text-slate-400 uppercase tracking-wider font-mono">
+                              <div className="absolute top-full left-0 mt-1.5 z-40 bg-white dark:bg-[#171B24] border border-slate-300 dark:border-[#232836] rounded-xl p-2.5 shadow-2xl flex flex-col gap-2 min-w-[170px] animate-in fade-in zoom-in-95 duration-100">
+                                <div className="flex items-center justify-between text-[10px] font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider font-mono">
                                   <span>Set WIP Limit</span>
                                   <button
                                     type="button"
                                     onClick={() => setEditingWipLaneId(null)}
-                                    className="text-slate-400 hover:text-slate-200 p-0.5 rounded"
+                                    className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 p-0.5 rounded"
                                   >
                                     <X className="w-3 h-3" />
                                   </button>
@@ -706,7 +708,7 @@ export function KanbanBoardView({
                                     placeholder="0"
                                     value={wipInputVal}
                                     onChange={(e) => setWipInputVal(e.target.value)}
-                                    className="w-14 text-xs font-mono font-bold bg-slate-100 dark:bg-[#0A0C10] text-slate-100 border border-[#232836] rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-cyan-500 text-center"
+                                    className="w-16 text-xs font-mono font-bold bg-white dark:bg-[#0A0C10] text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-[#232836] rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-cyan-500 text-center"
                                     autoFocus
                                     onKeyDown={(e) => {
                                       if (e.key === 'Enter') handleSaveWipLimit(lane.name);
@@ -722,7 +724,7 @@ export function KanbanBoardView({
                                     <span>Save</span>
                                   </button>
                                 </div>
-                                <span className="text-[9px] text-slate-500 font-mono">
+                                <span className="text-[9px] text-slate-500 dark:text-slate-400 font-mono">
                                   0 = unlimited
                                 </span>
                               </div>
@@ -829,6 +831,25 @@ export function KanbanBoardView({
                               <span className="font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-tight">
                                 {issue.key}
                               </span>
+
+                              {/* Classification: Live vs Demo */}
+                              {isDemoIssue(issue) ? (
+                                <span
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-mono"
+                                  title="Demo / Showcase Issue"
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+                                  Demo
+                                </span>
+                              ) : (
+                                <span
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-mono"
+                                  title="Production / Live Issue"
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                  Live
+                                </span>
+                              )}
 
                               {issue.isFlagged && (
                                 <span

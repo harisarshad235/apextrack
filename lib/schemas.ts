@@ -82,6 +82,7 @@ export const createIssueSchema = z.object({
   remainingEstimateHours: z.number().min(0).max(1000).nullable().optional(),
   dueDate: z.string().max(50).nullable().optional(),
   labelsList: z.array(z.string().max(50).transform(sanitizePlainText)).max(20).optional(),
+  environment: z.enum(['LIVE', 'DEMO']).optional(),
 });
 
 export const updateIssueSchema = z.object({
@@ -109,6 +110,7 @@ export const updateIssueSchema = z.object({
   remainingEstimateHours: z.number().min(0).max(1000).nullable().optional(),
   sprintId: z.string().max(100).nullable().optional(),
   dueDate: z.string().max(50).nullable().optional(),
+  environment: z.enum(['LIVE', 'DEMO']).optional(),
 });
 
 export const createCommentSchema = z.object({
