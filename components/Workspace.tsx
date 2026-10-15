@@ -223,18 +223,24 @@ export function Workspace({
 
       // Compound filter evaluation
       if (boardFilters.selectedTypes.length > 0) {
-        const issueT = (issue.issueType || issue.type || '').toLowerCase();
-        const matchesType = boardFilters.selectedTypes.some(
-          (t) => t.toLowerCase() === issueT
-        );
+        const matchesType = boardFilters.selectedTypes.some((t) => {
+          const target = t.toLowerCase();
+          const t1 = (issue.type || '').toLowerCase();
+          const t2 = (issue.issueType || '').toLowerCase();
+          return t1 === target || t2 === target;
+        });
         if (!matchesType) return false;
       }
 
       if (boardFilters.selectedPriorities.length > 0) {
-        const issueP = issue.priority.toLowerCase();
-        const matchesPri = boardFilters.selectedPriorities.some(
-          (p) => p.toLowerCase() === issueP
-        );
+        const issueP = (issue.priority || '').toLowerCase();
+        const matchesPri = boardFilters.selectedPriorities.some((p) => {
+          const target = p.toLowerCase();
+          if (target === 'low') {
+            return issueP === 'low' || issueP === 'lowest';
+          }
+          return issueP === target;
+        });
         if (!matchesPri) return false;
       }
 
@@ -345,9 +351,15 @@ export function Workspace({
     description?: string;
     priority?: FullIssue['priority'];
     type?: FullIssue['type'];
+    issueType?: string;
+    epicColor?: string;
+    parentIssueId?: string | null;
     assigneeId?: string | null;
-    storyPoints?: number;
+    storyPoints?: number | null;
+    originalEstimateHours?: number | null;
+    remainingEstimateHours?: number | null;
     sprintId?: string | null;
+    dueDate?: string | null;
   }) => {
     if (!selectedIssueKey || isViewer) return;
 
@@ -355,6 +367,9 @@ export function Workspace({
       const res = await updateIssue(selectedIssueKey, data);
       if (res.success) {
         showToast(res.message || 'Issue updated');
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('kynov:refresh-data'));
+        }
       } else {
         showToast(res.error || 'Update failed', 'error');
       }
@@ -628,6 +643,7 @@ export function Workspace({
               issues={filteredIssues}
               users={initialUsers}
               swimlanes={activeSwimlanes}
+              sprints={optimisticSprints}
               onSelectIssue={(key) => handleSelectIssue(key)}
               onStatusChange={handleUpdateIssueStatus}
               onCreateSwimlane={handleCreateSwimlane}

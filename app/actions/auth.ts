@@ -295,7 +295,7 @@ export async function requestPasswordReset(email: string) {
       const host = reqHeaders.get('x-forwarded-host') || reqHeaders.get('host') || 'apex.harisarshad.site';
       const protocol = reqHeaders.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
       
-      let baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+      let baseUrl: string = process.env.NEXT_PUBLIC_APP_URL || '';
       if (!baseUrl || baseUrl.includes('localhost')) {
         baseUrl = !host.includes('localhost') ? `${protocol}://${host}` : 'https://apex.harisarshad.site';
       }

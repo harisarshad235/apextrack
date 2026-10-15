@@ -25,6 +25,10 @@ import {
   CornerDownRight,
   ShieldAlert,
   AtSign,
+  Save,
+  Check,
+  RotateCcw,
+  Palette,
 } from 'lucide-react';
 import {
   FullIssue,
@@ -313,12 +317,42 @@ export function IssueDetailDrawer({
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [, startTransition] = useTransition();
 
+  const initialType = (issue.issueType || issue.type || 'TASK').toUpperCase();
+  const [selectedType, setSelectedType] = useState<string>(initialType);
+  const [selectedPriority, setSelectedPriority] = useState<IssuePriority>(issue.priority || 'Medium');
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState<string | null>(issue.assigneeId || null);
+  const [selectedParentId, setSelectedParentId] = useState<string | null>(issue.parentIssueId || null);
+  const [selectedPoints, setSelectedPoints] = useState<number>(issue.storyPoints ?? 0);
+  const [selectedSprintId, setSelectedSprintId] = useState<string | null>(issue.sprintId || null);
+  const [selectedEpicColor, setSelectedEpicColor] = useState<string>(issue.epicColor || '#3B82F6');
+  const [savedJustNow, setSavedJustNow] = useState(false);
+
   useEffect(() => {
     setTitleInput(issue.title);
     setDescInput(issue.description || '');
     setLocalSubtasks(issue.subtasks || []);
+    setSelectedType((issue.issueType || issue.type || 'TASK').toUpperCase());
+    setSelectedPriority(issue.priority || 'Medium');
+    setSelectedAssigneeId(issue.assigneeId || null);
+    setSelectedParentId(issue.parentIssueId || null);
+    setSelectedPoints(issue.storyPoints ?? 0);
+    setSelectedSprintId(issue.sprintId || null);
+    setSelectedEpicColor(issue.epicColor || '#3B82F6');
     setTransitionError(null);
-  }, [issue.key, issue.title, issue.description, issue.subtasks]);
+  }, [
+    issue.key,
+    issue.title,
+    issue.description,
+    issue.subtasks,
+    issue.issueType,
+    issue.type,
+    issue.priority,
+    issue.assigneeId,
+    issue.parentIssueId,
+    issue.storyPoints,
+    issue.sprintId,
+    issue.epicColor,
+  ]);
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
     setToastMessage({ text, type });
@@ -359,7 +393,100 @@ export function IssueDetailDrawer({
     );
   }, [issue.blockedByIssues]);
 
-  const resolvedType = (issue.issueType || issue.type || 'TASK').toUpperCase();
+  const resolvedType = selectedType;
+
+  const isDirty = useMemo(() => {
+    const origType = (issue.issueType || issue.type || 'TASK').toUpperCase();
+    const origPriority = issue.priority || 'Medium';
+    const origAssignee = issue.assigneeId || null;
+    const origParent = issue.parentIssueId || null;
+    const origPoints = issue.storyPoints ?? 0;
+    const origSprint = issue.sprintId || null;
+    const origColor = issue.epicColor || '#3B82F6';
+
+    return (
+      titleInput.trim() !== (issue.title || '').trim() ||
+      descInput.trim() !== (issue.description || '').trim() ||
+      selectedType !== origType ||
+      selectedPriority !== origPriority ||
+      selectedAssigneeId !== origAssignee ||
+      (selectedType !== 'EPIC' && selectedParentId !== origParent) ||
+      selectedPoints !== origPoints ||
+      selectedSprintId !== origSprint ||
+      (selectedType === 'EPIC' && selectedEpicColor !== origColor)
+    );
+  }, [
+    titleInput,
+    descInput,
+    selectedType,
+    selectedPriority,
+    selectedAssigneeId,
+    selectedParentId,
+    selectedPoints,
+    selectedSprintId,
+    selectedEpicColor,
+    issue,
+  ]);
+
+  const handleDiscardChanges = () => {
+    setTitleInput(issue.title);
+    setDescInput(issue.description || '');
+    setSelectedType((issue.issueType || issue.type || 'TASK').toUpperCase());
+    setSelectedPriority(issue.priority || 'Medium');
+    setSelectedAssigneeId(issue.assigneeId || null);
+    setSelectedParentId(issue.parentIssueId || null);
+    setSelectedPoints(issue.storyPoints ?? 0);
+    setSelectedSprintId(issue.sprintId || null);
+    setSelectedEpicColor(issue.epicColor || '#3B82F6');
+    setIsEditingTitle(false);
+    setIsEditingDesc(false);
+    showToast('Changes discarded', 'error');
+  };
+
+  const handleSaveAll = () => {
+    if (isViewer) return;
+    if (!titleInput.trim()) {
+      showToast('Card title cannot be empty', 'error');
+      return;
+    }
+
+    onUpdateIssue({
+      title: titleInput.trim(),
+      description: descInput.trim(),
+      issueType: selectedType,
+      type: (selectedType.charAt(0).toUpperCase() + selectedType.slice(1).toLowerCase()) as IssueType,
+      priority: selectedPriority,
+      assigneeId: selectedAssigneeId,
+      parentIssueId: selectedType === 'EPIC' ? null : selectedParentId,
+      storyPoints: Number(selectedPoints) || 0,
+      sprintId: selectedSprintId,
+      epicColor: selectedType === 'EPIC' ? selectedEpicColor : undefined,
+    });
+
+    setIsEditingTitle(false);
+    setIsEditingDesc(false);
+    setSavedJustNow(true);
+    setTimeout(() => setSavedJustNow(false), 2500);
+    showToast(`${selectedType || 'Card'} saved successfully!`, 'success');
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        handleSaveAll();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleSaveAll]);
+
+  const epicChildIssues = useMemo(() => {
+    if (selectedType !== 'EPIC') return [];
+    return allIssues.filter(
+      (i) => i.parentIssueId === issue.key || (i.parent && i.parent.key === issue.key)
+    );
+  }, [allIssues, issue.key, selectedType]);
   const typeConfig = getTypeConfig(issue.type);
   const priorityConfig = getPriorityConfig(issue.priority);
 
@@ -600,6 +727,35 @@ export function IssueDetailDrawer({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Primary Save Button */}
+            {!isViewer && (
+              <button
+                onClick={handleSaveAll}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-all duration-150 active:scale-95 cursor-pointer ${
+                  savedJustNow
+                    ? 'bg-emerald-600 text-white shadow-emerald-500/25 ring-2 ring-emerald-400/40'
+                    : isDirty
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-400/50'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700'
+                }`}
+                title={isDirty ? 'Save changes (⌘+S)' : 'Save changes (⌘+S)'}
+              >
+                {savedJustNow ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+                    <span>Saved</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className={`w-3.5 h-3.5 ${isDirty ? 'text-white' : 'text-slate-400'}`} />
+                    <span>{isDirty ? 'Save Changes' : 'Save'}</span>
+                    <span className="text-[10px] opacity-70 font-mono ml-0.5 hidden sm:inline">⌘S</span>
+                  </>
+                )}
+                {isDirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping ml-0.5" />}
+              </button>
+            )}
+
             <button
               onClick={onClose}
               className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
@@ -1401,8 +1557,8 @@ export function IssueDetailDrawer({
               <div className="bg-[#111723] rounded-xl border border-[#263348] p-3.5 space-y-1.5">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Parent Epic</span>
                 <select
-                  value={issue.parentIssueId || ''}
-                  onChange={(e) => onUpdateIssue({ parentIssueId: e.target.value || null })}
+                  value={selectedParentId || ''}
+                  onChange={(e) => setSelectedParentId(e.target.value || null)}
                   disabled={isViewer}
                   className="w-full bg-[#0c121e] border border-[#263348] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-blue-500"
                 >
@@ -1420,8 +1576,8 @@ export function IssueDetailDrawer({
             <div className="bg-[#111723] rounded-xl border border-[#263348] p-3.5 space-y-1.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Issue Type</span>
               <select
-                value={resolvedType}
-                onChange={(e) => onUpdateIssue({ issueType: e.target.value })}
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
                 disabled={isViewer}
                 className="w-full bg-[#0c121e] border border-[#263348] rounded-lg p-2 text-xs text-white focus:outline-none"
               >
@@ -1433,14 +1589,68 @@ export function IssueDetailDrawer({
               </select>
             </div>
 
+            {/* Epic Theme Color & Child Issues (when Epic) */}
+            {selectedType === 'EPIC' && (
+              <div className="bg-[#111723] rounded-xl border border-[#263348] p-3.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Epic Theme Color</span>
+                  <div
+                    className="w-3.5 h-3.5 rounded-full border border-white/20 shadow-xs"
+                    style={{ backgroundColor: selectedEpicColor }}
+                  />
+                </div>
+                <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                  {['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444', '#EC4899', '#06B6D4'].map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      disabled={isViewer}
+                      onClick={() => setSelectedEpicColor(color)}
+                      style={{ backgroundColor: color }}
+                      className={`w-6 h-6 rounded-lg transition-transform active:scale-90 cursor-pointer ${
+                        selectedEpicColor === color ? 'ring-2 ring-white scale-110 shadow-md' : 'opacity-80 hover:opacity-100'
+                      }`}
+                      title={`Theme ${color}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Child Stories / Tasks (when Epic) */}
+            {selectedType === 'EPIC' && epicChildIssues.length > 0 && (
+              <div className="bg-[#111723] rounded-xl border border-[#263348] p-3.5 space-y-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                  Child Issues ({epicChildIssues.length})
+                </span>
+                <div className="space-y-1.5 max-h-36 overflow-y-auto scrollbar-thin">
+                  {epicChildIssues.map((child) => (
+                    <button
+                      key={child.key}
+                      onClick={() => onNavigateIssue && onNavigateIssue(child.key)}
+                      className="w-full flex items-center justify-between p-2 rounded-lg bg-[#0c121e] hover:bg-[#162032] border border-[#263348] text-left transition group cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="font-mono text-[10px] font-bold text-blue-400">{child.key}</span>
+                        <span className="text-xs text-slate-300 truncate group-hover:text-white">{child.title}</span>
+                      </div>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-medium">
+                        {child.status}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Assignee Selector */}
             <div className="bg-[#111723] rounded-xl border border-[#263348] p-3.5 space-y-1.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Assignee</span>
               <div className="flex items-center gap-2">
                 {issue.assignee && <UserAvatar user={issue.assignee} size="sm" />}
                 <select
-                  value={issue.assigneeId || ''}
-                  onChange={(e) => onUpdateIssue({ assigneeId: e.target.value || null })}
+                  value={selectedAssigneeId || ''}
+                  onChange={(e) => setSelectedAssigneeId(e.target.value || null)}
                   disabled={isViewer}
                   className="flex-1 bg-[#0c121e] border border-[#263348] rounded-lg p-2 text-xs text-white focus:outline-none"
                 >
@@ -1461,8 +1671,8 @@ export function IssueDetailDrawer({
                 type="number"
                 min="0"
                 max="100"
-                value={issue.storyPoints ?? 0}
-                onChange={(e) => onUpdateIssue({ storyPoints: parseInt(e.target.value) || 0 })}
+                value={selectedPoints}
+                onChange={(e) => setSelectedPoints(parseInt(e.target.value) || 0)}
                 disabled={isViewer}
                 className="w-full bg-[#0c121e] border border-[#263348] rounded-lg p-2 text-xs text-white font-mono focus:outline-none"
               />
@@ -1472,8 +1682,8 @@ export function IssueDetailDrawer({
             <div className="bg-[#111723] rounded-xl border border-[#263348] p-3.5 space-y-1.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Priority</span>
               <select
-                value={issue.priority}
-                onChange={(e) => onUpdateIssue({ priority: e.target.value as IssuePriority })}
+                value={selectedPriority}
+                onChange={(e) => setSelectedPriority(e.target.value as IssuePriority)}
                 disabled={isViewer}
                 className="w-full bg-[#0c121e] border border-[#263348] rounded-lg p-2 text-xs text-white focus:outline-none"
               >
@@ -1489,11 +1699,9 @@ export function IssueDetailDrawer({
             <div className="bg-[#111723] rounded-xl border border-[#263348] p-3.5 space-y-1.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Sprint</span>
               <select
-                value={issue.sprintId || 'Backlog'}
+                value={selectedSprintId || 'Backlog'}
                 onChange={(e) =>
-                  onUpdateIssue({
-                    sprintId: e.target.value === 'Backlog' ? null : e.target.value,
-                  })
+                  setSelectedSprintId(e.target.value === 'Backlog' ? null : e.target.value)
                 }
                 disabled={isViewer}
                 className="w-full bg-[#0c121e] border border-[#263348] rounded-lg p-2 text-xs text-white focus:outline-none"
@@ -1558,6 +1766,32 @@ export function IssueDetailDrawer({
             )}
           </div>
         </div>
+
+        {/* Sticky Unsaved Changes Action Bar */}
+        {isDirty && !isViewer && (
+          <div className="sticky bottom-0 z-40 px-6 py-3 bg-[#0d131f]/95 backdrop-blur-md border-t border-blue-500/30 flex items-center justify-between shadow-2xl animate-in slide-in-from-bottom duration-200">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              <span className="text-xs font-semibold text-slate-200">
+                Unsaved changes to this {selectedType.toLowerCase()}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleDiscardChanges}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/80 transition cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" /> Discard
+              </button>
+              <button
+                onClick={handleSaveAll}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-blue-500/30 active:scale-95 transition cursor-pointer"
+              >
+                <Save className="w-3.5 h-3.5" /> Save {selectedType}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
