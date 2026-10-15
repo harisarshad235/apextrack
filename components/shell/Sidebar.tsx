@@ -18,6 +18,8 @@ import {
   ShieldCheck,
   PanelLeftClose,
   PanelLeftOpen,
+  Globe,
+  ExternalLink,
 } from 'lucide-react';
 import { User, Project } from '@/lib/types';
 import { UserAvatar } from '@/components/ui/UserAvatar';
@@ -121,6 +123,7 @@ export function Sidebar({
     icon: React.ElementType;
     badge: string | null;
     badgePulse?: boolean;
+    href?: string;
   }
 
   // Grouped Navigation structure matching SaaSable Screenshot 2
@@ -157,18 +160,24 @@ export function Sidebar({
         { id: 'metrics', label: 'Velocity & Metrics', icon: BarChart3, badge: null },
       ],
     },
+    {
+      title: 'Explore',
+      items: [
+        { id: 'landing', label: 'Landing & Features', icon: Globe, badge: 'Showcase', href: '/landing' },
+      ],
+    },
   ];
 
   return (
     <aside
-      className={`bg-white dark:bg-[#0E121B] text-slate-600 dark:text-slate-400 flex flex-col transition-all duration-300 ease-in-out md:border-r border-slate-200/80 dark:border-[#1E2433] shadow-xs overflow-hidden flex-shrink-0 ${
+      className={`bg-white dark:bg-[#0B0F19] text-slate-600 dark:text-slate-400 flex flex-col transition-all duration-300 ease-in-out md:border-r border-slate-200/80 dark:border-[#1E2538] shadow-xs overflow-hidden flex-shrink-0 ${
         mobileOpen
           ? 'fixed inset-y-0 left-0 z-50 w-72 translate-x-0 shadow-2xl md:shadow-none'
           : 'fixed inset-y-0 left-0 z-50 w-72 -translate-x-full md:translate-x-0 md:static md:z-30'
       } ${sidebarOpen ? 'md:w-64' : 'md:w-20'}`}
     >
       {/* Brand Header */}
-      <div className="p-4 border-b border-slate-100 dark:border-[#1E2433]/80">
+      <div className="p-4 border-b border-slate-100 dark:border-[#1E2538]">
         <div className="flex items-center justify-between">
           <div className="flex items-center overflow-hidden">
             {sidebarOpen || mobileOpen ? (
@@ -244,17 +253,8 @@ export function Sidebar({
             {section.items.map((item) => {
               const isActive = activeTab === item.id;
               const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavClick(item.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 cursor-pointer active:scale-[0.98] group relative ${
-                    isActive
-                      ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold'
-                      : 'hover:bg-slate-100/80 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                  }`}
-                  title={item.label}
-                >
+              const content = (
+                <>
                   <Icon
                     className={`w-4 h-4 flex-shrink-0 transition-transform ${
                       isActive
@@ -281,6 +281,36 @@ export function Sidebar({
                       )}
                     </div>
                   )}
+                </>
+              );
+
+              const className = `w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 cursor-pointer active:scale-[0.98] group relative ${
+                isActive
+                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold'
+                  : 'hover:bg-slate-100/80 dark:hover:bg-slate-800/50 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              }`;
+
+              if (item.href) {
+                return (
+                  <a
+                    key={item.id}
+                    href={item.href}
+                    className={className}
+                    title={item.label}
+                  >
+                    {content}
+                  </a>
+                );
+              }
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavClick(item.id)}
+                  className={className}
+                  title={item.label}
+                >
+                  {content}
                 </button>
               );
             })}
@@ -298,12 +328,19 @@ export function Sidebar({
               </div>
               <div>
                 <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                  Upgrade Your Experience
+                  Kynov Platform
                 </h4>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-                  Take your team velocity to the next level with enterprise scale.
+                  Real-time agile sprint acceleration, velocity metrics, and docs.
                 </p>
               </div>
+              <a
+                href="/landing"
+                className="mt-1 flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-xl bg-white dark:bg-[#161C2E] hover:bg-slate-50 dark:hover:bg-[#1E2538] text-indigo-600 dark:text-indigo-400 font-semibold text-xs border border-indigo-200/80 dark:border-indigo-800/60 shadow-2xs transition active:scale-[0.98]"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Go to Landing & Features</span>
+              </a>
             </div>
           </div>
         )}

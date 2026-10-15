@@ -81,7 +81,7 @@ export function getAppBaseUrl(req?: Request): string {
   return (
     getOAuthEnv('NEXT_PUBLIC_APP_URL') ||
     getOAuthEnv('NEXTAUTH_URL') ||
-    'https://apex.harisarshad.site'
+    'https://kynov.harisarshad.site'
   ).replace(/\/$/, '');
 }
 
@@ -167,10 +167,10 @@ export async function handleOAuthUserHandshake(profile: OAuthUserProfile): Promi
       )
     `);
 
-    const memberId = `pm-${targetUser.id}-apex`;
+    const memberId = `pm-${targetUser.id}-kyn`;
     await db.run(sql`
       INSERT OR IGNORE INTO project_members (id, project_id, user_id, project_role)
-      VALUES (${memberId}, 'proj-apex', ${targetUser.id}, 'MEMBER')
+      VALUES (${memberId}, 'proj-kyn', ${targetUser.id}, 'MEMBER')
     `);
   } catch {
     // Ignore if table or record exists

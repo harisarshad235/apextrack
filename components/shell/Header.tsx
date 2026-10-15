@@ -10,6 +10,7 @@ import {
   Clock,
   ChevronRight,
   Command,
+  Globe,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { UserAvatar } from '@/components/ui/UserAvatar';
@@ -68,7 +69,7 @@ export function Header({
   };
 
   return (
-    <header className="h-16 bg-white dark:bg-[#0E121B] border-b border-slate-200/80 dark:border-[#1E2433] flex items-center justify-between px-4 sm:px-6 z-20 flex-shrink-0 transition-colors w-full">
+    <header className="h-16 bg-white dark:bg-[#0B0F19] border-b border-slate-200/80 dark:border-[#1E2538] flex items-center justify-between px-4 sm:px-6 z-20 flex-shrink-0 transition-colors w-full">
       {/* Left: Mobile Toggle & Page Title */}
       <div className="flex items-center gap-3">
         {onToggleMobileSidebar && (
@@ -125,6 +126,16 @@ export function Header({
             )}
           </div>
         </div>
+
+        {/* Go to Landing / Feature Page Link */}
+        <a
+          href="/landing"
+          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 bg-slate-100/80 hover:bg-slate-200/80 dark:bg-[#161C2E] dark:hover:bg-[#1E2538] border border-slate-200/80 dark:border-slate-800 transition shadow-2xs active:scale-95"
+          title="Visit Public Landing & Features"
+        >
+          <Globe className="w-3.5 h-3.5 text-indigo-500" />
+          <span>Landing Page</span>
+        </a>
 
         {/* Quick Issue Creation Button */}
         {!isViewer && (

@@ -154,18 +154,13 @@ function VisualSignInMockup() {
         </button>
         <div className="pt-2 border-t border-slate-700/60">
           <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1.5 font-mono">⚡ Fast Persona Switcher (Dev Mode)</span>
-          <div className="grid grid-cols-3 gap-1.5 text-[10px]">
-            <div className="p-1.5 rounded bg-slate-900 border border-slate-700 text-left cursor-pointer">
-              <div className="font-bold text-white truncate">Alex Chen</div>
-              <div className="text-amber-400 font-mono">Admin</div>
-            </div>
-            <div className="p-1.5 rounded bg-slate-900 border border-slate-700 text-left cursor-pointer">
-              <div className="font-bold text-white truncate">Sarah J.</div>
-              <div className="text-blue-400 font-mono">Member</div>
-            </div>
-            <div className="p-1.5 rounded bg-slate-900 border border-slate-700 text-left cursor-pointer">
-              <div className="font-bold text-white truncate">Devin V.</div>
-              <div className="text-slate-400 font-mono">Viewer</div>
+          <div className="grid grid-cols-1 gap-1.5 text-[10px]">
+            <div className="p-1.5 rounded bg-slate-900 border border-slate-700 text-left flex justify-between items-center">
+              <div>
+                <div className="font-bold text-white">Haris Arshad</div>
+                <div className="text-[9px] text-slate-400">harisarshad235@gmail.com</div>
+              </div>
+              <span className="text-amber-400 font-mono font-medium text-[9px] px-1.5 py-0.5 bg-amber-400/10 rounded">Admin</span>
             </div>
           </div>
         </div>

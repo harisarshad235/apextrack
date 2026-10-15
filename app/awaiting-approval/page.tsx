@@ -75,7 +75,7 @@ export default async function AwaitingApprovalPage() {
         </div>
 
         <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
-          An Organization Administrator (such as Alex Chen) must verify your identity and activate your seat before you can access the Kanban board and documentation spaces.
+          An Organization Administrator (such as Haris Arshad) must verify your identity and activate your seat before you can access the Kanban board and documentation spaces.
         </p>
 
         <div className="flex flex-col gap-3">

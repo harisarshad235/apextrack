@@ -529,7 +529,7 @@ export function Workspace({
     initialProjects.find((p) => p.id === activeProjectId) || initialProjects[0];
 
   return (
-    <div className="flex h-screen w-full bg-[#F8FAFC] dark:bg-[#090D16] text-slate-900 dark:text-slate-100 overflow-hidden font-sans">
+    <div className="flex h-screen w-full bg-[#F8FAFC] dark:bg-[#080B11] text-slate-900 dark:text-slate-100 overflow-hidden font-sans">
       <Toast notification={notification} onClose={() => setNotification(null)} />
 
       {/* Dim backdrop overlay for mobile off-canvas drawer */}
@@ -562,7 +562,7 @@ export function Workspace({
       />
 
       {/* Main Container */}
-      <main className="flex-1 flex flex-col w-full min-w-0 overflow-hidden bg-[#F8FAFC] dark:bg-[#090D16] relative">
+      <main className="flex-1 flex flex-col w-full min-w-0 overflow-hidden bg-[#F8FAFC] dark:bg-[#080B11] relative">
         {/* Ambient Visual Depth Orbs */}
         <div className="pointer-events-none absolute -top-40 right-10 w-96 h-96 bg-indigo-500/5 blur-[120px] rounded-full dark:bg-indigo-600/10" />
         <div className="pointer-events-none absolute bottom-10 left-1/3 w-[28rem] h-[28rem] bg-cyan-600/5 blur-[140px] rounded-full dark:bg-cyan-600/10" />

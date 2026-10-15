@@ -143,39 +143,24 @@ function LoginContent() {
         {/* Modular Form Components */}
         {tab === 'signin' ? <LoginForm /> : <RegisterForm />}
 
-        {/* Demo Fast Switch Personas (Shown in non-production) */}
+        {/* Fast Admin Switch (Shown in non-production) */}
         {process.env.NODE_ENV !== 'production' && (
           <div className="mt-7 pt-5 border-t border-slate-200/80 dark:border-slate-800/80">
             <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-2.5 tracking-wider flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-amber-500" /> Fast Demo Personas (Dev Only)
+              <Sparkles className="w-3 h-3 text-amber-500" /> Fast Switch (Dev Only)
             </p>
-            <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="grid grid-cols-1 gap-2 text-xs">
               <button
                 type="button"
                 disabled={isPending}
-                onClick={() => handleQuickSignIn('alex.chen@kynov.io')}
-                className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-left transition disabled:opacity-50 cursor-pointer"
+                onClick={() => handleQuickSignIn('harisarshad235@gmail.com')}
+                className="p-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-between transition disabled:opacity-50 cursor-pointer"
               >
-                <div className="font-semibold text-slate-900 dark:text-white truncate">Alex Chen</div>
-                <div className="text-[10px] text-amber-600 dark:text-amber-400 font-mono font-medium">Admin</div>
-              </button>
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={() => handleQuickSignIn('s.jenkins@kynov.io')}
-                className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-left transition disabled:opacity-50 cursor-pointer"
-              >
-                <div className="font-semibold text-slate-900 dark:text-white truncate">Sarah J.</div>
-                <div className="text-[10px] text-blue-600 dark:text-blue-400 font-mono font-medium">Member</div>
-              </button>
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={() => handleQuickSignIn('devin.v@clientpartner.org')}
-                className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-left transition disabled:opacity-50 cursor-pointer"
-              >
-                <div className="font-semibold text-slate-900 dark:text-white truncate">Devin V.</div>
-                <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-medium">Viewer</div>
+                <div>
+                  <div className="font-semibold text-slate-900 dark:text-white">Haris Arshad</div>
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400">harisarshad235@gmail.com</div>
+                </div>
+                <span className="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded font-mono font-medium">Super Admin</span>
               </button>
             </div>
           </div>
