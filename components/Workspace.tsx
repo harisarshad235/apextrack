@@ -20,6 +20,7 @@ import { BacklogView } from '@/components/backlog/BacklogView';
 import { DocumentsView } from '@/components/docs/DocumentsView';
 import { DocumentReaderModal } from '@/components/docs/DocumentReaderModal';
 import { CreateDocModal } from '@/components/docs/CreateDocModal';
+import { DashboardOverview } from '@/components/dashboard/DashboardOverview';
 import { TeamManagementView } from '@/components/team/TeamManagement';
 import { AddUserModal } from '@/components/team/AddUserModal';
 import { MetricsReportView } from '@/components/metrics/MetricsReport';
@@ -77,7 +78,7 @@ export function Workspace({
   sprints,
   metrics: initialMetrics,
 }: WorkspaceProps) {
-  const [activeTab, setActiveTab] = useState<string>('board');
+  const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
   const [activeProjectId, setActiveProjectId] = useState<string>(
@@ -528,7 +529,7 @@ export function Workspace({
     initialProjects.find((p) => p.id === activeProjectId) || initialProjects[0];
 
   return (
-    <div className="flex h-screen w-full bg-slate-100 dark:bg-[#0A0C10] text-slate-900 dark:text-slate-100 overflow-hidden font-sans p-2 sm:p-3 md:p-4 gap-3 md:gap-4">
+    <div className="flex h-screen w-full bg-[#F8FAFC] dark:bg-[#090D16] text-slate-900 dark:text-slate-100 overflow-hidden font-sans">
       <Toast notification={notification} onClose={() => setNotification(null)} />
 
       {/* Dim backdrop overlay for mobile off-canvas drawer */}
@@ -560,8 +561,8 @@ export function Workspace({
         onSwitchPersona={handleSwitchPersona}
       />
 
-      {/* Main Container - Floating rounded panel matching reference design */}
-      <main className="flex-1 flex flex-col w-full min-w-0 overflow-hidden bg-white dark:bg-[#11141B] rounded-2xl md:rounded-3xl border border-slate-200/80 dark:border-[#232836] shadow-xs relative">
+      {/* Main Container */}
+      <main className="flex-1 flex flex-col w-full min-w-0 overflow-hidden bg-[#F8FAFC] dark:bg-[#090D16] relative">
         {/* Ambient Visual Depth Orbs */}
         <div className="pointer-events-none absolute -top-40 right-10 w-96 h-96 bg-indigo-500/5 blur-[120px] rounded-full dark:bg-indigo-600/10" />
         <div className="pointer-events-none absolute bottom-10 left-1/3 w-[28rem] h-[28rem] bg-cyan-600/5 blur-[140px] rounded-full dark:bg-cyan-600/10" />
@@ -610,6 +611,18 @@ export function Workspace({
 
         {/* View Content with Dynamic Smooth Transition */}
         <div key={activeTab} className="flex-1 overflow-auto p-3 sm:p-4 md:p-6 animate-slide-up relative z-10">
+          {activeTab === 'dashboard' && (
+            <DashboardOverview
+              issues={optimisticIssues}
+              users={initialUsers}
+              metrics={initialMetrics}
+              sprints={optimisticSprints}
+              projects={initialProjects}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+              onSelectIssue={(key) => handleSelectIssue(key)}
+            />
+          )}
+
           {activeTab === 'board' && (
             <KanbanBoardView
               issues={filteredIssues}

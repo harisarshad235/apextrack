@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { ArrowRight, Sparkles, CheckCircle2, Shield, Zap } from 'lucide-react';
+import { Compass, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
 import { InteractivePreview } from '@/components/landing/InteractivePreview';
 import { User } from '@/db/schema';
 
@@ -12,145 +11,97 @@ interface LandingHeroProps {
 }
 
 export function LandingHero({ currentUser }: LandingHeroProps) {
-  const [email, setEmail] = useState('');
-  const router = useRouter();
-
-  const handleStartFree = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email.trim()) {
-      router.push(`/signup?email=${encodeURIComponent(email.trim())}`);
-    } else {
-      router.push('/signup');
-    }
-  };
+  const techPills = [
+    { label: 'React 19', dotColor: 'bg-cyan-400' },
+    { label: 'Next.js 16', dotColor: 'bg-slate-900 dark:bg-white' },
+    { label: 'Cloudflare Edge', dotColor: 'bg-amber-500' },
+    { label: 'TypeScript', dotColor: 'bg-blue-500' },
+    { label: 'D1 SQLite', dotColor: 'bg-indigo-500' },
+    { label: 'R2 Storage', dotColor: 'bg-orange-500' },
+    { label: 'Figma System', dotColor: 'bg-purple-500' },
+  ];
 
   return (
-    <section className="relative pt-12 pb-20 md:pt-20 md:pb-32 overflow-hidden">
-      {/* Background radial gradients */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[450px] bg-gradient-to-b from-blue-500/15 via-indigo-500/10 to-transparent blur-3xl pointer-events-none -z-10" />
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
-        {/* Release Pill Badge */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/80 text-indigo-700 dark:text-indigo-300 text-xs font-semibold shadow-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-          <span>Kynov Enterprise 1.0</span>
-          <span className="w-1 h-1 rounded-full bg-indigo-400" />
-          <span className="font-normal text-slate-500 dark:text-slate-400">
-            High-Velocity Agile &amp; Project RBAC
+    <section className="relative pt-12 pb-16 md:pt-16 md:pb-24 overflow-hidden bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] dark:bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
+        {/* Top Pill Badge (Directly matching SaaSable Screenshot 1) */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50/90 dark:bg-blue-950/50 border border-blue-200/70 dark:border-blue-900/60 text-blue-700 dark:text-blue-300 text-xs font-semibold shadow-xs">
+          <span>One Platform, Endless</span>
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
+            🔮 Possibilities
           </span>
         </div>
 
-        {/* Catchy Headline */}
-        <div className="max-w-4xl mx-auto space-y-4">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.12]">
-            The Agile Management Engine Built for{' '}
-            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-500 bg-clip-text text-transparent">
-              Modern Engineering Teams.
-            </span>
+        {/* Clean, High-Impact Modern Typography */}
+        <div className="max-w-4xl mx-auto space-y-3">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.14]">
+            Modern Agile Engine and High-Velocity Workspace
           </h1>
 
-          {/* Sub-headline */}
-          <p className="max-w-2xl mx-auto text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
-            Sprint planning, flexible issue lifecycles, and Project-Level RBAC without legacy bloat. Ship faster with automated burndown metrics, issue hierarchies, and real-time collaboration.
+          {/* SaaSable Signature Wavy Divider Accent */}
+          <div className="py-1">
+            <svg
+              className="w-28 h-2.5 mx-auto text-blue-500 dark:text-blue-400 opacity-80"
+              viewBox="0 0 100 10"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M 2 5 Q 14 0, 26 5 T 50 5 T 74 5 T 98 5"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+
+          {/* Subtitle */}
+          <p className="max-w-2xl mx-auto text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
+            Plan sprints, track enterprise hierarchies, and build high-velocity software with our unified agile platform, built following modern design guidelines.
           </p>
         </div>
 
-        {/* Primary CTA & Quick Social Login */}
-        <div className="max-w-xl mx-auto pt-2 space-y-3">
-          {currentUser ? (
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link
-                href="/dashboard"
-                className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:via-indigo-500 hover:to-violet-500 text-white font-semibold text-sm shadow-xl shadow-indigo-500/25 flex items-center justify-center gap-2 transition-all duration-300 active:scale-95"
-              >
-                <span>Open Your Workspace</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <form
-                onSubmit={handleStartFree}
-                className="flex flex-col sm:flex-row items-center gap-2.5 p-1.5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-xl"
-              >
-                <input
-                  type="email"
-                  placeholder="Enter your work email..."
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 text-xs sm:text-sm bg-transparent text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none"
-                />
-                <button
-                  type="submit"
-                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:via-indigo-500 hover:to-violet-500 text-white font-semibold text-xs sm:text-sm whitespace-nowrap transition-all duration-300 shadow-md shadow-indigo-500/25 active:scale-95 cursor-pointer"
-                >
-                  Start Free
-                </button>
-              </form>
-
-              {/* Quick Google OAuth button */}
-              <div className="flex items-center justify-center gap-3">
-                <a
-                  href="/api/auth/google"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-700/60 shadow-xs transition cursor-pointer"
-                >
-                  <svg className="w-4 h-4" viewBox="0 0 24 24">
-                    <path
-                      fill="#4285F4"
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                    />
-                  </svg>
-                  <span>Continue with Google</span>
-                </a>
-
-                <a
-                  href="/api/auth/github"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-700/60 shadow-xs transition cursor-pointer"
-                >
-                  <svg className="w-4 h-4 fill-current text-slate-900 dark:text-white" viewBox="0 0 24 24">
-                    <path
-                      fillRule="evenodd"
-                      clipRule="evenodd"
-                      d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-                    />
-                  </svg>
-                  <span>GitHub</span>
-                </a>
-              </div>
-            </div>
+        {/* Primary CTA (SaaSable Pill Button) */}
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link
+            href={currentUser ? '/dashboard' : '/signup'}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#0052cc] hover:bg-[#0043a8] text-white font-medium text-xs sm:text-sm shadow-md shadow-blue-600/20 transition-all duration-200 active:scale-95 cursor-pointer"
+          >
+            <Compass className="w-4 h-4" />
+            <span>Explore Workspace</span>
+          </Link>
+          {!currentUser && (
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs sm:text-sm font-medium transition cursor-pointer"
+            >
+              <span>Sign In</span>
+            </Link>
           )}
-
-          {/* Value Props Strip */}
-          <div className="pt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Free Forever Plan
-            </span>
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Cloudflare Edge Speed
-            </span>
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Enterprise RBAC
-            </span>
-          </div>
         </div>
 
-        {/* Interactive Mockup Preview Card */}
-        <div className="pt-8">
-          <InteractivePreview />
+        {/* Tech Stack Pills Row (SaaSable Screenshot 1 Tech Badges) */}
+        <div className="pt-3 pb-2 flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
+          {techPills.map((pill, idx) => (
+            <div
+              key={idx}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium shadow-2xs"
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${pill.dotColor}`} />
+              <span>{pill.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Elevated Floating Hero Preview Viewport (SaaSable Screenshot 1 Mockup) */}
+        <div className="pt-8 max-w-5xl mx-auto">
+          <div className="relative rounded-3xl p-4 sm:p-6 bg-gradient-to-b from-[#0A1128] via-[#0E1630] to-[#080D1F] border border-slate-800/80 shadow-2xl overflow-hidden">
+            <InteractivePreview />
+          </div>
         </div>
       </div>
     </section>
   );
 }
+
+export default LandingHero;
