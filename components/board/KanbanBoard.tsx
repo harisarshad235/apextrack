@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Paperclip,
   MessageSquare,
@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Layers,
   Sparkles,
+  ChevronDown,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FullIssue, User, Swimlane, Sprint } from '@/lib/types';
@@ -100,6 +101,7 @@ export function KanbanBoardView({
   const [onlyMine, setOnlyMine] = useState(false);
   const [onlyFlagged, setOnlyFlagged] = useState(false);
   const [recentFirst, setRecentFirst] = useState(false);
+  const [sprintFilter, setSprintFilter] = useState<string>('ALL');
 
   // Active sprint state & resolution
   const [activeSprint, setActiveSprint] = useState<Sprint | null>(() => {
@@ -382,23 +384,57 @@ export function KanbanBoardView({
       new Date(i.updatedAt).getTime()
     );
 
+  const isLaneMatch = (issueStatus: string, lane: Swimlane) => {
+    const stat = (issueStatus || '').toLowerCase().trim();
+    const laneName = lane.name.toLowerCase().trim();
+    const laneKey = (lane.statusKey || '').toLowerCase().trim();
+    if (stat === laneName) return true;
+    if (laneKey && stat === laneKey) return true;
+    if ((laneName === 'to do' || laneKey === 'todo') && (stat === 'to do' || stat === 'todo' || stat === 'backlog')) return true;
+    if ((laneName.includes('progress') || laneKey === 'in_progress') && (stat.includes('progress') || stat === 'in_progress' || stat === 'inprogress')) return true;
+    if ((laneName.includes('review') || laneKey === 'in_review') && (stat.includes('review') || stat === 'in_review')) return true;
+    if ((laneName === 'done' || laneKey === 'done') && (stat === 'done' || stat === 'completed' || stat === 'closed')) return true;
+    if ((laneName.includes('qa') || laneKey === 'qa') && (stat.includes('qa') || stat === 'in qa')) return true;
+    return false;
+  };
+
+  const sprintFilteredIssues = useMemo<FullIssue[]>(() => {
+    if (sprintFilter === 'ALL') return issues;
+    if (sprintFilter === 'ACTIVE') {
+      return activeSprint
+        ? issues.filter(
+            (i) => i.sprintId === activeSprint.id || (i as any).sprint_id === activeSprint.id
+          )
+        : issues;
+    }
+    if (sprintFilter === 'BACKLOG') {
+      return issues.filter((i) => !i.sprintId && !(i as any).sprint_id);
+    }
+    return issues.filter(
+      (i) => i.sprintId === sprintFilter || (i as any).sprint_id === sprintFilter
+    );
+  }, [issues, sprintFilter, activeSprint]);
+
   const activeSprintIssues = issues.filter(
     (i) =>
       activeSprint &&
       (i.sprintId === activeSprint.id || (i as any).sprint_id === activeSprint.id)
   );
 
-  const totalSprintPoints = activeSprintIssues.reduce(
+  const metricIssues =
+    sprintFilter === 'ACTIVE' && activeSprint ? activeSprintIssues : sprintFilteredIssues;
+
+  const totalSprintPoints = metricIssues.reduce(
     (acc, curr) => acc + (Number(curr.storyPoints) || 0),
     0
   );
-  const completedSprintPoints = activeSprintIssues
-    .filter((i) => i.status.toLowerCase() === 'done')
+  const completedSprintPoints = metricIssues
+    .filter((i) => (i.status || '').toLowerCase() === 'done')
     .reduce((acc, curr) => acc + (Number(curr.storyPoints) || 0), 0);
   const sprintCompletionRate =
     totalSprintPoints > 0 ? Math.round((completedSprintPoints / totalSprintPoints) * 100) : 0;
 
-  const visibleIssues = activeSprintIssues
+  const visibleIssues = sprintFilteredIssues
     .filter((i) => !onlyMine || (!!currentUserId && i.assigneeId === currentUserId))
     .filter((i) => !onlyFlagged || i.isFlagged === true);
   const sortedIssues = recentFirst
@@ -429,17 +465,41 @@ export function KanbanBoardView({
       {/* Board Header Bar: Sprint Info & Velocity Sparklines Widget */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 flex-shrink-0">
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none whitespace-nowrap w-full sm:w-auto">
-          {activeSprint && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/25 text-cyan-600 dark:text-cyan-400 text-xs font-semibold flex-shrink-0">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              <span>{activeSprint.name}</span>
-              {activeSprint.goal && (
-                <span className="text-[11px] opacity-75 hidden md:inline max-w-[200px] truncate font-normal">
-                  — {activeSprint.goal}
-                </span>
+          {/* Interactive Sprint Filter Selector */}
+          <div className="relative flex items-center">
+            <select
+              value={sprintFilter}
+              onChange={(e) => setSprintFilter(e.target.value)}
+              className="appearance-none flex items-center gap-2 pl-3 pr-8 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-600 dark:text-cyan-300 text-xs font-semibold flex-shrink-0 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-cyan-500/40 hover:bg-cyan-500/15 transition"
+              title="Filter Kanban board by Sprint"
+            >
+              <option value="ALL" className="bg-white dark:bg-[#11141B] text-slate-800 dark:text-slate-200">
+                All Board Issues ({issues.length})
+              </option>
+              {activeSprint && (
+                <option value="ACTIVE" className="bg-white dark:bg-[#11141B] text-slate-800 dark:text-slate-200">
+                  ⚡ {activeSprint.name} (Active)
+                </option>
               )}
-            </div>
-          )}
+              {sprints &&
+                sprints.length > 0 &&
+                sprints
+                  .filter((s) => s.id !== activeSprint?.id)
+                  .map((s) => (
+                    <option
+                      key={s.id}
+                      value={s.id}
+                      className="bg-white dark:bg-[#11141B] text-slate-800 dark:text-slate-200"
+                    >
+                      {s.name} ({((s as any).status || s.state || 'PLANNED').toUpperCase()})
+                    </option>
+                  ))}
+              <option value="BACKLOG" className="bg-white dark:bg-[#11141B] text-slate-800 dark:text-slate-200">
+                Backlog Issues
+              </option>
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-cyan-500 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
+          </div>
 
           <button
             onClick={() => setOnlyMine((v) => !v)}
@@ -462,12 +522,12 @@ export function KanbanBoardView({
         </div>
 
         {/* Inline Velocity Mini-Sparklines Widget */}
-        {activeSprint && (
+        {(activeSprint || totalSprintPoints > 0) && (
           <VelocityMetricsWidget
             completedPoints={completedSprintPoints}
             totalPoints={totalSprintPoints}
             completionRate={sprintCompletionRate}
-            sprintName={activeSprint.name}
+            sprintName={activeSprint ? activeSprint.name : 'Board Overview'}
             daysRemaining={6}
           />
         )}
@@ -480,7 +540,7 @@ export function KanbanBoardView({
             <span>Loading active sprint metrics...</span>
           </div>
         </div>
-      ) : !activeSprint ? (
+      ) : !activeSprint && sprintFilter === 'ACTIVE' ? (
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center min-h-[420px] rounded-2xl border border-dashed border-slate-300 dark:border-[#232836] bg-slate-50/50 dark:bg-[#11141B]/40 my-4">
           <div className="max-w-md w-full p-8 rounded-2xl border border-slate-200 dark:border-[#232836] bg-white dark:bg-[#11141B] shadow-2xl flex flex-col items-center text-center transition-colors">
             <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center mb-4 ring-8 ring-cyan-500/5">
@@ -505,9 +565,7 @@ export function KanbanBoardView({
           {/* Mobile Sticky Lane Navigation Pills (< md screens) */}
           <div className="md:hidden flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none sticky top-0 z-10 bg-slate-50 dark:bg-[#0A0C10] py-1 border-b border-slate-200 dark:border-[#232836]">
             {activeLanes.map((lane) => {
-              const count = sortedIssues.filter(
-                (i) => i.status.toLowerCase() === lane.name.toLowerCase()
-              ).length;
+              const count = sortedIssues.filter((i) => isLaneMatch(i.status, lane)).length;
               return (
                 <button
                   key={lane.id}
@@ -530,9 +588,7 @@ export function KanbanBoardView({
             className="flex gap-4 flex-1 min-h-0 items-start overflow-x-auto pb-4 board-scrollbar snap-x snap-mandatory md:snap-none"
           >
             {activeLanes.map((lane) => {
-              const colIssues = sortedIssues.filter(
-                (i) => i.status.toLowerCase() === lane.name.toLowerCase()
-              );
+              const colIssues = sortedIssues.filter((i) => isLaneMatch(i.status, lane));
               const wipLimit = wipLimits[lane.name.toLowerCase()];
               const overWip = wipLimit !== undefined && wipLimit > 0 && colIssues.length > wipLimit;
               const colPoints = colIssues.reduce(

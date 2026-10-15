@@ -43,9 +43,29 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Fast edge redirect from root "/" to "/dashboard" for authenticated users (0ms D1 query overhead)
+  if (pathname === '/') {
+    const isPreview =
+      request.nextUrl.searchParams.get('overview') === 'true' ||
+      request.nextUrl.searchParams.get('preview') === 'true';
+
+    const sessionCookie =
+      request.cookies.get('kynov_session')?.value ||
+      request.cookies.get('apex_session')?.value ||
+      request.cookies.get('apex_session_user_id')?.value;
+    const devCookie =
+      request.cookies.get('kynov_dev_user_id')?.value ||
+      request.cookies.get('apex_dev_user_id')?.value;
+
+    if ((sessionCookie || devCookie) && !isPreview) {
+      const dashboardUrl = new URL('/dashboard', request.url);
+      return withSecurityHeaders(NextResponse.redirect(dashboardUrl));
+    }
+    return NextResponse.next();
+  }
+
   // 3. Allow public marketing pages and auth flows without middleware redirection loops
   if (
-    pathname === '/' ||
     pathname.startsWith('/landing') ||
     pathname.startsWith('/login') ||
     pathname.startsWith('/register') ||

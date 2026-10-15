@@ -81,10 +81,12 @@ export function evaluateJqlLite(issue: FullIssue, currentUserId: string, query: 
       if (op === '=' && issueStat !== matchStat) return false;
       if (op === '!=' && issueStat === matchStat) return false;
     } else if (field === 'type' || field === 'issuetype') {
-      const issueT = (issue.issueType || issue.type || '').toLowerCase();
+      const issueT1 = (issue.type || '').toLowerCase();
+      const issueT2 = (issue.issueType || '').toLowerCase();
       const matchT = val.toLowerCase();
-      if (op === '=' && issueT !== matchT) return false;
-      if (op === '!=' && issueT === matchT) return false;
+      const isMatch = issueT1 === matchT || issueT2 === matchT;
+      if (op === '=' && !isMatch) return false;
+      if (op === '!=' && isMatch) return false;
     } else if (field === 'points' || field === 'storypoints') {
       const pts = Number(issue.storyPoints) || 0;
       const numVal = Number(val);
