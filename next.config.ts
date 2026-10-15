@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import os from "os";
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
 const cspHeader = `
@@ -50,5 +51,14 @@ const nextConfig: NextConfig = {
 export default nextConfig;
 
 // Exposes local D1/R2 bindings (Miniflare) to `next dev` via getCloudflareContext().
-initOpenNextCloudflareForDev();
+// Cloudflare's local workerd runtime crashes on macOS older than 13.5 (Darwin 22.6).
+const isSupportedCloudflareDevPlatform =
+  process.platform === "win32" ||
+  process.platform === "linux" ||
+  (process.platform === "darwin" && parseFloat(os.release()) >= 22.6);
+
+if (isSupportedCloudflareDevPlatform) {
+  initOpenNextCloudflareForDev();
+}
+
 
