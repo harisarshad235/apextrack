@@ -1,28 +1,41 @@
-import { connection } from 'next/server';
-import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth';
+'use client';
+
+import React, { useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { LandingPage } from '@/components/landing/LandingPage';
 
-export const dynamic = 'force-dynamic';
+function SessionRedirector() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  await connection(); // Ensures request-time evaluation for Cloudflare Workers D1 bindings
+  useEffect(() => {
+    const isPreview =
+      searchParams.get('overview') === 'true' ||
+      searchParams.get('preview') === 'true';
 
-  const resolvedParams = searchParams ? await searchParams : {};
-  const isPreview =
-    resolvedParams.overview === 'true' ||
-    resolvedParams.preview === 'true';
+    // Fast in-browser session cookie check without D1 database queries
+    const cookies = typeof document !== 'undefined' ? document.cookie : '';
+    const hasSession =
+      cookies.includes('kynov_session=') ||
+      cookies.includes('apex_session=') ||
+      cookies.includes('kynov_dev_user_id=') ||
+      cookies.includes('apex_session_user_id=');
 
-  const currentUser = await getCurrentUser();
+    if (hasSession && !isPreview) {
+      router.replace('/dashboard');
+    }
+  }, [router, searchParams]);
 
-  // If user is already authenticated and didn't explicitly request marketing overview, route to workspace
-  if (currentUser && !isPreview) {
-    redirect('/dashboard');
-  }
+  return null;
+}
 
-  return <LandingPage currentUser={currentUser} />;
+export default function HomePage() {
+  return (
+    <>
+      <Suspense fallback={null}>
+        <SessionRedirector />
+      </Suspense>
+      <LandingPage />
+    </>
+  );
 }
