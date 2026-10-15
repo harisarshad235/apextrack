@@ -19,6 +19,7 @@ export interface BoardFiltersState {
   selectedPriorities: string[];
   selectedAssignee: string;
   selectedEpic: string;
+  selectedEnvironment?: 'ALL' | 'LIVE' | 'DEMO';
   onlyMine: boolean;
   jqlQuery: string;
   isJqlMode: boolean;
@@ -164,6 +165,7 @@ export function BoardFilters({
     filters.selectedPriorities.length > 0 ||
     filters.selectedAssignee !== 'ALL' ||
     filters.selectedEpic !== 'ALL' ||
+    (filters.selectedEnvironment && filters.selectedEnvironment !== 'ALL') ||
     filters.onlyMine ||
     (filters.isJqlMode && Boolean(filters.jqlQuery.trim()));
 
@@ -175,6 +177,7 @@ export function BoardFilters({
       selectedPriorities: [],
       selectedAssignee: 'ALL',
       selectedEpic: 'ALL',
+      selectedEnvironment: 'ALL',
       onlyMine: false,
       jqlQuery: '',
       isJqlMode: false,

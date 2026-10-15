@@ -171,6 +171,7 @@ export async function createIssue(data: {
   dueDate?: string;
   labelsList?: string[];
   description?: string;
+  environment?: 'LIVE' | 'DEMO';
 }) {
   try {
     const currentUser = await requireRole(['Admin', 'Member']);
@@ -250,6 +251,7 @@ export async function createIssue(data: {
       originalEstimateHours: validData.originalEstimateHours != null ? Number(validData.originalEstimateHours) : null,
       remainingEstimateHours: validData.remainingEstimateHours != null ? Number(validData.remainingEstimateHours) : (validData.originalEstimateHours != null ? Number(validData.originalEstimateHours) : null),
       dueDate: validData.dueDate || null,
+      environment: validData.environment || 'LIVE',
       description: validData.description || '',
     });
 
@@ -321,6 +323,7 @@ export async function updateIssue(
     remainingEstimateHours?: number | null;
     sprintId?: string | null;
     dueDate?: string | null;
+    environment?: 'LIVE' | 'DEMO';
   }
 ) {
   try {
@@ -375,6 +378,7 @@ export async function updateIssue(
       { key: 'remainingEstimateHours', label: 'remaining_estimate' },
       { key: 'parentIssueId', label: 'parent_issue' },
       { key: 'issueType', label: 'issue_type' },
+      { key: 'environment', label: 'environment' },
     ];
 
     for (const field of auditFields) {

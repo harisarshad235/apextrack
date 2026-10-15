@@ -44,6 +44,7 @@ import {
   IssueGitLink,
   IssueAuditLog,
   Sprint,
+  isDemoIssue,
 } from '@/lib/types';
 import { getTypeConfig, getPriorityConfig } from '@/lib/config';
 import { UserAvatar } from '@/components/ui/UserAvatar';
@@ -95,6 +96,7 @@ interface IssueDetailDrawerProps {
     originalEstimateHours?: number | null;
     remainingEstimateHours?: number | null;
     sprintId?: string | null;
+    environment?: 'LIVE' | 'DEMO';
   }) => void;
   onAddComment: (commentText: string) => void;
   onUploadSuccess?: (attachment: Attachment) => void;
@@ -325,6 +327,9 @@ export function IssueDetailDrawer({
   const [selectedPoints, setSelectedPoints] = useState<number>(issue.storyPoints ?? 0);
   const [selectedSprintId, setSelectedSprintId] = useState<string | null>(issue.sprintId || null);
   const [selectedEpicColor, setSelectedEpicColor] = useState<string>(issue.epicColor || '#3B82F6');
+  const [selectedEnvironment, setSelectedEnvironment] = useState<'LIVE' | 'DEMO'>(() =>
+    isDemoIssue(issue) ? 'DEMO' : 'LIVE'
+  );
   const [savedJustNow, setSavedJustNow] = useState(false);
 
   useEffect(() => {
@@ -338,6 +343,7 @@ export function IssueDetailDrawer({
     setSelectedPoints(issue.storyPoints ?? 0);
     setSelectedSprintId(issue.sprintId || null);
     setSelectedEpicColor(issue.epicColor || '#3B82F6');
+    setSelectedEnvironment(isDemoIssue(issue) ? 'DEMO' : 'LIVE');
     setTransitionError(null);
   }, [
     issue.key,
@@ -352,6 +358,8 @@ export function IssueDetailDrawer({
     issue.storyPoints,
     issue.sprintId,
     issue.epicColor,
+    issue.environment,
+    issue.labels,
   ]);
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
@@ -403,6 +411,7 @@ export function IssueDetailDrawer({
     const origPoints = issue.storyPoints ?? 0;
     const origSprint = issue.sprintId || null;
     const origColor = issue.epicColor || '#3B82F6';
+    const origEnv: 'LIVE' | 'DEMO' = isDemoIssue(issue) ? 'DEMO' : 'LIVE';
 
     return (
       titleInput.trim() !== (issue.title || '').trim() ||
@@ -413,7 +422,8 @@ export function IssueDetailDrawer({
       (selectedType !== 'EPIC' && selectedParentId !== origParent) ||
       selectedPoints !== origPoints ||
       selectedSprintId !== origSprint ||
-      (selectedType === 'EPIC' && selectedEpicColor !== origColor)
+      (selectedType === 'EPIC' && selectedEpicColor !== origColor) ||
+      selectedEnvironment !== origEnv
     );
   }, [
     titleInput,
@@ -425,6 +435,7 @@ export function IssueDetailDrawer({
     selectedPoints,
     selectedSprintId,
     selectedEpicColor,
+    selectedEnvironment,
     issue,
   ]);
 
@@ -438,6 +449,7 @@ export function IssueDetailDrawer({
     setSelectedPoints(issue.storyPoints ?? 0);
     setSelectedSprintId(issue.sprintId || null);
     setSelectedEpicColor(issue.epicColor || '#3B82F6');
+    setSelectedEnvironment(isDemoIssue(issue) ? 'DEMO' : 'LIVE');
     setIsEditingTitle(false);
     setIsEditingDesc(false);
     showToast('Changes discarded', 'error');
@@ -461,6 +473,7 @@ export function IssueDetailDrawer({
       storyPoints: Number(selectedPoints) || 0,
       sprintId: selectedSprintId,
       epicColor: selectedType === 'EPIC' ? selectedEpicColor : undefined,
+      environment: selectedEnvironment,
     });
 
     setIsEditingTitle(false);
@@ -715,6 +728,22 @@ export function IssueDetailDrawer({
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-800/80 text-slate-300 border border-slate-700">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
               {resolvedType}
+            </span>
+
+            {/* Live vs Demo Badge */}
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                selectedEnvironment === 'LIVE'
+                  ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400'
+                  : 'bg-purple-500/15 border-purple-500/40 text-purple-400'
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  selectedEnvironment === 'LIVE' ? 'bg-emerald-400 animate-pulse' : 'bg-purple-400'
+                }`}
+              />
+              <span>{selectedEnvironment === 'LIVE' ? 'Live Issue' : 'Demo'}</span>
             </span>
 
             {/* Flagged impediment badge */}
@@ -1587,6 +1616,46 @@ export function IssueDetailDrawer({
                 <option value="EPIC">Epic</option>
                 <option value="SUBTASK">Subtask</option>
               </select>
+            </div>
+
+            {/* Issue Classification: Live vs Demo */}
+            <div className="bg-[#111723] rounded-xl border border-[#263348] p-3.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                  Classification
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  {selectedEnvironment === 'LIVE' ? 'Production' : 'Sandbox / Demo'}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  disabled={isViewer}
+                  onClick={() => setSelectedEnvironment('LIVE')}
+                  className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg border text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                    selectedEnvironment === 'LIVE'
+                      ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 ring-1 ring-emerald-500/40 font-bold'
+                      : 'bg-[#0c121e] border-[#263348] text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Live Issue</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={isViewer}
+                  onClick={() => setSelectedEnvironment('DEMO')}
+                  className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg border text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                    selectedEnvironment === 'DEMO'
+                      ? 'bg-purple-500/20 border-purple-500 text-purple-300 ring-1 ring-purple-500/40 font-bold'
+                      : 'bg-[#0c121e] border-[#263348] text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-purple-400" />
+                  <span>Demo</span>
+                </button>
+              </div>
             </div>
 
             {/* Epic Theme Color & Child Issues (when Epic) */}

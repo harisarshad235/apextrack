@@ -168,6 +168,7 @@ export const issues = sqliteTable(
     dueDate: text('due_date'),
     rank: integer('rank').notNull().default(0),
     isFlagged: integer('is_flagged', { mode: 'boolean' }).notNull().default(false),
+    environment: text('environment').notNull().default('LIVE'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

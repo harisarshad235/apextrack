@@ -119,10 +119,32 @@ export function FilterRibbon({
     return allIssues.filter((i) => i.assigneeId === currentUserId).length;
   }, [allIssues, currentUserId]);
 
+  const toggleEnvironment = (env: 'LIVE' | 'DEMO') => {
+    const next = filters.selectedEnvironment === env ? 'ALL' : env;
+    onChangeFilters({
+      ...filters,
+      selectedEnvironment: next,
+    });
+  };
+
+  const envCounts = useMemo(() => {
+    let live = 0;
+    let demo = 0;
+    for (const issue of allIssues) {
+      const isDemo =
+        (issue.environment || '').toUpperCase() === 'DEMO' ||
+        issue.labels?.some((l) => l.toLowerCase() === 'demo');
+      if (isDemo) demo++;
+      else live++;
+    }
+    return { live, demo };
+  }, [allIssues]);
+
   const hasActiveFilters =
     filters.onlyMine ||
     filters.selectedPriorities.length > 0 ||
     filters.selectedTypes.length > 0 ||
+    (filters.selectedEnvironment && filters.selectedEnvironment !== 'ALL') ||
     filters.selectedAssignee !== 'ALL' ||
     filters.selectedEpic !== 'ALL' ||
     (filters.isJqlMode && Boolean(filters.jqlQuery.trim()));
@@ -224,6 +246,51 @@ export function FilterRibbon({
             </button>
           );
         })}
+      </div>
+
+      <div className="h-4 w-[1px] bg-slate-200 dark:bg-[#232836] flex-shrink-0" />
+
+      {/* Live / Demo Environment Filter Chips */}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <button
+          onClick={() => toggleEnvironment('LIVE')}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all duration-200 cursor-pointer active:scale-95 ${
+            filters.selectedEnvironment === 'LIVE'
+              ? 'border-emerald-500 bg-emerald-600 text-white shadow-xs ring-1 ring-emerald-400/40'
+              : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20'
+          }`}
+          title={`Filter by Live Issues (${envCounts.live} available)`}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Live</span>
+          <span
+            className={`font-mono text-[10px] px-1 py-0.2 rounded ${
+              filters.selectedEnvironment === 'LIVE' ? 'bg-white/20 text-white' : 'opacity-70'
+            }`}
+          >
+            {envCounts.live}
+          </span>
+        </button>
+
+        <button
+          onClick={() => toggleEnvironment('DEMO')}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all duration-200 cursor-pointer active:scale-95 ${
+            filters.selectedEnvironment === 'DEMO'
+              ? 'border-purple-500 bg-purple-600 text-white shadow-xs ring-1 ring-purple-400/40'
+              : 'border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-400 hover:bg-purple-500/20'
+          }`}
+          title={`Filter by Demo Issues (${envCounts.demo} available)`}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+          <span>Demo</span>
+          <span
+            className={`font-mono text-[10px] px-1 py-0.2 rounded ${
+              filters.selectedEnvironment === 'DEMO' ? 'bg-white/20 text-white' : 'opacity-70'
+            }`}
+          >
+            {envCounts.demo}
+          </span>
+        </button>
       </div>
 
       <div className="h-4 w-[1px] bg-slate-200 dark:bg-[#232836] flex-shrink-0" />

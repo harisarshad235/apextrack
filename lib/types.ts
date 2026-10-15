@@ -76,6 +76,11 @@ export interface FullIssue extends Issue {
   project?: Project | null;
 }
 
+export function isDemoIssue(issue: { environment?: string | null; labels?: string[] }): boolean {
+  if (issue.environment) return issue.environment.toUpperCase() === 'DEMO';
+  return issue.labels?.some((l) => l.toLowerCase() === 'demo') ?? false;
+}
+
 export interface FullDocument extends Document {
   author?: User | null;
   attachments: Attachment[];

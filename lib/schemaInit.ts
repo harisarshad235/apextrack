@@ -19,6 +19,7 @@ export async function ensureEnterpriseSchema(dbInstance?: ReturnType<typeof getD
     sql`ALTER TABLE issues ADD COLUMN epic_color TEXT DEFAULT '#3B82F6'`,
     sql`ALTER TABLE issues ADD COLUMN original_estimate_hours REAL`,
     sql`ALTER TABLE issues ADD COLUMN remaining_estimate_hours REAL`,
+    sql`ALTER TABLE issues ADD COLUMN environment TEXT NOT NULL DEFAULT 'LIVE'`,
     sql`ALTER TABLE issue_links ADD COLUMN link_type TEXT NOT NULL DEFAULT 'RELATES_TO'`,
     sql`ALTER TABLE issue_links ADD COLUMN created_at INTEGER DEFAULT (unixepoch() * 1000)`,
     sql`ALTER TABLE notifications ADD COLUMN title TEXT`,

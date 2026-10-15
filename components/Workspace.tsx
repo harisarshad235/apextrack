@@ -11,6 +11,7 @@ import {
   UserRole,
   Project,
   Swimlane,
+  isDemoIssue,
 } from '@/lib/types';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { Header } from '@/components/shell/Header';
@@ -91,6 +92,7 @@ export function Workspace({
     selectedPriorities: [],
     selectedAssignee: 'ALL',
     selectedEpic: 'ALL',
+    selectedEnvironment: 'ALL',
     onlyMine: false,
     jqlQuery: '',
     isJqlMode: false,
@@ -199,12 +201,55 @@ export function Workspace({
     return initialSwimlanes.filter((s) => s.projectId === activeProjectId);
   }, [initialSwimlanes, activeProjectId]);
 
-  // Filtered Issues scoped to active project with compound filters + JQL-lite
-  const filteredIssues = useMemo(() => {
+  // Issues strictly scoped to the active project
+  const projectIssues = useMemo(() => {
+    const curProj = initialProjects.find((p) => p.id === activeProjectId);
     return optimisticIssues.filter((issue) => {
-      const matchesProject = !issue.projectId || issue.projectId === activeProjectId;
-      if (!matchesProject) return false;
+      if (issue.projectId) return issue.projectId === activeProjectId;
+      if (curProj && issue.key.startsWith(curProj.key)) return true;
+      return !issue.projectId;
+    });
+  }, [optimisticIssues, activeProjectId, initialProjects]);
 
+  // Metrics accurately scoped to the active project
+  const projectMetrics = useMemo(() => {
+    const total = projectIssues.length;
+    const inProgress = projectIssues.filter((i) => {
+      const s = (i.status || '').toLowerCase();
+      return s.includes('progress') || s.includes('dev') || s.includes('review');
+    }).length;
+    const doneIssues = projectIssues.filter((i) => {
+      const s = (i.status || '').toLowerCase();
+      return s === 'done' || s === 'completed' || s === 'closed';
+    });
+    const completedPoints = doneIssues.reduce(
+      (sum, i) => sum + (Number(i.storyPoints) || 0),
+      0
+    );
+    const totalPoints = projectIssues.reduce(
+      (sum, i) => sum + (Number(i.storyPoints) || 0),
+      0
+    );
+    const completed = doneIssues.length;
+    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return {
+      total,
+      completed,
+      inProgress,
+      openBugs: projectIssues.filter((i) => {
+        const t1 = (i.type || '').toLowerCase();
+        const t2 = (i.issueType || '').toLowerCase();
+        return (t1 === 'bug' || t2 === 'bug') && (i.status || '').toLowerCase() !== 'done';
+      }).length,
+      totalPoints,
+      completedPoints,
+      completionRate,
+    };
+  }, [projectIssues]);
+
+  // Filtered Issues scoped to active project with compound filters + JQL-lite + Live/Demo
+  const filteredIssues = useMemo(() => {
+    return projectIssues.filter((issue) => {
       // Header search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -215,6 +260,10 @@ export function Workspace({
           issue.labels?.some((l) => l.toLowerCase().includes(q));
         if (!inText) return false;
       }
+
+      // Live vs Demo Environment filter
+      if (boardFilters.selectedEnvironment === 'LIVE' && isDemoIssue(issue)) return false;
+      if (boardFilters.selectedEnvironment === 'DEMO' && !isDemoIssue(issue)) return false;
 
       // JQL-lite mode
       if (boardFilters.isJqlMode) {
@@ -257,7 +306,7 @@ export function Workspace({
 
       return true;
     });
-  }, [optimisticIssues, activeProjectId, searchQuery, boardFilters, currentUser.id]);
+  }, [projectIssues, searchQuery, boardFilters, currentUser.id]);
 
   const selectedIssue = useMemo(() => {
     return optimisticIssues.find((i) => i.key === selectedIssueKey) || null;
@@ -360,6 +409,7 @@ export function Workspace({
     remainingEstimateHours?: number | null;
     sprintId?: string | null;
     dueDate?: string | null;
+    environment?: 'LIVE' | 'DEMO';
   }) => {
     if (!selectedIssueKey || isViewer) return;
 
@@ -618,8 +668,8 @@ export function Workspace({
             filters={boardFilters}
             onChangeFilters={setBoardFilters}
             users={initialUsers}
-            allIssues={optimisticIssues}
-            metrics={initialMetrics}
+            allIssues={projectIssues}
+            metrics={projectMetrics}
             currentUserId={currentUser.id}
           />
         )}
@@ -753,7 +803,7 @@ export function Workspace({
           projects={initialProjects}
           activeProjectId={activeProjectId}
           swimlanes={activeSwimlanes}
-          issues={optimisticIssues}
+          issues={projectIssues}
           sprints={optimisticSprints}
           onClose={() => setIsCreateIssueOpen(false)}
           onCreate={handleCreateIssue}
