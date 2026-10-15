@@ -17,7 +17,10 @@ import { users, User, UserRole } from '@/db/schema';
 export const SESSION_USER_COOKIE = 'kynov_session';
 export const DEV_USER_COOKIE = 'kynov_dev_user_id';
 
-const SESSION_SECRET = process.env.SESSION_SECRET || 'kynov_session_secret_edge_2026';
+const SESSION_SECRET =
+  process.env.SESSION_SECRET ||
+  process.env.NEXTAUTH_SECRET ||
+  '4f8c92a1d3e7b508f62c8e31a94d0752e391b4c805fa61e27b9c30d4a8e2f156';
 
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
@@ -155,9 +158,12 @@ export async function verifySessionToken(token: string): Promise<{ userId: strin
 
     const candidateSecrets = Array.from(new Set([
       SESSION_SECRET,
+      process.env.SESSION_SECRET,
+      process.env.NEXTAUTH_SECRET,
+      '4f8c92a1d3e7b508f62c8e31a94d0752e391b4c805fa61e27b9c30d4a8e2f156',
       'kynov_session_secret_edge_2026',
       'apextrack_session_secret_edge_2026',
-    ]));
+    ].filter(Boolean) as string[]));
 
     for (const secret of candidateSecrets) {
       try {
