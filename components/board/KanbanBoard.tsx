@@ -27,6 +27,7 @@ import { getTypeConfig, getPriorityConfig } from '@/lib/config';
 import { UserAvatar } from '@/components/ui/UserAvatar';
 import { getActiveSprintAction } from '@/app/actions/sprints';
 import { VelocityMetricsWidget } from './VelocityMetricsWidget';
+import { playCardPickupSound, playCardDropSound, playCardErrorSound } from '@/lib/sound';
 
 interface KanbanBoardProps {
   issues: FullIssue[];
@@ -51,20 +52,24 @@ const DEFAULT_WIP_LIMITS: Record<string, number> = {
 
 const getDotColor = (name: string) => {
   const lower = name.toLowerCase();
-  if (lower.includes('to do') || lower.includes('backlog')) return 'bg-cyan-400';
-  if (lower.includes('progress') || lower.includes('dev')) return 'bg-amber-400';
-  if (lower.includes('review') || lower.includes('qa') || lower.includes('test')) return 'bg-indigo-400';
-  if (lower.includes('done') || lower.includes('closed') || lower.includes('complete')) return 'bg-emerald-400';
-  return 'bg-cyan-400';
+  if (lower.includes('to do') || lower.includes('backlog')) return 'bg-slate-400';
+  if (lower.includes('progress') || lower.includes('dev')) return 'bg-amber-500';
+  if (lower.includes('review') || lower.includes('qa') || lower.includes('test')) return 'bg-indigo-500';
+  if (lower.includes('done') || lower.includes('closed') || lower.includes('complete')) return 'bg-emerald-500';
+  return 'bg-slate-400';
 };
 
 const getColBadgeColor = (name: string) => {
   const lower = name.toLowerCase();
-  if (lower.includes('to do') || lower.includes('backlog')) return 'bg-[#171B24] border border-[#232836] text-slate-300';
-  if (lower.includes('progress') || lower.includes('dev')) return 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
-  if (lower.includes('review') || lower.includes('qa') || lower.includes('test')) return 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30';
-  if (lower.includes('done') || lower.includes('closed') || lower.includes('complete')) return 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-  return 'bg-[#171B24] border border-[#232836] text-slate-300';
+  if (lower.includes('to do') || lower.includes('backlog'))
+    return 'bg-slate-200/90 text-slate-800 dark:bg-slate-800 dark:text-slate-200 border border-slate-300/60 dark:border-slate-700';
+  if (lower.includes('progress') || lower.includes('dev'))
+    return 'bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300/60 dark:border-amber-800/60';
+  if (lower.includes('review') || lower.includes('qa') || lower.includes('test'))
+    return 'bg-indigo-100 text-indigo-900 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-300/60 dark:border-indigo-800/60';
+  if (lower.includes('done') || lower.includes('closed') || lower.includes('complete'))
+    return 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-800/60';
+  return 'bg-slate-200/90 text-slate-800 dark:bg-slate-800 dark:text-slate-200 border border-slate-300/60 dark:border-slate-700';
 };
 
 const getStatusTag = (status: string) => {
@@ -218,6 +223,7 @@ export function KanbanBoardView({
 
   const handleDragStart = (e: React.DragEvent, issueId: string) => {
     if (isViewer) return;
+    playCardPickupSound();
     setDraggedIssueId(issueId);
     e.dataTransfer.setData('text/plain', issueId);
   };
@@ -246,6 +252,7 @@ export function KanbanBoardView({
         if (isTargetDone) {
           const openSubtasks = (draggedIssue.subtasks || []).filter((s) => !s.completed);
           if (openSubtasks.length > 0) {
+            playCardErrorSound();
             setDropErrorToast('Cannot move to Done: all subtasks must be resolved first.');
             setTimeout(() => setDropErrorToast(null), 4000);
             setDraggedIssueId(null);
@@ -255,6 +262,7 @@ export function KanbanBoardView({
             (b) => b.status.toLowerCase() !== 'done'
           );
           if (unresolvedBlockers.length > 0) {
+            playCardErrorSound();
             setDropErrorToast(
               `Cannot move to Done: issue is blocked by open ticket(s): ${unresolvedBlockers.map((b) => b.key).join(', ')}`
             );
@@ -264,6 +272,7 @@ export function KanbanBoardView({
           }
         }
       }
+      playCardDropSound();
       onStatusChange(issueId, columnStatus);
     }
     setDraggedIssueId(null);
@@ -607,14 +616,14 @@ export function KanbanBoardView({
                   onDragOver={(e) => handleDragOver(e, lane.id)}
                   onDragLeave={(e) => handleDragLeave(e, lane.id)}
                   onDrop={(e) => handleDrop(e, lane.name)}
-                  className={`flex flex-col w-[86vw] sm:w-[320px] md:w-80 flex-shrink-0 snap-center md:snap-align-none max-h-full rounded-2xl border p-3.5 shadow-sm transition-all duration-200 ${
+                  className={`flex flex-col w-[86vw] sm:w-[325px] md:w-[340px] xl:w-[350px] flex-shrink-0 snap-center md:snap-align-none max-h-full rounded-2xl border p-3.5 shadow-xs transition-all duration-200 ${
                     isDragOver
-                      ? 'drop-zone-pulse border-cyan-500/80 bg-cyan-500/5'
-                      : 'border-slate-200/80 dark:border-[#232836] bg-slate-100/70 dark:bg-[#11141B]/90 backdrop-blur-sm'
+                      ? 'drop-zone-pulse border-indigo-500/80 bg-indigo-50/20 dark:bg-indigo-950/30'
+                      : 'border-slate-200/90 dark:border-slate-800/80 bg-slate-100/75 dark:bg-[#0E1420]/95 backdrop-blur-sm'
                   }`}
                 >
                   {/* Column Header */}
-                  <div className="flex items-center justify-between pb-3 px-1 border-b border-slate-200/80 dark:border-[#232836]">
+                  <div className="flex items-center justify-between pb-3 px-1 border-b border-slate-200/90 dark:border-slate-800/80 gap-1.5">
                     {isEditingThisLane ? (
                       <div className="flex items-center gap-1.5 w-full">
                         <input
@@ -645,12 +654,15 @@ export function KanbanBoardView({
                       </div>
                     ) : (
                       <>
-                        <div className="flex items-center gap-2 min-w-0 group">
-                          <span className="font-bold text-xs text-slate-800 dark:text-slate-100 tracking-tight truncate">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-1 group">
+                          <span
+                            className="font-bold text-xs text-slate-800 dark:text-slate-100 tracking-tight shrink-0 max-w-[145px] sm:max-w-[170px] truncate"
+                            title={lane.name}
+                          >
                             {lane.name}
                           </span>
                           <span
-                            className={`px-2 py-0.5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-xs ${getColBadgeColor(
+                            className={`px-1.5 py-0.5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-xs flex-shrink-0 ${getColBadgeColor(
                               lane.name
                             )}`}
                           >
@@ -658,7 +670,7 @@ export function KanbanBoardView({
                           </span>
 
                           {/* Interactive WIP Limit Pill */}
-                          <div className="relative flex items-center">
+                          <div className="relative flex items-center flex-shrink-0">
                             <button
                               type="button"
                               onClick={() => {
@@ -668,7 +680,7 @@ export function KanbanBoardView({
                                   wipLimit !== undefined && wipLimit > 0 ? String(wipLimit) : ''
                                 );
                               }}
-                              className={`text-[10px] font-mono px-2 py-0.5 rounded-md font-bold flex-shrink-0 flex items-center gap-1 transition shadow-xs cursor-pointer ${
+                              className={`text-[9.5px] font-mono px-1.5 py-0.5 rounded-md font-bold flex-shrink-0 flex items-center gap-1 transition shadow-xs cursor-pointer ${
                                 overWip
                                   ? 'bg-rose-500/20 text-rose-700 dark:text-rose-400 border border-rose-500/50 animate-pulse'
                                   : wipLimit && wipLimit > 0
@@ -734,7 +746,7 @@ export function KanbanBoardView({
                           {!isViewer && (
                             <button
                               onClick={() => handleStartEditLane(lane)}
-                              className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-cyan-400 rounded transition"
+                              className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-400 hover:text-cyan-400 rounded transition flex-shrink-0"
                               title="Rename Column"
                             >
                               <Edit3 className="w-3 h-3" />
@@ -743,8 +755,8 @@ export function KanbanBoardView({
                         </div>
 
                         {/* Velocity Points Badge & Quick Add Task Trigger */}
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <span className="text-[11px] font-mono text-slate-400 font-medium px-1.5 py-0.5 rounded bg-black/5 dark:bg-[#171B24] border border-transparent dark:border-[#232836]">
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <span className="text-[10px] font-mono text-slate-400 font-medium px-1.5 py-0.5 rounded bg-black/5 dark:bg-[#171B24] border border-transparent dark:border-[#232836]">
                             {colPoints} pts
                           </span>
 
@@ -812,38 +824,38 @@ export function KanbanBoardView({
                               onSelectIssue(issue.key);
                             }
                           }}
-                          className={`rounded-2xl p-4 transition-all duration-200 cursor-pointer group shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${
+                          className={`rounded-xl p-3.5 transition-all duration-200 cursor-pointer group shadow-2xs hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                             issue.isFlagged
-                              ? 'bg-amber-500/10 border border-amber-500/60 hover:border-amber-400'
-                              : 'bg-white dark:bg-[#11141B] border border-slate-200/80 dark:border-[#232836] hover:border-[#343C50] hover:shadow-lg dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.5)]'
+                              ? 'bg-amber-50/70 dark:bg-[#1A1813] border border-amber-300 dark:border-amber-700/80 hover:border-amber-400'
+                              : 'bg-white dark:bg-[#161F30] border border-slate-200/90 dark:border-slate-700/70 hover:border-slate-300 dark:hover:border-slate-500 hover:shadow-md dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.5)]'
                           }`}
                         >
                           {/* Top Row: Type Pill, Key & Status */}
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${typeCfg.color}`}
+                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border ${typeCfg.color}`}
                               >
                                 <TypeIcon className="w-3 h-3" />
                                 <span>{issue.type}</span>
                               </span>
 
-                              <span className="font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-tight">
+                              <span className="font-mono text-[11px] font-bold text-slate-700 dark:text-slate-200 tracking-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                                 {issue.key}
                               </span>
 
                               {/* Classification: Live vs Demo */}
                               {isDemoIssue(issue) ? (
                                 <span
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 font-mono"
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/50 font-mono"
                                   title="Demo / Showcase Issue"
                                 >
-                                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+                                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
                                   Demo
                                 </span>
                               ) : (
                                 <span
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-mono"
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/50 font-mono"
                                   title="Production / Live Issue"
                                 >
                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -865,7 +877,7 @@ export function KanbanBoardView({
                                   (b) => b.status.toLowerCase() !== 'done'
                                 ) && (
                                   <span
-                                    className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                                    className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/50"
                                     title="Blocked by unresolved dependencies"
                                   >
                                     Blocked
@@ -875,10 +887,10 @@ export function KanbanBoardView({
 
                             {/* Priority Icon Pill */}
                             <span
-                              className={`text-[10px] px-2 py-0.5 rounded-md font-mono ${priorityCfg.color}`}
+                              className={`text-[10px] px-2 py-0.5 rounded font-mono ${priorityCfg.color}`}
                               title={`Priority: ${issue.priority}`}
                             >
-                              {priorityCfg.icon}
+                              {priorityCfg.label}
                             </span>
                           </div>
 
@@ -886,7 +898,7 @@ export function KanbanBoardView({
                           {issue.parent && (
                             <div className="mb-1.5">
                               <span
-                                className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold tracking-tight bg-purple-500/10 text-purple-400 border border-purple-500/25"
+                                className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-tight bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/50"
                               >
                                 {issue.parent.key}: {issue.parent.title}
                               </span>
@@ -894,13 +906,13 @@ export function KanbanBoardView({
                           )}
 
                           {/* High-Contrast Title */}
-                          <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 line-clamp-2 leading-snug mb-1.5 group-hover:text-cyan-400 transition-colors">
+                          <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 line-clamp-2 leading-snug mb-1.5 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                             {issue.title}
                           </h4>
 
                           {/* Description Snippet */}
                           {issue.description && (
-                            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-3 leading-relaxed">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-2.5 leading-relaxed">
                               {issue.description.replace(/[#*`_\[\]()]/g, '')}
                             </p>
                           )}
@@ -911,7 +923,7 @@ export function KanbanBoardView({
                               {issue.labels.slice(0, 3).map((lbl, idx) => (
                                 <span
                                   key={idx}
-                                  className="text-[10px] bg-slate-100 dark:bg-[#171B24] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-[#232836] px-1.5 py-0.5 rounded-md font-mono"
+                                  className="text-[10px] bg-slate-100 dark:bg-[#101726] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded-md font-mono"
                                 >
                                   #{lbl}
                                 </span>

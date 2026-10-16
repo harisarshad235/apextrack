@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useOptimistic, useTransition, useEffect } from 'react';
+import React, { useState, useMemo, useOptimistic, useTransition, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   FullIssue,
@@ -112,12 +112,19 @@ export function Workspace({
   const router = useRouter();
   const [, startTransition] = useTransition();
 
-  // Multi-user SWR Polling (refreshes server state every 15 seconds)
+  // Server state revalidation on tab focus after idle
   useEffect(() => {
-    const interval = setInterval(() => {
-      router.refresh();
-    }, 15000);
-    return () => clearInterval(interval);
+    let lastRefreshed = Date.now();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && Date.now() - lastRefreshed > 120000) {
+        lastRefreshed = Date.now();
+        startTransition(() => {
+          router.refresh();
+        });
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [router]);
 
   // Global Cmd+K / Ctrl+K shortcut for Command Palette
@@ -162,9 +169,91 @@ export function Workspace({
     }
   };
 
+  // Live issues state synced in background across multiple active users
+  const [liveIssues, setLiveIssues] = useState<FullIssue[]>(initialIssues);
+
+  useEffect(() => {
+    setLiveIssues(initialIssues);
+  }, [initialIssues]);
+
+  // Multi-user silent live background sync (polls lightweight JSON changes every 5s with zero tab reloading)
+  const lastSyncTimeRef = useRef<number>(Date.now());
+  const isSyncingRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    const userMap = new Map(initialUsers.map((u) => [u.id, u]));
+    const sprintMap = new Map(sprints.map((s) => [s.id, s]));
+
+    const syncIssues = async () => {
+      if (isSyncingRef.current || document.visibilityState !== 'visible') return;
+      isSyncingRef.current = true;
+      try {
+        const since = lastSyncTimeRef.current;
+        const res = await fetch(
+          `/api/issues/sync?projectId=${encodeURIComponent(activeProjectId)}&since=${since}`,
+          { cache: 'no-store' }
+        );
+        if (res.ok) {
+          const data = (await res.json()) as { issues?: any[]; timestamp?: number };
+          if (data.timestamp) {
+            lastSyncTimeRef.current = data.timestamp;
+          }
+          if (data.issues && data.issues.length > 0) {
+            setLiveIssues((prevIssues) => {
+              const updatedMap = new Map(data.issues!.map((u: any) => [u.key, u]));
+              let hasAnyChange = false;
+
+              const nextIssues = prevIssues.map((existing) => {
+                const incoming = updatedMap.get(existing.key);
+                if (!incoming) return existing;
+
+                const statusChanged = incoming.status && incoming.status !== existing.status;
+                const sprintChanged =
+                  incoming.sprintId !== undefined && incoming.sprintId !== existing.sprintId;
+                const priorityChanged = incoming.priority && incoming.priority !== existing.priority;
+                const assigneeChanged =
+                  incoming.assigneeId !== undefined && incoming.assigneeId !== existing.assigneeId;
+
+                if (statusChanged || sprintChanged || priorityChanged || assigneeChanged) {
+                  hasAnyChange = true;
+                  return {
+                    ...existing,
+                    status: incoming.status || existing.status,
+                    sprintId:
+                      incoming.sprintId !== undefined ? incoming.sprintId : existing.sprintId,
+                    priority: incoming.priority || existing.priority,
+                    assigneeId:
+                      incoming.assigneeId !== undefined ? incoming.assigneeId : existing.assigneeId,
+                    assignee: incoming.assigneeId
+                      ? userMap.get(incoming.assigneeId) || existing.assignee
+                      : existing.assignee,
+                    sprint: incoming.sprintId
+                      ? sprintMap.get(incoming.sprintId) || existing.sprint
+                      : null,
+                    updatedAt: incoming.updatedAt ? new Date(incoming.updatedAt) : existing.updatedAt,
+                  };
+                }
+                return existing;
+              });
+
+              return hasAnyChange ? nextIssues : prevIssues;
+            });
+          }
+        }
+      } catch {
+        // Ignore network background sync failures
+      } finally {
+        isSyncingRef.current = false;
+      }
+    };
+
+    const interval = setInterval(syncIssues, 5000);
+    return () => clearInterval(interval);
+  }, [activeProjectId, initialUsers, sprints]);
+
   // Optimistic UI updates for issues drag-and-drop
   const [optimisticIssues, setOptimisticIssues] = useOptimistic(
-    initialIssues,
+    liveIssues,
     (state, update: { key: string; newStatus: string }) => {
       return state.map((issue) =>
         issue.key === update.key ? { ...issue, status: update.newStatus } : issue
@@ -210,6 +299,28 @@ export function Workspace({
       return !issue.projectId;
     });
   }, [optimisticIssues, activeProjectId, initialProjects]);
+
+  // Sprints scoped strictly to the active project
+  const activeProjectSprints = useMemo(() => {
+    const curProj = initialProjects.find((p) => p.id === activeProjectId);
+    return optimisticSprints.filter((s) => {
+      const pId = (s as any).projectId || (s as any).project_id;
+      if (pId) return pId === activeProjectId;
+
+      // If sprint has issues, match project of those issues
+      const sprintIssues = optimisticIssues.filter((i) => i.sprintId === s.id);
+      if (sprintIssues.length > 0) {
+        return sprintIssues.some((i) => {
+          if (i.projectId) return i.projectId === activeProjectId;
+          if (curProj && i.key.startsWith(curProj.key)) return true;
+          return false;
+        });
+      }
+
+      // If sprint is unassociated and empty, assign to default first project
+      return activeProjectId === initialProjects[0]?.id;
+    });
+  }, [optimisticSprints, activeProjectId, optimisticIssues, initialProjects]);
 
   // Metrics accurately scoped to the active project
   const projectMetrics = useMemo(() => {
@@ -321,6 +432,9 @@ export function Workspace({
 
     startTransition(async () => {
       setOptimisticIssues({ key: issueKey, newStatus });
+      setLiveIssues((prev) =>
+        prev.map((i) => (i.key === issueKey ? { ...i, status: newStatus } : i))
+      );
       const res = await moveIssueStatus(issueKey, newStatus);
       if (res.success) {
         showToast(res.message || `Moved ${issueKey} to ${newStatus}`);
@@ -693,7 +807,7 @@ export function Workspace({
               issues={filteredIssues}
               users={initialUsers}
               swimlanes={activeSwimlanes}
-              sprints={optimisticSprints}
+              sprints={activeProjectSprints}
               onSelectIssue={(key) => handleSelectIssue(key)}
               onStatusChange={handleUpdateIssueStatus}
               onCreateSwimlane={handleCreateSwimlane}
@@ -714,8 +828,9 @@ export function Workspace({
           {activeTab === 'backlog' && (
             <BacklogView
               issues={filteredIssues}
+              allProjectIssues={projectIssues}
               users={initialUsers}
-              sprints={optimisticSprints}
+              sprints={activeProjectSprints}
               swimlanes={activeSwimlanes}
               onSelectIssue={(key) => handleSelectIssue(key)}
               onStatusChange={handleUpdateIssueStatus}
@@ -782,7 +897,7 @@ export function Workspace({
           currentUser={currentUser}
           swimlanes={activeSwimlanes}
           allIssues={optimisticIssues}
-          sprints={optimisticSprints}
+          sprints={activeProjectSprints}
           onNavigateIssue={(key) => handleSelectIssue(key)}
           isViewer={isViewer}
           onClose={() => handleSelectIssue(null)}
@@ -804,7 +919,7 @@ export function Workspace({
           activeProjectId={activeProjectId}
           swimlanes={activeSwimlanes}
           issues={projectIssues}
-          sprints={optimisticSprints}
+          sprints={activeProjectSprints}
           onClose={() => setIsCreateIssueOpen(false)}
           onCreate={handleCreateIssue}
         />

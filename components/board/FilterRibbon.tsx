@@ -154,35 +154,35 @@ export function FilterRibbon({
       {/* Quick "My Issues" Filter */}
       <button
         onClick={toggleOnlyMine}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-medium transition-all duration-200 cursor-pointer flex-shrink-0 active:scale-95 ${
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all duration-150 cursor-pointer flex-shrink-0 active:scale-95 ${
           filters.onlyMine
-            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 ring-1 ring-blue-400/50'
-            : 'bg-slate-100 dark:bg-[#11141B] border border-slate-200 dark:border-[#232836] text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-[#343C50]'
+            ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-950 border border-slate-900 dark:border-white shadow-xs'
+            : 'bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-slate-700/70 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#172134] hover:border-slate-300 dark:hover:border-slate-600 shadow-2xs'
         }`}
         title="Show issues assigned to me"
       >
         <UserIcon className="w-3.5 h-3.5" />
         <span>My Issues</span>
         <span
-          className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono ${
+          className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold ${
             filters.onlyMine
-              ? 'bg-white/20 text-white'
-              : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+              ? 'bg-white/20 text-white dark:bg-slate-950/20 dark:text-slate-950'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
           }`}
         >
           {myIssuesCount}
         </span>
       </button>
 
-      <div className="h-4 w-[1px] bg-slate-200 dark:bg-[#232836] flex-shrink-0" />
+      <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-800 flex-shrink-0" />
 
       {/* Priority Chips */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
         {[
-          { key: 'Critical', label: 'Critical', color: 'border-rose-500/40 text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20' },
-          { key: 'High', label: 'High', color: 'border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20' },
-          { key: 'Medium', label: 'Med', color: 'border-indigo-500/40 text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20' },
-          { key: 'Low', label: 'Low', color: 'border-slate-400/40 text-slate-600 dark:text-slate-400 bg-slate-500/10 hover:bg-slate-500/20' },
+          { key: 'Critical', label: 'Critical', dot: 'bg-rose-500' },
+          { key: 'High', label: 'High', dot: 'bg-amber-500' },
+          { key: 'Medium', label: 'Med', dot: 'bg-indigo-400' },
+          { key: 'Low', label: 'Low', dot: 'bg-slate-400' },
         ].map((item) => {
           const isActive = filters.selectedPriorities.includes(item.key);
           const count = priorityCounts[item.key] ?? 0;
@@ -190,17 +190,20 @@ export function FilterRibbon({
             <button
               key={item.key}
               onClick={() => togglePriority(item.key)}
-              className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all duration-200 cursor-pointer flex items-center gap-1.5 active:scale-95 ${
+              className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all duration-150 cursor-pointer flex items-center gap-1.5 active:scale-95 ${
                 isActive
-                  ? 'border-indigo-500 bg-indigo-600 text-white shadow-xs ring-1 ring-indigo-400/40'
-                  : `${item.color}`
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-950 border-slate-900 dark:border-white shadow-xs'
+                  : 'bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-slate-700/70 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#172134] hover:border-slate-300 dark:hover:border-slate-600 shadow-2xs'
               }`}
               title={`Filter by ${item.key} priority (${count} available)`}
             >
+              <span className={`w-1.5 h-1.5 rounded-full ${item.dot}`} />
               <span>{item.label}</span>
               <span
-                className={`font-mono text-[10px] px-1 py-0.2 rounded ${
-                  isActive ? 'bg-white/20 text-white' : 'opacity-70'
+                className={`font-mono text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                  isActive
+                    ? 'bg-white/20 text-white dark:bg-slate-950/20 dark:text-slate-950'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
                 }`}
               >
                 {count}
@@ -210,15 +213,15 @@ export function FilterRibbon({
         })}
       </div>
 
-      <div className="h-4 w-[1px] bg-slate-200 dark:bg-[#232836] flex-shrink-0" />
+      <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-800 flex-shrink-0" />
 
       {/* Type Chips */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
         {[
-          { key: 'Bug', icon: Bug, color: 'text-rose-500 dark:text-rose-400' },
-          { key: 'Story', icon: Bookmark, color: 'text-emerald-500 dark:text-emerald-400' },
-          { key: 'Task', icon: CircleDot, color: 'text-blue-500 dark:text-blue-400' },
-          { key: 'Epic', icon: Zap, color: 'text-purple-500 dark:text-purple-400' },
+          { key: 'Bug', icon: Bug, iconColor: 'text-rose-500' },
+          { key: 'Story', icon: Bookmark, iconColor: 'text-emerald-500' },
+          { key: 'Task', icon: CircleDot, iconColor: 'text-blue-500' },
+          { key: 'Epic', icon: Zap, iconColor: 'text-purple-500' },
         ].map((t) => {
           const isActive = filters.selectedTypes.includes(t.key);
           const Icon = t.icon;
@@ -227,18 +230,20 @@ export function FilterRibbon({
             <button
               key={t.key}
               onClick={() => toggleType(t.key)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all duration-200 cursor-pointer active:scale-95 ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all duration-150 cursor-pointer active:scale-95 ${
                 isActive
-                  ? 'border-cyan-500 bg-cyan-600 text-white shadow-xs ring-1 ring-cyan-400/40'
-                  : 'border-slate-200 dark:border-[#232836] bg-slate-100 dark:bg-[#11141B] text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-[#343C50]'
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-950 border-slate-900 dark:border-white shadow-xs'
+                  : 'bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-slate-700/70 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#172134] hover:border-slate-300 dark:hover:border-slate-600 shadow-2xs'
               }`}
               title={`Filter by ${t.key} type (${count} available)`}
             >
-              <Icon className={`w-3 h-3 ${isActive ? 'text-white' : t.color}`} />
+              <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-current' : t.iconColor}`} />
               <span>{t.key}</span>
               <span
-                className={`font-mono text-[10px] px-1 py-0.2 rounded ${
-                  isActive ? 'bg-white/20 text-white' : 'opacity-70'
+                className={`font-mono text-[10px] px-1.5 py-0.2 rounded font-bold ${
+                  isActive
+                    ? 'bg-white/20 text-white dark:bg-slate-950/20 dark:text-slate-950'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
                 }`}
               >
                 {count}
@@ -248,24 +253,26 @@ export function FilterRibbon({
         })}
       </div>
 
-      <div className="h-4 w-[1px] bg-slate-200 dark:bg-[#232836] flex-shrink-0" />
+      <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-800 flex-shrink-0" />
 
       {/* Live / Demo Environment Filter Chips */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
         <button
           onClick={() => toggleEnvironment('LIVE')}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all duration-200 cursor-pointer active:scale-95 ${
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all duration-150 cursor-pointer active:scale-95 ${
             filters.selectedEnvironment === 'LIVE'
-              ? 'border-emerald-500 bg-emerald-600 text-white shadow-xs ring-1 ring-emerald-400/40'
-              : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20'
+              ? 'border-emerald-600 bg-emerald-600 text-white shadow-xs'
+              : 'bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-slate-700/70 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#172134] shadow-2xs'
           }`}
           title={`Filter by Live Issues (${envCounts.live} available)`}
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
           <span>Live</span>
           <span
-            className={`font-mono text-[10px] px-1 py-0.2 rounded ${
-              filters.selectedEnvironment === 'LIVE' ? 'bg-white/20 text-white' : 'opacity-70'
+            className={`font-mono text-[10px] px-1.5 py-0.2 rounded font-bold ${
+              filters.selectedEnvironment === 'LIVE'
+                ? 'bg-white/20 text-white'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
             }`}
           >
             {envCounts.live}
@@ -274,18 +281,20 @@ export function FilterRibbon({
 
         <button
           onClick={() => toggleEnvironment('DEMO')}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all duration-200 cursor-pointer active:scale-95 ${
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all duration-150 cursor-pointer active:scale-95 ${
             filters.selectedEnvironment === 'DEMO'
-              ? 'border-purple-500 bg-purple-600 text-white shadow-xs ring-1 ring-purple-400/40'
-              : 'border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-400 hover:bg-purple-500/20'
+              ? 'border-purple-600 bg-purple-600 text-white shadow-xs'
+              : 'bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-slate-700/70 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#172134] shadow-2xs'
           }`}
           title={`Filter by Demo Issues (${envCounts.demo} available)`}
         >
           <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
           <span>Demo</span>
           <span
-            className={`font-mono text-[10px] px-1 py-0.2 rounded ${
-              filters.selectedEnvironment === 'DEMO' ? 'bg-white/20 text-white' : 'opacity-70'
+            className={`font-mono text-[10px] px-1.5 py-0.2 rounded font-bold ${
+              filters.selectedEnvironment === 'DEMO'
+                ? 'bg-white/20 text-white'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
             }`}
           >
             {envCounts.demo}
@@ -293,7 +302,7 @@ export function FilterRibbon({
         </button>
       </div>
 
-      <div className="h-4 w-[1px] bg-slate-200 dark:bg-[#232836] flex-shrink-0" />
+      <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-800 flex-shrink-0" />
 
       {/* Assignee Avatar Ribbon */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -305,14 +314,14 @@ export function FilterRibbon({
               onClick={() => setAssignee(u.id)}
               className={`relative rounded-full transition-all cursor-pointer ${
                 isActive
-                  ? 'ring-2 ring-cyan-400 scale-110 z-10'
+                  ? 'ring-2 ring-indigo-500 dark:ring-indigo-400 scale-110 z-10'
                   : 'hover:scale-105 opacity-80 hover:opacity-100'
               }`}
               title={`Filter by ${u.name}`}
             >
               <UserAvatar user={u} size="xs" />
               {isActive && (
-                <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-cyan-400 ring-1 ring-black" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-indigo-500 ring-1 ring-white dark:ring-slate-900" />
               )}
             </button>
           );
@@ -323,10 +332,10 @@ export function FilterRibbon({
       {hasActiveFilters && (
         <button
           onClick={clearAll}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-500 text-[11px] font-semibold transition-colors cursor-pointer flex-shrink-0 ml-1 active:scale-95"
+          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-800/60 text-rose-600 dark:text-rose-400 text-[11px] font-semibold transition-colors cursor-pointer flex-shrink-0 ml-1 active:scale-95"
           title="Clear all active filters"
         >
-          <X className="w-3 h-3" />
+          <X className="w-3.5 h-3.5" />
           <span>Reset</span>
         </button>
       )}

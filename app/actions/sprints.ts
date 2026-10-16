@@ -50,6 +50,28 @@ export async function ensureSprintTables(dbInstance?: ReturnType<typeof getDb>) 
     `);
   } catch {}
 
+  try {
+    await db.run(sql`
+      UPDATE sprints
+      SET project_id = (
+        SELECT project_id FROM issues
+        WHERE issues.sprint_id = sprints.id AND issues.project_id IS NOT NULL
+        LIMIT 1
+      )
+      WHERE project_id IS NULL AND EXISTS (
+        SELECT 1 FROM issues WHERE issues.sprint_id = sprints.id AND issues.project_id IS NOT NULL
+      )
+    `);
+  } catch {}
+
+  try {
+    await db.run(sql`
+      UPDATE sprints
+      SET project_id = 'proj-apex'
+      WHERE project_id IS NULL
+    `);
+  } catch {}
+
   sprintTablesInitialized = true;
 }
 
@@ -489,7 +511,7 @@ export async function getActiveSprintAction(projectId?: string): Promise<Sprint 
     const activeList = projectId
       ? await db.all<Sprint>(sql`
           SELECT * FROM sprints
-          WHERE (project_id = ${projectId} OR project_id IS NULL)
+          WHERE project_id = ${projectId}
             AND (status = 'ACTIVE' OR state = 'active')
           ORDER BY start_date ASC
           LIMIT 1
@@ -518,7 +540,7 @@ export async function getProjectSprintsAction(projectId?: string): Promise<Sprin
     const all = projectId
       ? await db.all<Sprint>(sql`
           SELECT * FROM sprints
-          WHERE project_id = ${projectId} OR project_id IS NULL
+          WHERE project_id = ${projectId}
           ORDER BY created_at ASC
         `)
       : await db.all<Sprint>(sql`

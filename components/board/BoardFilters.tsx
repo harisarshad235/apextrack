@@ -10,9 +10,17 @@ import {
   Layers,
   ChevronDown,
   User as UserIcon,
+  Check,
 } from 'lucide-react';
 import { FullIssue, User, WorkspaceMetrics } from '@/lib/types';
 import { FilterRibbon } from './FilterRibbon';
+
+const PRIORITIES = [
+  { key: 'Critical', label: 'Critical', dotColor: 'bg-rose-500', textColor: 'text-rose-600 dark:text-rose-400' },
+  { key: 'High', label: 'High', dotColor: 'bg-amber-500', textColor: 'text-amber-600 dark:text-amber-400' },
+  { key: 'Medium', label: 'Medium', dotColor: 'bg-indigo-500', textColor: 'text-indigo-600 dark:text-indigo-400' },
+  { key: 'Low', label: 'Low', dotColor: 'bg-slate-400', textColor: 'text-slate-600 dark:text-slate-400' },
+] as const;
 
 export interface BoardFiltersState {
   selectedTypes: string[];
@@ -160,6 +168,23 @@ export function BoardFilters({
     (i) => (i.issueType || i.type || '').toUpperCase() === 'EPIC'
   );
 
+  const priorityCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {
+      Critical: 0,
+      High: 0,
+      Medium: 0,
+      Low: 0,
+    };
+    for (const issue of allIssues) {
+      const p = (issue.priority || '').toLowerCase();
+      if (p === 'critical') counts.Critical++;
+      else if (p === 'high') counts.High++;
+      else if (p === 'medium' || p === 'med') counts.Medium++;
+      else if (p === 'low' || p === 'lowest') counts.Low++;
+    }
+    return counts;
+  }, [allIssues]);
+
   const hasActiveFilters =
     filters.selectedTypes.length > 0 ||
     filters.selectedPriorities.length > 0 ||
@@ -185,7 +210,7 @@ export function BoardFilters({
   };
 
   return (
-    <div className="bg-white/80 dark:bg-[#11141B]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-[#232836] px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-xs z-10 transition-colors">
+    <div className="relative z-20 bg-white/95 dark:bg-[#0D121D]/95 backdrop-blur-md border-b border-slate-200/90 dark:border-slate-800/80 px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-xs transition-colors">
       <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
         {/* Quick Filter Ribbon */}
         <FilterRibbon
@@ -196,6 +221,101 @@ export function BoardFilters({
           currentUserId={currentUserId}
         />
 
+        {/* Priority Filter Dropdown */}
+        {!filters.isJqlMode && (
+          <div className="relative z-30" ref={priorityDropdownRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setTypeDropdownOpen(false);
+                setPriorityDropdownOpen(!priorityDropdownOpen);
+              }}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold transition-all duration-150 active:scale-95 cursor-pointer ${
+                filters.selectedPriorities.length > 0
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 border-slate-900 dark:border-white shadow-xs'
+                  : 'bg-white dark:bg-[#111827] text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-slate-700/70 hover:bg-slate-50 dark:hover:bg-[#172134] shadow-2xs'
+              }`}
+              title="Filter by issue priority"
+            >
+              <Filter className="w-3.5 h-3.5" />
+              <span>
+                {filters.selectedPriorities.length === 0
+                  ? 'Priority'
+                  : filters.selectedPriorities.length === 1
+                  ? `Priority: ${filters.selectedPriorities[0]}`
+                  : `Priority (${filters.selectedPriorities.length})`}
+              </span>
+              <ChevronDown
+                className={`w-3 h-3 transition-transform duration-200 ${
+                  priorityDropdownOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+
+            {priorityDropdownOpen && (
+              <div className="absolute left-0 top-full mt-1.5 w-52 bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="flex items-center justify-between px-2 py-1 border-b border-slate-100 dark:border-slate-800 mb-1">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
+                    Priorities
+                  </span>
+                  {filters.selectedPriorities.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onChangeFilters({ ...filters, selectedPriorities: [] })
+                      }
+                      className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer font-semibold"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-0.5">
+                  {PRIORITIES.map((pri) => {
+                    const isSelected = filters.selectedPriorities.includes(pri.key);
+                    const count = priorityCounts[pri.key] ?? 0;
+                    return (
+                      <button
+                        key={pri.key}
+                        type="button"
+                        onClick={() => {
+                          const next = isSelected
+                            ? filters.selectedPriorities.filter((p) => p !== pri.key)
+                            : [...filters.selectedPriorities, pri.key];
+                          onChangeFilters({ ...filters, selectedPriorities: next });
+                        }}
+                        className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold'
+                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] transition-colors ${
+                              isSelected
+                                ? 'bg-slate-900 dark:bg-white border-slate-900 dark:border-white text-white dark:text-slate-900'
+                                : 'border-slate-300 dark:border-slate-600 bg-transparent'
+                            }`}
+                          >
+                            {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                          </span>
+                          <span className={`w-2 h-2 rounded-full ${pri.dotColor}`} />
+                          <span className="text-slate-800 dark:text-slate-200 font-medium">{pri.label}</span>
+                        </div>
+                        <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold">
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* JQL-lite Mode Toggle */}
         <button
           onClick={() => {
@@ -205,8 +325,8 @@ export function BoardFilters({
           }}
           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border font-mono text-[11px] font-semibold transition-all duration-150 active:scale-95 flex-shrink-0 cursor-pointer ${
             filters.isJqlMode
-              ? 'bg-gradient-to-r from-indigo-600 to-cyan-600 text-white border-transparent shadow-xs'
-              : 'bg-slate-100 dark:bg-[#171B24] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#232836] hover:border-[#343C50]'
+              ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-950 border-slate-900 dark:border-white shadow-xs'
+              : 'bg-white dark:bg-[#111827] text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-slate-700/70 hover:bg-slate-50 dark:hover:bg-[#172134] shadow-2xs'
           }`}
           title="Toggle Compound JQL-lite Search Syntax"
         >
@@ -223,13 +343,13 @@ export function BoardFilters({
                 value={filters.jqlQuery}
                 onChange={(e) => onChangeFilters({ ...filters, jqlQuery: e.target.value })}
                 placeholder="e.g. assignee = currentUser() AND priority = High AND status != Done"
-                className="w-full bg-slate-100 dark:bg-[#0A0C10] border border-slate-200 dark:border-[#232836] rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-500 font-mono focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                className="w-full bg-white dark:bg-[#090D16] border border-slate-200/90 dark:border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 font-mono focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
             </div>
             {filters.jqlQuery && (
               <button
                 onClick={() => onChangeFilters({ ...filters, jqlQuery: '' })}
-                className="text-slate-400 hover:text-white p-1"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 cursor-pointer"
                 title="Clear JQL query"
               >
                 <X className="w-3.5 h-3.5" />
@@ -243,7 +363,7 @@ export function BoardFilters({
           <select
             value={filters.selectedEpic}
             onChange={(e) => onChangeFilters({ ...filters, selectedEpic: e.target.value })}
-            className="bg-slate-100 dark:bg-[#171B24] border border-slate-200 dark:border-[#232836] rounded-xl px-2.5 py-1.5 text-[11px] text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-cyan-500 cursor-pointer"
+            className="bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-slate-700/70 rounded-xl px-2.5 py-1.5 text-[11px] text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer shadow-2xs"
           >
             <option value="ALL">All Epics</option>
             {epics.map((ep) => (
@@ -257,20 +377,20 @@ export function BoardFilters({
 
       {/* Metrics Status Capsules */}
       <div className="hidden lg:flex items-center gap-2 text-xs flex-shrink-0">
-        <div className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-[#0A0C10] border border-slate-200 dark:border-[#232836] text-slate-600 dark:text-slate-400 flex items-center gap-1.5 font-mono text-[11px]">
+        <div className="px-2.5 py-1 rounded-xl bg-white dark:bg-[#111827] border border-slate-200/90 dark:border-slate-700/70 text-slate-600 dark:text-slate-300 flex items-center gap-1.5 font-mono text-[11px] shadow-2xs">
           <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
           <span>
             <strong className="text-slate-900 dark:text-slate-100 font-bold">{metrics.total}</strong> Issues
           </span>
         </div>
-        <div className="px-2.5 py-1 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400 flex items-center gap-1.5 font-mono text-[11px]">
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+        <div className="px-2.5 py-1 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/60 text-sky-800 dark:text-sky-300 flex items-center gap-1.5 font-mono text-[11px] shadow-2xs">
+          <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
           <span>
             <strong className="font-bold">{metrics.inProgress}</strong> Active
           </span>
         </div>
-        <div className="px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-mono text-[11px]">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+        <div className="px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5 font-mono text-[11px] shadow-2xs">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
           <span>
             <strong className="font-bold">{metrics.completedPoints}</strong> pts done
           </span>
