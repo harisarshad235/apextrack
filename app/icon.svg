@@ -1,11 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" fill="none">
   <defs>
     <linearGradient id="kynov-icon-grad" x1="15" y1="260" x2="285" y2="10" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#070A26" />
-      <stop offset="35%" stop-color="#141B66" />
-      <stop offset="70%" stop-color="#2D3FEA" />
-      <stop offset="100%" stop-color="#4F62FF" />
+      <stop class="stop-0" offset="0%" stop-color="#101755" />
+      <stop class="stop-1" offset="35%" stop-color="#1B2685" />
+      <stop class="stop-2" offset="70%" stop-color="#2D3FEA" />
+      <stop class="stop-3" offset="100%" stop-color="#4F62FF" />
     </linearGradient>
+    <style>
+      @media (prefers-color-scheme: dark) {
+        .stop-0 { stop-color: #2D3FEA; }
+        .stop-1 { stop-color: #4F62FF; }
+        .stop-2 { stop-color: #6366F1; }
+        .stop-3 { stop-color: #818CF8; }
+      }
+    </style>
   </defs>
 
   <g transform="translate(14, 28)">

@@ -1,33 +1,33 @@
-<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Dark Obsidian Container with hairline border -->
-  <rect width="32" height="32" rx="8" fill="#0A0C10" />
-  <rect width="32" height="32" rx="8" stroke="#232836" stroke-width="1" />
-
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" fill="none">
   <defs>
-    <!-- Electric Indigo to Cyan Pulse Gradient -->
-    <linearGradient id="kynovFaviconStem" x1="6" y1="5" x2="11" y2="27" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#818CF8"/>
-      <stop offset="50%" stop-color="#6366F1"/>
-      <stop offset="100%" stop-color="#4338CA"/>
+    <linearGradient id="kynov-icon-grad" x1="15" y1="260" x2="285" y2="10" gradientUnits="userSpaceOnUse">
+      <stop class="stop-0" offset="0%" stop-color="#101755" />
+      <stop class="stop-1" offset="35%" stop-color="#1B2685" />
+      <stop class="stop-2" offset="70%" stop-color="#2D3FEA" />
+      <stop class="stop-3" offset="100%" stop-color="#4F62FF" />
     </linearGradient>
-    <linearGradient id="kynovFaviconChevron" x1="12" y1="26" x2="27" y2="6" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#4F46E5"/>
-      <stop offset="40%" stop-color="#6366F1"/>
-      <stop offset="80%" stop-color="#06B6D4"/>
-      <stop offset="100%" stop-color="#22D3EE"/>
-    </linearGradient>
+    <style>
+      @media (prefers-color-scheme: dark) {
+        .stop-0 { stop-color: #2D3FEA; }
+        .stop-1 { stop-color: #4F62FF; }
+        .stop-2 { stop-color: #6366F1; }
+        .stop-3 { stop-color: #818CF8; }
+      }
+    </style>
   </defs>
 
-  <!-- 1. Solid Stem (Left Pillar) -->
-  <rect x="6.5" y="5.5" width="5.5" height="21" rx="2.5" fill="url(#kynovFaviconStem)"/>
-  <rect x="7.5" y="6.5" width="1.5" height="10" rx="0.75" fill="#FFFFFF" opacity="0.35"/>
-
-  <!-- 2. Upper Chevron Wing -->
-  <path d="M 13.5 15.5 C 13.5 14.5, 14 14, 15 13 L 23.5 6.5 C 24.5 5.5, 26 6.5, 26 7.8 L 26 11.5 C 26 12.2, 25.5 13, 24.5 13.6 L 17.5 19 C 16.5 19.8, 15.5 19, 15.5 18 Z" fill="url(#kynovFaviconChevron)"/>
-
-  <!-- 3. Lower Forward Chevron Slash -->
-  <path d="M 14 16.5 L 24 25.5 C 25 26.5, 26 25.8, 26 24.5 L 26 21 C 26 20.2, 25.5 19.5, 24.5 18.8 L 18 13.5 C 17 12.8, 15.8 13.5, 15.8 14.8 Z" fill="url(#kynovFaviconChevron)"/>
-
-  <!-- 4. Pulse Center Node -->
-  <circle cx="14.5" cy="16" r="1.2" fill="#22D3EE"/>
+  <g transform="translate(14, 28)">
+    <!-- Main outer structure and inner cutouts -->
+    <path 
+      d="M 268 7 L 165 7 L 26 155 L 26 66 L 66 42 L 67 96 L 91 71 L 91 0 L 0 54 L 1 192 L 81 240 Z M 218 32 L 124 147 L 103 122 L 67 161 L 66 203 L 35 184 L 35 180 L 175 31 Z M 92 146 L 109 167 L 92 187 Z" 
+      fill="url(#kynov-icon-grad)" 
+      fill-rule="evenodd" 
+    />
+    
+    <!-- Lower diagonal leg -->
+    <path 
+      d="M 130 194 L 166 238 L 270 239 L 184 129 L 168 148 L 220 213 L 176 213 L 145 175 Z" 
+      fill="url(#kynov-icon-grad)" 
+    />
+  </g>
 </svg>
