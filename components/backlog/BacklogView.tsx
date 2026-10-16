@@ -27,6 +27,7 @@ import {
   deleteSprintAction,
   moveIssueSprintAction,
 } from '@/app/actions/sprints';
+import { playCardPickupSound, playCardDropSound } from '@/lib/sound';
 
 interface BacklogViewProps {
   issues: FullIssue[];
@@ -163,6 +164,7 @@ export function BacklogView({
     setLocalIssues((prev) =>
       prev.map((i) => (i.key === issueKey ? { ...i, sprintId: targetSprintId } : i))
     );
+    playCardDropSound();
 
     try {
       await moveIssueSprintAction({ issueKey, sprintId: targetSprintId });
@@ -232,11 +234,12 @@ export function BacklogView({
         draggable={!isViewer && !isReadOnly}
         onDragStart={(e) => {
           if (!isViewer && !isReadOnly) {
+            playCardPickupSound();
             e.dataTransfer.setData('text/plain', issue.key);
           }
         }}
         onClick={() => onSelectIssue(issue.key)}
-        className="group flex items-center justify-between px-4 py-3 bg-white dark:bg-[#111622] border-b border-slate-200/80 dark:border-slate-800/80 hover:bg-indigo-50/20 dark:hover:bg-slate-800/40 cursor-pointer transition-all duration-150 select-none"
+        className="group flex items-center justify-between px-4 py-3 bg-white dark:bg-[#111827] border-b border-slate-200/90 dark:border-slate-800/80 hover:bg-slate-50 dark:hover:bg-[#172134] cursor-pointer transition-all duration-150 select-none"
       >
         <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-4">
           {!isViewer && !isReadOnly && (
@@ -247,7 +250,7 @@ export function BacklogView({
           <span className={`p-1 rounded border flex-shrink-0 ${typeCfg.color}`}>
             <TypeIcon className="w-3.5 h-3.5" />
           </span>
-          <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400 w-24 flex-shrink-0">
+          <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 w-24 flex-shrink-0 transition-colors">
             {issue.key}
           </span>
           {issue.parent && (

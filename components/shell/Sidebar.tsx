@@ -170,14 +170,14 @@ export function Sidebar({
 
   return (
     <aside
-      className={`bg-white dark:bg-[#0B0F19] text-slate-600 dark:text-slate-400 flex flex-col transition-all duration-300 ease-in-out md:border-r border-slate-200/80 dark:border-[#1E2538] shadow-xs overflow-hidden flex-shrink-0 ${
+      className={`bg-white dark:bg-[#0A0E18] text-slate-600 dark:text-slate-400 flex flex-col transition-all duration-300 ease-in-out md:border-r border-slate-200/90 dark:border-slate-800/80 shadow-xs overflow-hidden flex-shrink-0 ${
         mobileOpen
           ? 'fixed inset-y-0 left-0 z-50 w-72 translate-x-0 shadow-2xl md:shadow-none'
           : 'fixed inset-y-0 left-0 z-50 w-72 -translate-x-full md:translate-x-0 md:static md:z-30'
       } ${sidebarOpen ? 'md:w-64' : 'md:w-20'}`}
     >
       {/* Brand Header */}
-      <div className="p-4 border-b border-slate-100 dark:border-[#1E2538]">
+      <div className="p-4 border-b border-slate-100 dark:border-slate-800/80">
         <div className="flex items-center justify-between">
           <div className="flex items-center overflow-hidden">
             {sidebarOpen || mobileOpen ? (

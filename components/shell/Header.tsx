@@ -69,7 +69,7 @@ export function Header({
   };
 
   return (
-    <header className="relative h-16 bg-white dark:bg-[#0B0F19] border-b border-slate-200/80 dark:border-[#1E2538] flex items-center justify-between px-4 sm:px-6 z-30 flex-shrink-0 transition-colors w-full">
+    <header className="relative h-16 bg-white dark:bg-[#0D121D] border-b border-slate-200/90 dark:border-slate-800/80 flex items-center justify-between px-4 sm:px-6 z-30 flex-shrink-0 transition-colors w-full">
       {/* Left: Mobile Toggle & Page Title */}
       <div className="flex items-center gap-3">
         {onToggleMobileSidebar && (
