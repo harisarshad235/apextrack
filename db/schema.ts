@@ -133,6 +133,7 @@ export const sprints = sqliteTable(
   'sprints',
   {
     id: text('id').primaryKey(),
+    projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     state: text('state', { enum: SPRINT_STATES }).notNull().default('upcoming'),
     goal: text('goal'),
@@ -140,7 +141,10 @@ export const sprints = sqliteTable(
     endDate: text('end_date'),
     createdAt: createdAt(),
   },
-  (t) => [index('sprints_state_idx').on(t.state)],
+  (t) => [
+    index('sprints_state_idx').on(t.state),
+    index('sprints_project_idx').on(t.projectId),
+  ],
 );
 
 /* ------------------------------------------------------------------ */

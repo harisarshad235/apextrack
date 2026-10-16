@@ -32,6 +32,7 @@ import { playCardPickupSound, playCardDropSound } from '@/lib/sound';
 
 interface BacklogViewProps {
   issues: FullIssue[];
+  allProjectIssues?: FullIssue[];
   users: User[];
   sprints?: Sprint[];
   swimlanes?: Swimlane[];
@@ -64,6 +65,7 @@ function formatDateDisplay(dateStr?: string | null | number | Date): string {
 
 export function BacklogView({
   issues: initialIssues,
+  allProjectIssues,
   sprints = [],
   swimlanes = [],
   onSelectIssue,
@@ -224,7 +226,11 @@ export function BacklogView({
   };
 
   const handleExportCsv = () => {
-    // Collect all currently visible/filtered issues
+    // Collect issues to export: Prefer all project issues so stories, bugs, and tasks are never omitted,
+    // or localIssues if allProjectIssues is not provided.
+    const issuesToExport =
+      allProjectIssues && allProjectIssues.length > 0 ? allProjectIssues : localIssues;
+
     const sprintMap = new Map<string, string>();
     localSprints.forEach((s) => sprintMap.set(s.id, s.name));
 
@@ -248,7 +254,7 @@ export function BacklogView({
       'Sprint',
     ];
 
-    const rows = localIssues.map((issue) => {
+    const rows = issuesToExport.map((issue) => {
       const sprintName = issue.sprintId
         ? sprintMap.get(issue.sprintId) || issue.sprint?.name || 'Sprint'
         : 'Backlog';
@@ -257,10 +263,26 @@ export function BacklogView({
       const points =
         issue.storyPoints !== null && issue.storyPoints !== undefined ? issue.storyPoints : 0;
 
+      // Ensure Type accurately reflects Story, Bug, Task, Epic regardless of schema variations
+      const rawType = String(issue.type || issue.issueType || 'Task').trim();
+      const upper = rawType.toUpperCase();
+      const normalizedType =
+        upper === 'STORY'
+          ? 'Story'
+          : upper === 'BUG'
+          ? 'Bug'
+          : upper === 'TASK'
+          ? 'Task'
+          : upper === 'EPIC'
+          ? 'Epic'
+          : upper === 'SUBTASK'
+          ? 'Subtask'
+          : rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+
       return [
         issue.key,
         issue.title,
-        issue.type,
+        normalizedType,
         issue.status,
         issue.priority,
         assigneeName,
