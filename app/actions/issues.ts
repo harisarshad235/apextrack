@@ -26,6 +26,7 @@ import {
 } from '@/db/schema';
 import { ensureEnterpriseSchema } from '@/lib/schemaInit';
 import { createIssueSchema, updateIssueSchema } from '@/lib/schemas';
+import { calculateRankBetween } from '@/lib/fractionalIndexing';
 
 /**
  * Validates enterprise issue hierarchy rules:
@@ -252,6 +253,7 @@ export async function createIssue(data: {
       dueDate: validData.dueDate || null,
       environment: validData.environment || 'LIVE',
       description: validData.description || '',
+      rank: validData.rank != null ? validData.rank : 0,
     });
 
     // Handle labels
@@ -323,6 +325,7 @@ export async function updateIssue(
     sprintId?: string | null;
     dueDate?: string | null;
     environment?: 'LIVE' | 'DEMO';
+    rank?: number;
   }
 ) {
   try {
@@ -378,6 +381,7 @@ export async function updateIssue(
       { key: 'parentIssueId', label: 'parent_issue' },
       { key: 'issueType', label: 'issue_type' },
       { key: 'environment', label: 'environment' },
+      { key: 'rank', label: 'rank' },
     ];
 
     for (const field of auditFields) {
@@ -404,6 +408,69 @@ export async function updateIssue(
     return { success: true, message: `Updated issue ${issueKey}` };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to update issue';
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Updates an issue's rank using Linear-style midpoint positioning.
+ * Supports cross-swimlane drag-and-drop by optionally updating status.
+ */
+export async function updateIssueRank(
+  issueKey: string,
+  prevRank?: number | null,
+  nextRank?: number | null,
+  newStatus?: string
+) {
+  try {
+    const currentUser = await requireRole(['Admin', 'Member']);
+    const db = getDb();
+    await ensureEnterpriseSchema(db);
+
+    const existing = await db.query.issues.findFirst({
+      where: eq(issues.key, issueKey),
+    });
+    if (!existing) {
+      return { success: false, error: 'Issue not found' };
+    }
+
+    const { rank } = calculateRankBetween(prevRank, nextRank);
+
+    const updateData: Record<string, any> = {
+      rank,
+      updatedAt: new Date(),
+    };
+
+    if (newStatus && newStatus !== existing.status) {
+      updateData.status = newStatus;
+    }
+
+    await db.update(issues).set(updateData).where(eq(issues.key, issueKey));
+
+    if (newStatus && newStatus !== existing.status) {
+      await logIssueAudit(db, {
+        issueId: issueKey,
+        actorId: currentUser.id,
+        fieldChanged: 'status',
+        oldValue: existing.status,
+        newValue: newStatus,
+      });
+    }
+
+    await db.insert(issueHistory).values({
+      id: `h-${Date.now()}`,
+      issueKey,
+      actorId: currentUser.id,
+      actorName: currentUser.name,
+      action: newStatus && newStatus !== existing.status
+        ? `Moved to ${newStatus} with rank ${rank}`
+        : `Reordered to rank ${rank}`,
+    });
+
+    revalidatePath('/');
+    return { success: true, rank, message: `Updated rank to ${rank}` };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to update issue rank';
     return { success: false, error: message };
   }
 }
