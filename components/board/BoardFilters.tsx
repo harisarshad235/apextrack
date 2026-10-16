@@ -210,7 +210,7 @@ export function BoardFilters({
   };
 
   return (
-    <div className="bg-white/80 dark:bg-[#11141B]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-[#232836] px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-xs z-10 transition-colors">
+    <div className="relative z-20 bg-white/80 dark:bg-[#11141B]/90 backdrop-blur-md border-b border-slate-200/80 dark:border-[#232836] px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-xs transition-colors">
       <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
         {/* Quick Filter Ribbon */}
         <FilterRibbon
@@ -223,7 +223,7 @@ export function BoardFilters({
 
         {/* Priority Filter Dropdown */}
         {!filters.isJqlMode && (
-          <div className="relative" ref={priorityDropdownRef}>
+          <div className="relative z-30" ref={priorityDropdownRef}>
             <button
               type="button"
               onClick={() => {
@@ -253,7 +253,7 @@ export function BoardFilters({
             </button>
 
             {priorityDropdownOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-52 bg-white dark:bg-[#151922] border border-slate-200 dark:border-[#232836] rounded-xl shadow-xl p-1.5 z-50 backdrop-blur-md animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute left-0 top-full mt-1.5 w-52 bg-white dark:bg-[#151922] border border-slate-200 dark:border-[#232836] rounded-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
                 <div className="flex items-center justify-between px-2 py-1 border-b border-slate-100 dark:border-[#232836] mb-1">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
                     Priorities
