@@ -10,9 +10,17 @@ import {
   Layers,
   ChevronDown,
   User as UserIcon,
+  Check,
 } from 'lucide-react';
 import { FullIssue, User, WorkspaceMetrics } from '@/lib/types';
 import { FilterRibbon } from './FilterRibbon';
+
+const PRIORITIES = [
+  { key: 'Critical', label: 'Critical', dotColor: 'bg-rose-500', textColor: 'text-rose-600 dark:text-rose-400' },
+  { key: 'High', label: 'High', dotColor: 'bg-amber-500', textColor: 'text-amber-600 dark:text-amber-400' },
+  { key: 'Medium', label: 'Medium', dotColor: 'bg-indigo-500', textColor: 'text-indigo-600 dark:text-indigo-400' },
+  { key: 'Low', label: 'Low', dotColor: 'bg-slate-400', textColor: 'text-slate-600 dark:text-slate-400' },
+] as const;
 
 export interface BoardFiltersState {
   selectedTypes: string[];
@@ -160,6 +168,23 @@ export function BoardFilters({
     (i) => (i.issueType || i.type || '').toUpperCase() === 'EPIC'
   );
 
+  const priorityCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {
+      Critical: 0,
+      High: 0,
+      Medium: 0,
+      Low: 0,
+    };
+    for (const issue of allIssues) {
+      const p = (issue.priority || '').toLowerCase();
+      if (p === 'critical') counts.Critical++;
+      else if (p === 'high') counts.High++;
+      else if (p === 'medium' || p === 'med') counts.Medium++;
+      else if (p === 'low' || p === 'lowest') counts.Low++;
+    }
+    return counts;
+  }, [allIssues]);
+
   const hasActiveFilters =
     filters.selectedTypes.length > 0 ||
     filters.selectedPriorities.length > 0 ||
@@ -195,6 +220,101 @@ export function BoardFilters({
           allIssues={allIssues}
           currentUserId={currentUserId}
         />
+
+        {/* Priority Filter Dropdown */}
+        {!filters.isJqlMode && (
+          <div className="relative" ref={priorityDropdownRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setTypeDropdownOpen(false);
+                setPriorityDropdownOpen(!priorityDropdownOpen);
+              }}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold transition-all duration-150 active:scale-95 cursor-pointer ${
+                filters.selectedPriorities.length > 0
+                  ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-800 shadow-xs'
+                  : 'bg-slate-100 dark:bg-[#171B24] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#232836] hover:border-slate-300 dark:hover:border-[#343C50]'
+              }`}
+              title="Filter by issue priority"
+            >
+              <Filter className="w-3.5 h-3.5" />
+              <span>
+                {filters.selectedPriorities.length === 0
+                  ? 'Priority'
+                  : filters.selectedPriorities.length === 1
+                  ? `Priority: ${filters.selectedPriorities[0]}`
+                  : `Priority (${filters.selectedPriorities.length})`}
+              </span>
+              <ChevronDown
+                className={`w-3 h-3 transition-transform duration-200 ${
+                  priorityDropdownOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+
+            {priorityDropdownOpen && (
+              <div className="absolute left-0 top-full mt-1.5 w-52 bg-white dark:bg-[#151922] border border-slate-200 dark:border-[#232836] rounded-xl shadow-xl p-1.5 z-50 backdrop-blur-md animate-in fade-in zoom-in-95 duration-100">
+                <div className="flex items-center justify-between px-2 py-1 border-b border-slate-100 dark:border-[#232836] mb-1">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
+                    Priorities
+                  </span>
+                  {filters.selectedPriorities.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onChangeFilters({ ...filters, selectedPriorities: [] })
+                      }
+                      className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer font-medium"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-0.5">
+                  {PRIORITIES.map((pri) => {
+                    const isSelected = filters.selectedPriorities.includes(pri.key);
+                    const count = priorityCounts[pri.key] ?? 0;
+                    return (
+                      <button
+                        key={pri.key}
+                        type="button"
+                        onClick={() => {
+                          const next = isSelected
+                            ? filters.selectedPriorities.filter((p) => p !== pri.key)
+                            : [...filters.selectedPriorities, pri.key];
+                          onChangeFilters({ ...filters, selectedPriorities: next });
+                        }}
+                        className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-[11px] font-medium transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-indigo-50/80 dark:bg-indigo-900/30 text-indigo-950 dark:text-indigo-200 font-semibold'
+                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1C2230]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] transition-colors ${
+                              isSelected
+                                ? 'bg-indigo-600 border-indigo-600 text-white'
+                                : 'border-slate-300 dark:border-slate-600 bg-transparent'
+                            }`}
+                          >
+                            {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                          </span>
+                          <span className={`w-2 h-2 rounded-full ${pri.dotColor}`} />
+                          <span className={pri.textColor}>{pri.label}</span>
+                        </div>
+                        <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400">
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* JQL-lite Mode Toggle */}
         <button
