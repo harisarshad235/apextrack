@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Loader2,
   GripVertical,
+  Download,
 } from 'lucide-react';
 import { FullIssue, User, Swimlane, Sprint } from '@/lib/types';
 import { getTypeConfig, getPriorityConfig } from '@/lib/config';
@@ -222,6 +223,75 @@ export function BacklogView({
     onUpdateSprint?.(updatedSprint);
   };
 
+  const handleExportCsv = () => {
+    // Collect all currently visible/filtered issues
+    const sprintMap = new Map<string, string>();
+    localSprints.forEach((s) => sprintMap.set(s.id, s.name));
+
+    const escapeCsvValue = (val: string | number | null | undefined): string => {
+      if (val === null || val === undefined) return '';
+      const str = String(val);
+      if (str.includes('"') || str.includes(',') || str.includes('\n') || str.includes('\r')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const headers = [
+      'Key',
+      'Title',
+      'Type',
+      'Status',
+      'Priority',
+      'Assignee',
+      'Story Points',
+      'Sprint',
+    ];
+
+    const rows = localIssues.map((issue) => {
+      const sprintName = issue.sprintId
+        ? sprintMap.get(issue.sprintId) || issue.sprint?.name || 'Sprint'
+        : 'Backlog';
+
+      const assigneeName = issue.assignee?.name || issue.assignee?.email || 'Unassigned';
+      const points =
+        issue.storyPoints !== null && issue.storyPoints !== undefined ? issue.storyPoints : 0;
+
+      return [
+        issue.key,
+        issue.title,
+        issue.type,
+        issue.status,
+        issue.priority,
+        assigneeName,
+        points,
+        sprintName,
+      ];
+    });
+
+    const csvContent = [
+      headers.map(escapeCsvValue).join(','),
+      ...rows.map((row) => row.map(escapeCsvValue).join(',')),
+    ].join('\r\n');
+
+    // Trigger direct browser download with date stamp
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+      now.getDate()
+    ).padStart(2, '0')}`;
+    const filename = `backlog-export-${dateStr}.csv`;
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const renderIssueRow = (issue: FullIssue, isReadOnly = false) => {
     const typeCfg = getTypeConfig(issue.type);
     const priorityCfg = getPriorityConfig(issue.priority);
@@ -338,25 +408,37 @@ export function BacklogView({
           </p>
         </div>
 
-        {!isViewer && (
+        <div className="flex items-center gap-2.5 flex-shrink-0">
           <button
-            onClick={handleCreateSprint}
-            disabled={isCreatingSprint}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:via-indigo-500 hover:to-violet-500 text-white font-semibold text-xs shadow-md shadow-indigo-500/25 transition-all duration-150 disabled:opacity-50 hover:scale-[1.02] active:scale-95 cursor-pointer"
+            type="button"
+            onClick={handleExportCsv}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white dark:bg-[#151B28] hover:bg-slate-50 dark:hover:bg-[#1E2638] text-slate-700 dark:text-slate-200 border border-slate-300/80 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 font-semibold text-xs shadow-xs transition-all duration-150 cursor-pointer active:scale-95"
+            title="Export all visible backlog issues to CSV"
           >
-            {isCreatingSprint ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Creating...</span>
-              </>
-            ) : (
-              <>
-                <Plus className="w-3.5 h-3.5" />
-                <span>Create Sprint</span>
-              </>
-            )}
+            <Download className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+            <span>Export CSV</span>
           </button>
-        )}
+
+          {!isViewer && (
+            <button
+              onClick={handleCreateSprint}
+              disabled={isCreatingSprint}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:via-indigo-500 hover:to-violet-500 text-white font-semibold text-xs shadow-md shadow-indigo-500/25 transition-all duration-150 disabled:opacity-50 hover:scale-[1.02] active:scale-95 cursor-pointer"
+            >
+              {isCreatingSprint ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Creating...</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Create Sprint</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 1. Active Sprint Container (Top Container) */}

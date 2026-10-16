@@ -616,14 +616,14 @@ export function KanbanBoardView({
                   onDragOver={(e) => handleDragOver(e, lane.id)}
                   onDragLeave={(e) => handleDragLeave(e, lane.id)}
                   onDrop={(e) => handleDrop(e, lane.name)}
-                  className={`flex flex-col w-[86vw] sm:w-[320px] md:w-80 flex-shrink-0 snap-center md:snap-align-none max-h-full rounded-2xl border p-3.5 shadow-xs transition-all duration-200 ${
+                  className={`flex flex-col w-[86vw] sm:w-[325px] md:w-[340px] xl:w-[350px] flex-shrink-0 snap-center md:snap-align-none max-h-full rounded-2xl border p-3.5 shadow-xs transition-all duration-200 ${
                     isDragOver
                       ? 'drop-zone-pulse border-indigo-500/80 bg-indigo-50/20 dark:bg-indigo-950/30'
                       : 'border-slate-200/90 dark:border-slate-800/80 bg-slate-100/75 dark:bg-[#0E1420]/95 backdrop-blur-sm'
                   }`}
                 >
                   {/* Column Header */}
-                  <div className="flex items-center justify-between pb-3 px-1 border-b border-slate-200/90 dark:border-slate-800/80">
+                  <div className="flex items-center justify-between pb-3 px-1 border-b border-slate-200/90 dark:border-slate-800/80 gap-1.5">
                     {isEditingThisLane ? (
                       <div className="flex items-center gap-1.5 w-full">
                         <input
@@ -654,12 +654,15 @@ export function KanbanBoardView({
                       </div>
                     ) : (
                       <>
-                        <div className="flex items-center gap-2 min-w-0 group">
-                          <span className="font-bold text-xs text-slate-800 dark:text-slate-100 tracking-tight truncate">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1 mr-1 group">
+                          <span
+                            className="font-bold text-xs text-slate-800 dark:text-slate-100 tracking-tight shrink-0 max-w-[145px] sm:max-w-[170px] truncate"
+                            title={lane.name}
+                          >
                             {lane.name}
                           </span>
                           <span
-                            className={`px-2 py-0.5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-xs ${getColBadgeColor(
+                            className={`px-1.5 py-0.5 rounded-full flex items-center justify-center text-[10px] font-bold shadow-xs flex-shrink-0 ${getColBadgeColor(
                               lane.name
                             )}`}
                           >
@@ -667,7 +670,7 @@ export function KanbanBoardView({
                           </span>
 
                           {/* Interactive WIP Limit Pill */}
-                          <div className="relative flex items-center">
+                          <div className="relative flex items-center flex-shrink-0">
                             <button
                               type="button"
                               onClick={() => {
@@ -677,7 +680,7 @@ export function KanbanBoardView({
                                   wipLimit !== undefined && wipLimit > 0 ? String(wipLimit) : ''
                                 );
                               }}
-                              className={`text-[10px] font-mono px-2 py-0.5 rounded-md font-bold flex-shrink-0 flex items-center gap-1 transition shadow-xs cursor-pointer ${
+                              className={`text-[9.5px] font-mono px-1.5 py-0.5 rounded-md font-bold flex-shrink-0 flex items-center gap-1 transition shadow-xs cursor-pointer ${
                                 overWip
                                   ? 'bg-rose-500/20 text-rose-700 dark:text-rose-400 border border-rose-500/50 animate-pulse'
                                   : wipLimit && wipLimit > 0
@@ -743,7 +746,7 @@ export function KanbanBoardView({
                           {!isViewer && (
                             <button
                               onClick={() => handleStartEditLane(lane)}
-                              className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-cyan-400 rounded transition"
+                              className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-400 hover:text-cyan-400 rounded transition flex-shrink-0"
                               title="Rename Column"
                             >
                               <Edit3 className="w-3 h-3" />
@@ -752,8 +755,8 @@ export function KanbanBoardView({
                         </div>
 
                         {/* Velocity Points Badge & Quick Add Task Trigger */}
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <span className="text-[11px] font-mono text-slate-400 font-medium px-1.5 py-0.5 rounded bg-black/5 dark:bg-[#171B24] border border-transparent dark:border-[#232836]">
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <span className="text-[10px] font-mono text-slate-400 font-medium px-1.5 py-0.5 rounded bg-black/5 dark:bg-[#171B24] border border-transparent dark:border-[#232836]">
                             {colPoints} pts
                           </span>
 
