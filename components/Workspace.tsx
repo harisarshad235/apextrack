@@ -31,6 +31,7 @@ import { ProjectsModal } from '@/components/projects/ProjectsModal';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { Toast, Notification } from '@/components/ui/Toast';
 import { CommandPalette } from '@/components/command/CommandPalette';
+import { playCardErrorSound } from '@/lib/sound';
 
 import {
   moveIssueStatus,
@@ -171,12 +172,32 @@ export function Workspace({
 
   // Live issues state synced in background across multiple active users
   const [liveIssues, setLiveIssues] = useState<FullIssue[]>(initialIssues);
+  const recentlyMovedRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
-    setLiveIssues(initialIssues);
+    setLiveIssues((prev) => {
+      const recentlyMoved = recentlyMovedRef.current;
+      const prevMap = new Map(prev.map((i) => [i.key, i]));
+      let hasChange = false;
+
+      const merged = initialIssues.map((incoming) => {
+        const movedTime = recentlyMoved.get(incoming.key);
+        if (movedTime && Date.now() - movedTime < 10000) {
+          const local = prevMap.get(incoming.key);
+          if (local) return local;
+        }
+        const existing = prevMap.get(incoming.key);
+        if (!existing || existing.status !== incoming.status) {
+          hasChange = true;
+        }
+        return incoming;
+      });
+
+      return hasChange ? merged : prev;
+    });
   }, [initialIssues]);
 
-  // Multi-user silent live background sync (polls lightweight JSON changes every 5s with zero tab reloading)
+  // Multi-user silent live background sync (polls lightweight JSON changes every 3.5s with zero tab reloading)
   const lastSyncTimeRef = useRef<number>(Date.now());
   const isSyncingRef = useRef<boolean>(false);
 
@@ -188,7 +209,8 @@ export function Workspace({
       if (isSyncingRef.current || document.visibilityState !== 'visible') return;
       isSyncingRef.current = true;
       try {
-        const since = lastSyncTimeRef.current;
+        // Query recent changes with a 5-second overlap window to handle clock jitter
+        const since = Math.max(0, lastSyncTimeRef.current - 5000);
         const res = await fetch(
           `/api/issues/sync?projectId=${encodeURIComponent(activeProjectId)}&since=${since}`,
           { cache: 'no-store' }
@@ -202,8 +224,15 @@ export function Workspace({
             setLiveIssues((prevIssues) => {
               const updatedMap = new Map(data.issues!.map((u: any) => [u.key, u]));
               let hasAnyChange = false;
+              const recentlyMoved = recentlyMovedRef.current;
 
               const nextIssues = prevIssues.map((existing) => {
+                // Protect issues dragged locally in the last 6 seconds from being overwritten by stale poll
+                const localMoveTime = recentlyMoved.get(existing.key);
+                if (localMoveTime && Date.now() - localMoveTime < 6000) {
+                  return existing;
+                }
+
                 const incoming = updatedMap.get(existing.key);
                 if (!incoming) return existing;
 
@@ -247,7 +276,7 @@ export function Workspace({
       }
     };
 
-    const interval = setInterval(syncIssues, 5000);
+    const interval = setInterval(syncIssues, 3500);
     return () => clearInterval(interval);
   }, [activeProjectId, initialUsers, sprints]);
 
@@ -308,7 +337,7 @@ export function Workspace({
       if (pId) return pId === activeProjectId;
 
       // If sprint has issues, match project of those issues
-      const sprintIssues = optimisticIssues.filter((i) => i.sprintId === s.id);
+      const sprintIssues = initialIssues.filter((i) => i.sprintId === s.id);
       if (sprintIssues.length > 0) {
         return sprintIssues.some((i) => {
           if (i.projectId) return i.projectId === activeProjectId;
@@ -320,7 +349,7 @@ export function Workspace({
       // If sprint is unassociated and empty, assign to default first project
       return activeProjectId === initialProjects[0]?.id;
     });
-  }, [optimisticSprints, activeProjectId, optimisticIssues, initialProjects]);
+  }, [optimisticSprints, activeProjectId, initialIssues, initialProjects]);
 
   // Metrics accurately scoped to the active project
   const projectMetrics = useMemo(() => {
@@ -423,25 +452,46 @@ export function Workspace({
     return optimisticIssues.find((i) => i.key === selectedIssueKey) || null;
   }, [optimisticIssues, selectedIssueKey]);
 
-  // Actions
-  const handleUpdateIssueStatus = (issueKey: string, newStatus: string) => {
+  // Jira-grade multi-user card drag-and-drop: instant optimistic move with silent sync & resilient rollback
+  const handleUpdateIssueStatus = async (issueKey: string, newStatus: string) => {
     if (isViewer) {
       showToast('Viewers have read-only access. Switch to an Admin or Member persona.', 'error');
       return;
     }
 
-    startTransition(async () => {
-      setOptimisticIssues({ key: issueKey, newStatus });
-      setLiveIssues((prev) =>
-        prev.map((i) => (i.key === issueKey ? { ...i, status: newStatus } : i))
-      );
+    const currentIssue = liveIssues.find((i) => i.key === issueKey);
+    const oldStatus = currentIssue?.status || '';
+    if (oldStatus === newStatus) return;
+
+    // 1. Mark recently moved timestamp to protect against stale background polling
+    recentlyMovedRef.current.set(issueKey, Date.now());
+
+    // 2. Instant local optimistic update with zero whole-workspace refresh
+    setLiveIssues((prev) =>
+      prev.map((i) => (i.key === issueKey ? { ...i, status: newStatus } : i))
+    );
+
+    // 3. Silent background server update without triggering Next.js full-page revalidation
+    try {
       const res = await moveIssueStatus(issueKey, newStatus);
-      if (res.success) {
-        showToast(res.message || `Moved ${issueKey} to ${newStatus}`);
-      } else {
-        showToast(res.error || 'Failed to update issue status', 'error');
+      if (!res.success) {
+        // Rollback on server validation/permission error
+        recentlyMovedRef.current.delete(issueKey);
+        setLiveIssues((prev) =>
+          prev.map((i) => (i.key === issueKey ? { ...i, status: oldStatus } : i))
+        );
+        playCardErrorSound();
+        showToast(res.error || `Failed to move ${issueKey}. Reverting changes.`, 'error');
       }
-    });
+    } catch {
+      // Rollback on network failure
+      recentlyMovedRef.current.delete(issueKey);
+      setLiveIssues((prev) =>
+        prev.map((i) => (i.key === issueKey ? { ...i, status: oldStatus } : i))
+      );
+      playCardErrorSound();
+      showToast(`Connection error moving ${issueKey}. Reverting changes.`, 'error');
+    }
   };
 
   const handleCreateSwimlane = (name: string, color?: string) => {
