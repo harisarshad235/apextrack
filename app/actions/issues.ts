@@ -146,7 +146,6 @@ export async function moveIssueStatus(issueKey: string, newStatus: string) {
       newValue: newStatus,
     });
 
-    revalidatePath('/');
     return { success: true, message: `Moved ${issueKey} to ${newStatus}` };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to move issue status';

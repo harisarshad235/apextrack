@@ -81,12 +81,7 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchData();
 
-    // Background synchronization polling every 15 seconds
-    const interval = setInterval(() => {
-      fetchData(true);
-    }, 15000);
-
-    // Re-sync on window focus
+    // Re-sync on window focus after idle
     const handleFocus = () => fetchData(true);
     window.addEventListener('focus', handleFocus);
 
@@ -95,7 +90,6 @@ export default function DashboardPage() {
     window.addEventListener('kynov:refresh-data', handleCustomRefresh);
 
     return () => {
-      clearInterval(interval);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('kynov:refresh-data', handleCustomRefresh);
     };

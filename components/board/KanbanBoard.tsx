@@ -25,7 +25,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FullIssue, User, Swimlane, Sprint, isDemoIssue } from '@/lib/types';
 import { getTypeConfig, getPriorityConfig } from '@/lib/config';
 import { UserAvatar } from '@/components/ui/UserAvatar';
-import { getActiveSprintAction } from '@/app/actions/sprints';
 import { VelocityMetricsWidget } from './VelocityMetricsWidget';
 import { playCardPickupSound, playCardDropSound, playCardErrorSound } from '@/lib/sound';
 
@@ -108,59 +107,15 @@ export function KanbanBoardView({
   const [recentFirst, setRecentFirst] = useState(false);
   const [sprintFilter, setSprintFilter] = useState<string>('ALL');
 
-  // Active sprint state & resolution
-  const [activeSprint, setActiveSprint] = useState<Sprint | null>(() => {
+  // Active sprint state & resolution directly from props - zero unmount/flicker
+  const activeSprint = useMemo(() => {
     return (
       sprints?.find((s) => ((s as any).status || s.state || '').toUpperCase() === 'ACTIVE') || null
     );
-  });
-  const [loadingSprint, setLoadingSprint] = useState<boolean>(true);
+  }, [sprints]);
 
   // WIP limits local state with localStorage persistence
   const currentProjectId = swimlanes[0]?.projectId || 'default';
-
-  useEffect(() => {
-    let isMounted = true;
-    async function loadSprint() {
-      if (sprints && sprints.length > 0) {
-        const found = sprints.find(
-          (s) => ((s as any).status || s.state || '').toUpperCase() === 'ACTIVE'
-        );
-        if (isMounted) {
-          setActiveSprint(found || null);
-          setLoadingSprint(false);
-        }
-        return;
-      }
-      try {
-        setLoadingSprint(true);
-        const res = await getActiveSprintAction(
-          currentProjectId !== 'default' ? currentProjectId : undefined
-        );
-        if (isMounted) {
-          setActiveSprint(res);
-          setLoadingSprint(false);
-        }
-      } catch (err) {
-        console.error('Failed to load active sprint:', err);
-        if (isMounted) {
-          setActiveSprint(null);
-          setLoadingSprint(false);
-        }
-      }
-    }
-
-    loadSprint();
-
-    const handleSprintUpdate = () => {
-      loadSprint();
-    };
-    window.addEventListener('kynov:sprint-updated', handleSprintUpdate);
-    return () => {
-      isMounted = false;
-      window.removeEventListener('kynov:sprint-updated', handleSprintUpdate);
-    };
-  }, [currentProjectId, sprints]);
 
   const handleGoToBacklog = () => {
     if (onNavigateToBacklog) {
@@ -542,14 +497,7 @@ export function KanbanBoardView({
         )}
       </div>
 
-      {loadingSprint ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 min-h-[350px]">
-          <div className="flex items-center gap-2.5 text-xs text-slate-400 font-medium">
-            <div className="w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
-            <span>Loading active sprint metrics...</span>
-          </div>
-        </div>
-      ) : !activeSprint && sprintFilter === 'ACTIVE' ? (
+      {!activeSprint && sprintFilter === 'ACTIVE' ? (
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center min-h-[420px] rounded-2xl border border-dashed border-slate-300 dark:border-[#232836] bg-slate-50/50 dark:bg-[#11141B]/40 my-4">
           <div className="max-w-md w-full p-8 rounded-2xl border border-slate-200 dark:border-[#232836] bg-white dark:bg-[#11141B] shadow-2xl flex flex-col items-center text-center transition-colors">
             <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center mb-4 ring-8 ring-cyan-500/5">
