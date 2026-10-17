@@ -6,7 +6,7 @@ import {
 } from '../lib/fractionalIndexing';
 
 console.log('========================================================');
-console.log(' ApexTrack Fractional Indexing & Ranking Verification ');
+console.log('   Kynov Fractional Indexing & Ranking Verification     ');
 console.log('========================================================\n');
 
 let passedTests = 0;

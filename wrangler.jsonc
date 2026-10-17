@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "apextrack",
+  "name": "kynov",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": [
@@ -18,10 +18,6 @@
   "routes": [
     {
       "pattern": "kynov.harisarshad.site",
-      "custom_domain": true
-    },
-    {
-      "pattern": "apex.harisarshad.site",
       "custom_domain": true
     }
   ],

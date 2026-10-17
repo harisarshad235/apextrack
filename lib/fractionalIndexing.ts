@@ -1,5 +1,5 @@
 /**
- * ApexTrack - Fractional Indexing & Issue Ranking Engine
+ * Kynov - Fractional Indexing & Issue Ranking Engine
  * Inspired by Linear and Figma's distributed ordering architecture.
  *
  * Supports two interoperable ordering paradigms:

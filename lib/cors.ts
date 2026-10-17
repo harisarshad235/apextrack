@@ -7,8 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export const ALLOWED_ORIGINS = [
   'https://kynov.harisarshad.site',
-  'https://apex.harisarshad.site',
-  'https://apextrack.harisarshad235.workers.dev',
+  'https://kynov.harisarshad235.workers.dev',
 ];
 
 export const DEV_ALLOWED_ORIGINS = [

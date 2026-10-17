@@ -104,7 +104,7 @@ If you did not request a password reset, you can safely ignore this email. Your 
 
 Best regards,
 Kynov Team
-https://apex.harisarshad.site
+https://kynov.harisarshad.site
 Support: harisarshad235@gmail.com`;
 
   const html = `
@@ -231,7 +231,7 @@ Department: ${dept}
 Status: PENDING APPROVAL
 
 Review and approve this user in the Team & Access control center:
-https://apex.harisarshad.site`;
+https://kynov.harisarshad.site`;
 
   return sendEmail({ to: ADMIN_NOTIFICATION_EMAIL, subject, html, text });
 }
