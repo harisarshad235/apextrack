@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   PanelLeftClose,
   PanelLeftOpen,
+  Building2,
   Globe,
   ExternalLink,
 } from 'lucide-react';
@@ -145,6 +146,12 @@ export function Sidebar({
     {
       title: 'Team & Org',
       items: [
+        {
+          id: 'organization',
+          label: 'Organization Hub',
+          icon: Building2,
+          badge: 'Org',
+        },
         {
           id: 'team',
           label: 'Team Management',

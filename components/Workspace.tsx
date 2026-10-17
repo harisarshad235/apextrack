@@ -29,9 +29,11 @@ import { IssueDetailDrawer } from '@/components/drawer/IssueDetailDrawer';
 import { CreateIssueModal } from '@/components/issues/CreateIssueModal';
 import { ProjectsModal } from '@/components/projects/ProjectsModal';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
+import { OrganizationView } from '@/components/organization/OrganizationView';
 import { Toast, Notification } from '@/components/ui/Toast';
 import { CommandPalette } from '@/components/command/CommandPalette';
 import { playCardErrorSound } from '@/lib/sound';
+import { Building2, Users as UsersIcon } from 'lucide-react';
 
 import {
   moveIssueStatus,
@@ -840,53 +842,121 @@ export function Workspace({
 
         {/* View Content with Dynamic Smooth Transition */}
         <div key={activeTab} className="flex-1 overflow-auto p-3 sm:p-4 md:p-6 animate-slide-up relative z-10">
-          {activeTab === 'dashboard' && (
-            <DashboardOverview
-              issues={optimisticIssues}
-              users={initialUsers}
-              metrics={initialMetrics}
-              sprints={optimisticSprints}
-              projects={initialProjects}
-              onNavigateTab={(tab) => setActiveTab(tab)}
-              onSelectIssue={(key) => handleSelectIssue(key)}
-            />
+          {/* Zero-project unassigned state for new workspace members */}
+          {initialProjects.length === 0 && (activeTab === 'dashboard' || activeTab === 'board' || activeTab === 'backlog') ? (
+            <div className="max-w-2xl mx-auto my-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-xl text-center space-y-6">
+              <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 mx-auto flex items-center justify-center border border-indigo-500/20">
+                <Building2 className="w-8 h-8" />
+              </div>
+              <div>
+                <span className="text-[10px] font-mono font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full uppercase tracking-wider">
+                  Workspace Viewer • Zero Projects Assigned
+                </span>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mt-3">
+                  Welcome to the Organization Workspace
+                </h2>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-2 max-w-lg mx-auto leading-relaxed">
+                  Your account is active with workspace viewing access. In accordance with our Linear & Jira zero-trust security scheme, project issues, sprint boards, and backlogs remain private until an Administrator assigns you to a project team.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left max-w-lg mx-auto pt-2">
+                <div
+                  onClick={() => setActiveTab('organization')}
+                  className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 cursor-pointer transition group"
+                >
+                  <div className="flex items-center gap-2 font-bold text-xs text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                    <Building2 className="w-4 h-4 text-indigo-500" /> Organization Hub
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    Explore team projects across the organization and view access roles.
+                  </p>
+                </div>
+
+                <div
+                  onClick={() => setActiveTab('team')}
+                  className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 cursor-pointer transition group"
+                >
+                  <div className="flex items-center gap-2 font-bold text-xs text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                    <UsersIcon className="w-4 h-4 text-blue-500" /> Team Directory
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    See organization administrators and project managers to request access.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {activeTab === 'dashboard' && (
+                <DashboardOverview
+                  issues={optimisticIssues}
+                  users={initialUsers}
+                  metrics={initialMetrics}
+                  sprints={optimisticSprints}
+                  projects={initialProjects}
+                  onNavigateTab={(tab) => setActiveTab(tab)}
+                  onSelectIssue={(key) => handleSelectIssue(key)}
+                />
+              )}
+
+              {activeTab === 'board' && (
+                <KanbanBoardView
+                  issues={filteredIssues}
+                  users={initialUsers}
+                  swimlanes={activeSwimlanes}
+                  sprints={activeProjectSprints}
+                  onSelectIssue={(key) => handleSelectIssue(key)}
+                  onStatusChange={handleUpdateIssueStatus}
+                  onCreateSwimlane={handleCreateSwimlane}
+                  onUpdateSwimlane={handleUpdateSwimlane}
+                  onDeleteSwimlane={handleDeleteSwimlane}
+                  isViewer={isViewer}
+                  currentUserId={currentUser.id}
+                  onQuickCreateIssue={() => {
+                    if (isViewer) {
+                      showToast('Viewers cannot create issues. Please switch roles.', 'error');
+                      return;
+                    }
+                    setIsCreateIssueOpen(true);
+                  }}
+                />
+              )}
+
+              {activeTab === 'backlog' && (
+                <BacklogView
+                  issues={filteredIssues}
+                  allProjectIssues={projectIssues}
+                  users={initialUsers}
+                  sprints={activeProjectSprints}
+                  swimlanes={activeSwimlanes}
+                  onSelectIssue={(key) => handleSelectIssue(key)}
+                  onStatusChange={handleUpdateIssueStatus}
+                  onCreateIssue={() => setIsCreateIssueOpen(true)}
+                  onUpdateSprint={handleUpdateSprint}
+                  isViewer={isViewer}
+                />
+              )}
+            </>
           )}
 
-          {activeTab === 'board' && (
-            <KanbanBoardView
-              issues={filteredIssues}
+          {activeTab === 'organization' && (
+            <OrganizationView
+              currentUser={currentUser}
               users={initialUsers}
-              swimlanes={activeSwimlanes}
-              sprints={activeProjectSprints}
-              onSelectIssue={(key) => handleSelectIssue(key)}
-              onStatusChange={handleUpdateIssueStatus}
-              onCreateSwimlane={handleCreateSwimlane}
-              onUpdateSwimlane={handleUpdateSwimlane}
-              onDeleteSwimlane={handleDeleteSwimlane}
-              isViewer={isViewer}
-              currentUserId={currentUser.id}
-              onQuickCreateIssue={() => {
+              projects={initialProjects}
+              onSelectProject={(projId) => {
+                setActiveProjectId(projId);
+              }}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+              onOpenCreateProject={() => {
                 if (isViewer) {
-                  showToast('Viewers cannot create issues. Please switch roles.', 'error');
+                  showToast('Viewers cannot create projects.', 'error');
                   return;
                 }
-                setIsCreateIssueOpen(true);
+                setIsProjectsModalOpen(true);
               }}
-            />
-          )}
-
-          {activeTab === 'backlog' && (
-            <BacklogView
-              issues={filteredIssues}
-              allProjectIssues={projectIssues}
-              users={initialUsers}
-              sprints={activeProjectSprints}
-              swimlanes={activeSwimlanes}
-              onSelectIssue={(key) => handleSelectIssue(key)}
-              onStatusChange={handleUpdateIssueStatus}
-              onCreateIssue={() => setIsCreateIssueOpen(true)}
-              onUpdateSprint={handleUpdateSprint}
-              isViewer={isViewer}
+              onShowToast={showToast}
             />
           )}
 

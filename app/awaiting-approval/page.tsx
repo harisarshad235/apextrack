@@ -80,10 +80,17 @@ export default async function AwaitingApprovalPage() {
 
         <div className="flex flex-col gap-3">
           <a
-            href="/awaiting-approval"
+            href="/dashboard"
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition active:scale-98"
           >
-            <RefreshCw className="w-3.5 h-3.5" /> Check Approval Status
+            <CheckCircle2 className="w-3.5 h-3.5" /> Enter Workspace (Viewer Mode)
+          </a>
+
+          <a
+            href="/awaiting-approval"
+            className="w-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium py-2 rounded-xl text-xs flex items-center justify-center gap-2 border border-slate-300 dark:border-slate-700 transition"
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Refresh Verification Status
           </a>
 
           <form action={logoutUser}>

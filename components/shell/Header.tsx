@@ -59,6 +59,8 @@ export function Header({
         return 'Sprint Backlog';
       case 'documents':
         return 'Knowledge Base';
+      case 'organization':
+        return 'Organization Hub';
       case 'team':
         return 'Team Management';
       case 'metrics':

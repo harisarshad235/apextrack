@@ -122,10 +122,6 @@ export async function loginAction(formData: { email: string; password: string })
       }
     }
 
-    if (user.status === 'PENDING') {
-      return { success: false, error: 'PENDING_APPROVAL' };
-    }
-
     if (user.status === 'SUSPENDED') {
       return { success: false, error: 'Account has been suspended' };
     }
@@ -201,16 +197,19 @@ export async function registerUser(data: {
     const userId = `u-${Date.now()}`;
     const hashedPassword = await hashPassword(password);
 
-    // Strictly register with status 'PENDING'
+    // In the modern Linear / Jira SaaS model:
+    // Newly registered users are granted immediate Workspace Viewing access (role: 'Viewer', status: 'APPROVED').
+    // In accordance with zero-trust isolation, they have 0 project assignments until an administrator adds them to project_members.
     await db.insert(users).values({
       id: userId,
       name: cleanName,
       email: cleanEmail,
       passwordHash: hashedPassword,
       role: 'Viewer',
-      status: 'PENDING',
+      status: 'APPROVED',
       department,
       avatarUrl: null,
+      approvedAt: new Date(),
     });
 
     const sessionToken = await createSessionToken({ userId, role: 'Viewer' });
@@ -236,7 +235,7 @@ export async function registerUser(data: {
       console.warn('[Alert] Could not dispatch new user alert email:', e);
     });
 
-    return { success: true, redirect: '/awaiting-approval' };
+    return { success: true, redirect: '/dashboard' };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Registration failed';
     return { success: false, error: message };

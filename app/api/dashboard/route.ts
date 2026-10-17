@@ -12,14 +12,17 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (currentUser.status === 'PENDING') {
+    if (currentUser.status === 'SUSPENDED') {
       return NextResponse.json(
-        { error: 'Account pending approval', status: 'PENDING' },
+        { error: 'Account suspended by an administrator', status: 'SUSPENDED' },
         { status: 403 }
       );
     }
 
-    const workspaceData = await getWorkspaceData();
+    // In the Linear / Jira workspace model:
+    // Newly registered users receive workspace viewing access with zero assigned projects
+    // until an administrator or project manager adds them to project_members.
+    const workspaceData = await getWorkspaceData(currentUser);
 
     return NextResponse.json(
       {

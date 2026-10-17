@@ -479,3 +479,105 @@ export async function deleteProject(projectId: string) {
     return { success: false, error: message };
   }
 }
+
+export interface OrganizationProjectSummary extends Project {
+  memberCount: number;
+  leadName?: string | null;
+  leadEmail?: string | null;
+  leadAvatarUrl?: string | null;
+}
+
+/**
+ * Fetch all organization projects with member counts and lead info.
+ * Accessible to all authenticated workspace members for directory visibility.
+ */
+export async function getAllOrganizationProjectsAction(): Promise<OrganizationProjectSummary[]> {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) return [];
+
+    const db = getDb();
+    await ensureProjectRbacTables(db);
+
+    const rows = await db.all<any>(sql`
+      SELECT
+        p.id,
+        p.key,
+        p.name,
+        p.description,
+        p.category,
+        p.lead_id as leadId,
+        p.status,
+        p.created_at as createdAt,
+        p.updated_at as updatedAt,
+        p.is_archived as isArchived,
+        u.name as leadName,
+        u.email as leadEmail,
+        u.avatar_url as leadAvatarUrl,
+        (SELECT COUNT(*) FROM project_members pm WHERE pm.project_id = p.id) as memberCount
+      FROM projects p
+      LEFT JOIN users u ON p.lead_id = u.id
+      WHERE (p.is_archived = 0 OR (p.is_archived IS NULL AND p.status != 'archived'))
+      ORDER BY p.name ASC
+    `);
+
+    return rows.map((r) => ({
+      ...r,
+      memberCount: Number(r.memberCount || 0),
+    }));
+  } catch (err) {
+    console.error('Failed to get all organization projects:', err);
+    return [];
+  }
+}
+
+export interface UserProjectAssignment {
+  projectId: string;
+  projectKey: string;
+  projectName: string;
+  projectRole: string;
+}
+
+/**
+ * Fetch project assignment mapping for all organization users.
+ */
+export async function getAllUserProjectAssignmentsAction(): Promise<Record<string, UserProjectAssignment[]>> {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) return {};
+
+    const db = getDb();
+    await ensureProjectRbacTables(db);
+
+    const rows = await db.all<any>(sql`
+      SELECT
+        pm.user_id as userId,
+        pm.project_id as projectId,
+        pm.project_role as projectRole,
+        p.key as projectKey,
+        p.name as projectName
+      FROM project_members pm
+      INNER JOIN projects p ON pm.project_id = p.id
+      WHERE (p.is_archived = 0 OR (p.is_archived IS NULL AND p.status != 'archived'))
+      ORDER BY p.name ASC
+    `);
+
+    const mapping: Record<string, UserProjectAssignment[]> = {};
+    for (const r of rows) {
+      if (!mapping[r.userId]) {
+        mapping[r.userId] = [];
+      }
+      mapping[r.userId].push({
+        projectId: r.projectId,
+        projectKey: r.projectKey,
+        projectName: r.projectName,
+        projectRole: r.projectRole,
+      });
+    }
+
+    return mapping;
+  } catch (err) {
+    console.error('Failed to fetch user project assignments:', err);
+    return {};
+  }
+}

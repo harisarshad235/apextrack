@@ -19,9 +19,10 @@ import {
   issueComments,
 } from '@/db/schema';
 import { FullIssue, FullDocument, WorkspaceMetrics, User, Sprint, Project, Swimlane } from './types';
-import { desc, asc } from 'drizzle-orm';
+import { desc, asc, sql } from 'drizzle-orm';
+import { ensureProjectRbacTables } from './rbac';
 
-export async function getWorkspaceData(): Promise<{
+export async function getWorkspaceData(currentUser?: User | null): Promise<{
   users: User[];
   issues: FullIssue[];
   docs: FullDocument[];
@@ -33,7 +34,7 @@ export async function getWorkspaceData(): Promise<{
   const db = getDb();
 
   // Run all primary queries in parallel via Promise.all for minimal CPU time and latency
-  const [
+  let [
     rawUsers,
     projectListRaw,
     swimlaneList,
@@ -109,6 +110,31 @@ export async function getWorkspaceData(): Promise<{
     };
     await db.insert(projects).values(defaultProj).onConflictDoNothing();
     projectList = await db.select().from(projects).orderBy(asc(projects.name));
+  }
+
+  // Project-level RBAC & Scoping (Linear / Jira Permission Scheme):
+  // - Workspace Super Admins receive all active projects and issues across the organization.
+  // - Non-admin users strictly only see projects they have been assigned to in project_members.
+  // - If a newly registered user has 0 assigned projects, their projectList, swimlaneList, sprintList, and issues are empty ([]).
+  if (currentUser) {
+    const roleStr = String(currentUser.role || '');
+    const isSuperAdmin = roleStr === 'Admin' || roleStr === 'ADMIN' || roleStr.toUpperCase() === 'ADMIN';
+
+    if (!isSuperAdmin) {
+      await ensureProjectRbacTables(db);
+      const userMemberships = await db.all<{ project_id: string }>(sql`
+        SELECT project_id FROM project_members WHERE user_id = ${currentUser.id}
+      `).catch(() => []);
+      const allowedProjectIds = new Set(userMemberships.map((m) => m.project_id));
+
+      projectList = projectList.filter((p) => allowedProjectIds.has(p.id));
+      swimlaneList = swimlaneList.filter((s) => allowedProjectIds.has(s.projectId));
+      sprintList = sprintList.filter((s) => {
+        const pId = (s as any).projectId || (s as any).project_id;
+        return pId ? allowedProjectIds.has(pId) : false;
+      });
+      rawIssues = rawIssues.filter((i) => i.projectId && allowedProjectIds.has(i.projectId));
+    }
   }
 
   const projectMap = new Map<string, Project>();
