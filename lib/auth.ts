@@ -65,7 +65,7 @@ function hexToBytes(hex: string): Uint8Array {
 }
 
 /**
- * Edge-compatible WebCrypto PBKDF2 Password Hashing (SHA-256 + 16-byte salt + 250,000 iterations)
+ * Edge-compatible WebCrypto PBKDF2 Password Hashing (SHA-256 + 16-byte salt + 100,000 iterations - Cloudflare WebCrypto limit)
  */
 export async function hashPassword(password: string): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -81,7 +81,7 @@ export async function hashPassword(password: string): Promise<string> {
     {
       name: 'PBKDF2',
       salt: salt.buffer as ArrayBuffer,
-      iterations: 250000,
+      iterations: 100000,
       hash: 'SHA-256',
     },
     keyMaterial,
@@ -91,7 +91,7 @@ export async function hashPassword(password: string): Promise<string> {
   const saltHex = bytesToHex(salt);
   const hashHex = bytesToHex(new Uint8Array(derivedBits));
 
-  return `pbkdf2:250000:${saltHex}:${hashHex}`;
+  return `pbkdf2:100000:${saltHex}:${hashHex}`;
 }
 
 /**
@@ -111,40 +111,45 @@ export async function verifyPassword(password: string, storedHash: string | null
   }
 
   const iterations = parseInt(parts[1], 10);
-  if (isNaN(iterations) || iterations < 10000) {
+  if (isNaN(iterations) || iterations < 10000 || iterations > 100000) {
     return false;
   }
   const salt = hexToBytes(parts[2]);
   const expectedHashHex = parts[3];
 
-  const encoder = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(password),
-    { name: 'PBKDF2' },
-    false,
-    ['deriveBits']
-  );
+  try {
+    const encoder = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(password),
+      { name: 'PBKDF2' },
+      false,
+      ['deriveBits']
+    );
 
-  const derivedBits = await crypto.subtle.deriveBits(
-    {
-      name: 'PBKDF2',
-      salt: salt.buffer as ArrayBuffer,
-      iterations,
-      hash: 'SHA-256',
-    },
-    keyMaterial,
-    256
-  );
+    const derivedBits = await crypto.subtle.deriveBits(
+      {
+        name: 'PBKDF2',
+        salt: salt.buffer as ArrayBuffer,
+        iterations,
+        hash: 'SHA-256',
+      },
+      keyMaterial,
+      256
+    );
 
-  const actualHashHex = bytesToHex(new Uint8Array(derivedBits));
+    const actualHashHex = bytesToHex(new Uint8Array(derivedBits));
 
-  if (expectedHashHex.length !== actualHashHex.length) return false;
-  let diff = 0;
-  for (let i = 0; i < expectedHashHex.length; i++) {
-    diff |= expectedHashHex.charCodeAt(i) ^ actualHashHex.charCodeAt(i);
+    if (expectedHashHex.length !== actualHashHex.length) return false;
+    let diff = 0;
+    for (let i = 0; i < expectedHashHex.length; i++) {
+      diff |= expectedHashHex.charCodeAt(i) ^ actualHashHex.charCodeAt(i);
+    }
+    return diff === 0;
+  } catch (err) {
+    console.error('Password verification error:', err);
+    return false;
   }
-  return diff === 0;
 }
 
 /**

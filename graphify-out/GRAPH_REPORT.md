@@ -1,7 +1,7 @@
 # Graph Report - kynov  (2026-10-17)
 
 ## Corpus Check
-- 135 files · ~190,615 words
+- 135 files · ~190,636 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 8 file(s) not represented in the graph (top: (none) 2, .ico 2, .example 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `0c9ab9d0`
+- Built from commit: `3b6fd7e7`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
