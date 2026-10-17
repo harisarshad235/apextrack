@@ -133,7 +133,7 @@ export async function removeUser(userId: string) {
 
 export async function switchPersona(userId: string) {
   try {
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === 'production' || process.env.AUTH_MODE === 'production') {
       return { success: false, error: 'Persona switcher is disabled in production.' };
     }
 

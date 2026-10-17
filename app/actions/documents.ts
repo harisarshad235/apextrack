@@ -84,7 +84,7 @@ export async function updateDocument(
 
 export async function deleteDocument(id: string) {
   try {
-    await requireRole(['Admin', 'Member']);
+    await requireRole(['Admin']);
     const db = getDb();
 
     await db.delete(documents).where(eq(documents.id, id));

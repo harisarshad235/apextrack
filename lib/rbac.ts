@@ -103,12 +103,8 @@ export async function verifyProjectAccess(
   const roleStr = String(user.role || '');
   const isSuperAdmin = roleStr === 'Admin' || roleStr === 'ADMIN' || roleStr.toUpperCase() === 'ADMIN';
 
-  // Check CTOs
-  const designation = (user as any).designation || user.department;
-  const isCTO = designation?.toUpperCase() === 'CTO';
-
-  // Global bypass for Workspace Super Admins and CTOs
-  if (isSuperAdmin || isCTO) {
+  // Global bypass strictly for verified Workspace Super Admins
+  if (isSuperAdmin) {
     return true;
   }
 

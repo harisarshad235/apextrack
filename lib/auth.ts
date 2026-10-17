@@ -107,7 +107,7 @@ export async function verifyPassword(password: string, storedHash: string | null
 
   const parts = storedHash.split(':');
   if (parts.length !== 4 || parts[0] !== 'pbkdf2') {
-    return password === 'Kynov2026!';
+    return false;
   }
 
   const iterations = parseInt(parts[1], 10);

@@ -128,7 +128,7 @@ export async function updateSwimlane(
 
 export async function deleteSwimlane(swimlaneId: string) {
   try {
-    await requireRole(['Admin', 'Member']);
+    await requireRole(['Admin']);
     const db = getDb();
 
     const target = await db.query.swimlanes.findFirst({

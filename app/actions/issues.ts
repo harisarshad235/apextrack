@@ -477,7 +477,7 @@ export async function updateIssueRank(
 
 export async function deleteIssue(issueKey: string) {
   try {
-    await requireRole(['Admin', 'Member']);
+    await requireRole(['Admin']);
     const db = getDb();
     await ensureEnterpriseSchema(db);
 

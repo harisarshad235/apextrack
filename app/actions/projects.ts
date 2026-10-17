@@ -25,11 +25,9 @@ export async function getUserProjectsAction(): Promise<Project[]> {
 
     const roleStr = String(currentUser.role || '');
     const isAdmin = roleStr === 'Admin' || roleStr === 'ADMIN' || roleStr.toUpperCase() === 'ADMIN';
-    const designation = (currentUser as any).designation || currentUser.department;
-    const isCTO = designation?.toUpperCase() === 'CTO';
 
-    if (isAdmin || isCTO) {
-      // Admin / CTO bypass: all active projects
+    if (isAdmin) {
+      // Admin bypass: all active projects
       const activeProjects = await db.all<Project>(sql`
         SELECT p.*
         FROM projects p

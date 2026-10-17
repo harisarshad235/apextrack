@@ -11,6 +11,9 @@ export async function GET(req: NextRequest) {
     if (!currentUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (currentUser.status === 'PENDING') {
+      return NextResponse.json({ error: 'Account pending approval' }, { status: 403 });
+    }
 
     const { searchParams } = new URL(req.url);
     const projectId = searchParams.get('projectId');

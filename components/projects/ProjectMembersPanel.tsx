@@ -351,8 +351,8 @@ export function ProjectMembersPanel({
                       )}
                       {isCTO && (
                         <span
-                          className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-md font-semibold"
-                          title="CTO: Global bypass access"
+                          className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-md font-semibold"
+                          title="Department: Executive"
                         >
                           CTO
                         </span>
