@@ -26,7 +26,7 @@ export function isAllowedOrigin(origin: string | null | undefined): boolean {
     return true;
   }
 
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== 'production' && process.env.AUTH_MODE !== 'production') {
     if (DEV_ALLOWED_ORIGINS.some((allowed) => allowed.toLowerCase() === cleanOrigin)) {
       return true;
     }

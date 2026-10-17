@@ -2,6 +2,22 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { handleApiCors, isAllowedOrigin, getCorsHeaders } from '@/lib/cors';
 
+const CSP_HEADER = `
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' 'unsafe-eval';
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  font-src 'self' https://fonts.gstatic.com data:;
+  img-src 'self' data: blob: https://images.unsplash.com https://avatars.githubusercontent.com https://lh3.googleusercontent.com;
+  connect-src 'self' https://api.resend.com https://oauth2.googleapis.com https://openidconnect.googleapis.com https://github.com https://api.github.com https://*.workers.dev;
+  frame-ancestors 'self';
+  form-action 'self' https://github.com/login/oauth/authorize https://accounts.google.com/o/oauth2/v2/auth;
+  base-uri 'self';
+  object-src 'none';
+  upgrade-insecure-requests;
+`
+  .replace(/\s{2,}/g, ' ')
+  .trim();
+
 function withSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-Frame-Options', 'SAMEORIGIN');
@@ -9,11 +25,14 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), browsing-topics=()');
   response.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+  response.headers.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  response.headers.set('Content-Security-Policy', CSP_HEADER);
   return response;
 }
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const isDevAuthAllowed = process.env.NODE_ENV !== 'production' && process.env.AUTH_MODE !== 'production';
 
   // 1. Handle API routes with strict CORS origin verification
   if (pathname.startsWith('/api')) {
@@ -53,15 +72,15 @@ export function middleware(request: NextRequest) {
       request.cookies.get('kynov_session')?.value ||
       request.cookies.get('apex_session')?.value ||
       request.cookies.get('apex_session_user_id')?.value;
-    const devCookie =
-      request.cookies.get('kynov_dev_user_id')?.value ||
-      request.cookies.get('apex_dev_user_id')?.value;
+    const devCookie = isDevAuthAllowed
+      ? (request.cookies.get('kynov_dev_user_id')?.value || request.cookies.get('apex_dev_user_id')?.value)
+      : undefined;
 
     if ((sessionCookie || devCookie) && !isPreview) {
       const dashboardUrl = new URL('/dashboard', request.url);
       return withSecurityHeaders(NextResponse.redirect(dashboardUrl));
     }
-    return NextResponse.next();
+    return withSecurityHeaders(NextResponse.next());
   }
 
   // 3. Allow public marketing pages and auth flows without middleware redirection loops
@@ -74,7 +93,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/reset-password') ||
     pathname.startsWith('/awaiting-approval')
   ) {
-    return NextResponse.next();
+    return withSecurityHeaders(NextResponse.next());
   }
 
   // 4. Protected workspace routes (e.g. /dashboard, /projects):
@@ -83,16 +102,16 @@ export function middleware(request: NextRequest) {
     request.cookies.get('kynov_session')?.value ||
     request.cookies.get('apex_session')?.value ||
     request.cookies.get('apex_session_user_id')?.value;
-  const devCookie =
-    request.cookies.get('kynov_dev_user_id')?.value ||
-    request.cookies.get('apex_dev_user_id')?.value;
+  const devCookie = isDevAuthAllowed
+    ? (request.cookies.get('kynov_dev_user_id')?.value || request.cookies.get('apex_dev_user_id')?.value)
+    : undefined;
 
   if (!sessionCookie && !devCookie) {
     const loginUrl = new URL('/login', request.url);
     return withSecurityHeaders(NextResponse.redirect(loginUrl));
   }
 
-  return NextResponse.next();
+  return withSecurityHeaders(NextResponse.next());
 }
 
 export const config = {

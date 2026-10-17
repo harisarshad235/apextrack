@@ -25,6 +25,7 @@ const securityHeaders = [
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()' },
   { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+  { key: 'Cross-Origin-Opener-Policy', value: 'same-origin-allow-popups' },
   { key: 'Content-Security-Policy', value: cspHeader },
 ];
 
@@ -57,7 +58,11 @@ const isSupportedCloudflareDevPlatform =
   process.platform === "linux" ||
   (process.platform === "darwin" && parseFloat(os.release()) >= 22.6);
 
-if (isSupportedCloudflareDevPlatform) {
+if (
+  isSupportedCloudflareDevPlatform &&
+  process.env.NODE_ENV !== "production" &&
+  process.env.AUTH_MODE !== "production"
+) {
   initOpenNextCloudflareForDev();
 }
 

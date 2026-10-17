@@ -9,6 +9,7 @@ if (typeof globalThis !== 'undefined') {
   globalThis.__name = globalThis.__name || function (fn: any) { return fn; };
 }
 
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { cookies, headers } from 'next/headers';
 import { eq } from 'drizzle-orm';
 import { getDb } from './db';
@@ -17,10 +18,37 @@ import { users, User, UserRole } from '@/db/schema';
 export const SESSION_USER_COOKIE = 'kynov_session';
 export const DEV_USER_COOKIE = 'kynov_dev_user_id';
 
-const SESSION_SECRET =
-  process.env.SESSION_SECRET ||
-  process.env.NEXTAUTH_SECRET ||
-  '4f8c92a1d3e7b508f62c8e31a94d0752e391b4c805fa61e27b9c30d4a8e2f156';
+/**
+ * Resolve session secret securely from Cloudflare Worker context or process.env.
+ * Throws a fatal security error in production if no secret is configured.
+ */
+export function getSessionSecret(): string {
+  let envSecret: string | undefined;
+  try {
+    const { env } = getCloudflareContext();
+    if ((env as any)?.SESSION_SECRET) {
+      envSecret = (env as any).SESSION_SECRET;
+    } else if ((env as any)?.NEXTAUTH_SECRET) {
+      envSecret = (env as any).NEXTAUTH_SECRET;
+    }
+  } catch {}
+
+  const secret = envSecret || process.env.SESSION_SECRET || process.env.NEXTAUTH_SECRET;
+
+  if (secret && String(secret).trim()) {
+    return String(secret).trim();
+  }
+
+  // Refuse to run with an insecure default in production
+  if (process.env.NODE_ENV === 'production' || process.env.AUTH_MODE === 'production') {
+    throw new Error(
+      'CRITICAL SECURITY CONFIGURATION ERROR: SESSION_SECRET or NEXTAUTH_SECRET must be configured in production.'
+    );
+  }
+
+  // Safe ephemeral development fallback for local testing
+  return 'kynov_dev_local_ephemeral_hmac_secret_not_for_production';
+}
 
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
@@ -125,9 +153,10 @@ export async function verifyPassword(password: string, storedHash: string | null
 export async function createSessionToken(payload: { userId: string; role: string }): Promise<string> {
   const data = JSON.stringify(payload);
   const encoder = new TextEncoder();
+  const secret = getSessionSecret();
   const key = await crypto.subtle.importKey(
     'raw',
-    encoder.encode(SESSION_SECRET),
+    encoder.encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign']
@@ -156,13 +185,11 @@ export async function verifySessionToken(token: string): Promise<{ userId: strin
     const encoder = new TextEncoder();
     const sigBytes = hexToBytes(sigHex);
 
+    const activeSecret = getSessionSecret();
     const candidateSecrets = Array.from(new Set([
-      SESSION_SECRET,
+      activeSecret,
       process.env.SESSION_SECRET,
       process.env.NEXTAUTH_SECRET,
-      '4f8c92a1d3e7b508f62c8e31a94d0752e391b4c805fa61e27b9c30d4a8e2f156',
-      'kynov_session_secret_edge_2026',
-      'apextrack_session_secret_edge_2026',
     ].filter(Boolean) as string[]));
 
     for (const secret of candidateSecrets) {
@@ -196,9 +223,10 @@ export async function createPasswordResetToken(userId: string): Promise<string> 
   const payload = { userId, exp, purpose: 'pwd_reset' };
   const data = JSON.stringify(payload);
   const encoder = new TextEncoder();
+  const secret = getSessionSecret();
   const key = await crypto.subtle.importKey(
     'raw',
-    encoder.encode(SESSION_SECRET),
+    encoder.encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign']
@@ -221,9 +249,10 @@ export async function verifyPasswordResetToken(token: string): Promise<string | 
     const [b64Data, sigHex] = parts;
     const data = atob(b64Data);
     const encoder = new TextEncoder();
+    const secret = getSessionSecret();
     const key = await crypto.subtle.importKey(
       'raw',
-      encoder.encode(SESSION_SECRET),
+      encoder.encode(secret),
       { name: 'HMAC', hash: 'SHA-256' },
       false,
       ['verify']
@@ -279,7 +308,7 @@ export async function getCurrentUser(): Promise<User | null> {
   }
 
   // 2. Dev Persona Switcher Cookie lookup (Disabled in production)
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== 'production' && process.env.AUTH_MODE !== 'production') {
     const devUserId =
       cookieStore.get(DEV_USER_COOKIE)?.value ||
       cookieStore.get('apex_dev_user_id')?.value;

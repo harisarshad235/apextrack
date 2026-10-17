@@ -38,8 +38,15 @@ yarn-error.log*
 
 # env files & local secrets
 .env*
+!.env.example
 .dev.vars*
 *.local
+
+# credentials & keys
+*credentials*.json
+*service-account*.json
+*id_rsa*
+*id_ed25519*
 
 # local sqlite dumps & caches
 *.sqlite
